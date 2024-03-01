@@ -43,5 +43,7 @@
     "YEARS_LABEL": "Años",
     "CHOOSE_ANSWER_FROM_DROPDOWN_LABEL": "Escoja una respuesta",
     "DELETE_LABEL": "Eliminar",
-    "EDIT_LABEL": "Editar"
+    "EDIT_LABEL": "Editar",
+    "REPORT_DATE_RANGE": "Seleccionar intervalo de fechas",
+    "START_DATE_CANNOT_LATER_THAN_STOP_DATE": "La fecha de inicio no debe ser mayor que la fecha de fin."
 }

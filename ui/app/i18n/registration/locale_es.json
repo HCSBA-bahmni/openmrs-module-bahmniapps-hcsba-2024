@@ -87,7 +87,7 @@
     "MESSAGE_DIALOG_OPTION_COPY": "Copia error",
     "MESSAGE_DIALOG_OPTION_OKAY": "OK",
     "NO_LOCATION_TAGGED_TO_VISIT_LOCATION": "No hay ubicación puesta para la Ubicacion de la Visita Encontrada",
-    "REGISTRATION_ADDTIONAL_IDENTIFIERS": "Identificadores Adicionales",
+    "VISIT_OF_THIS_PATIENT_AT_SAME_LOCATION_EXISTS": "Ya existe una visita activa para este paciente en esta ubicación. El sistema no puede crear una visita duplicada.",
     "REGISTRATION_ADDTIONAL_IDENTIFIERS": "Identificadores Adicionales",
     "REGISTRATION_FORM_ERRORS_MESSAGE_KEY": "Por favor ingrese un valor en los campos obligatorios o corriga el valor en los campos resaltados para continuar",
     "OBS_BOOLEAN_YES_KEY": "Sí",
@@ -115,11 +115,11 @@
     "DELETE_LABEL": "Eliminar",
     "EDIT_LABEL": "Editar",
     "REGISTRATION_LABEL_RELATIONSHIP_EXISTS": "Relación suministrada ya existe",
-    "REGISTRATION_MESSAGE": "Thank you for registering. Please note your Patient Registration Details : #patientId, #name, #gender, #age years",
-    "REGISTRATION_TO_CLINICAL": "Save and go to Dashboard",
-    "FILE_UPLOAD_MUST_BE_IMAGE": "File uploaded must be an image",
-    "FILE_UPLOAD_MUST_BE_LESS_THAN": "File size should be less than",
-    "PATIENT_ATTRIBUTE_GIVEN_NAME_LOCAL": "First Name in Arabic",
-    "PATIENT_ATTRIBUTE_FAMILY_NAME_LOCAL": "Last Name in Arabic",
-    "PATIENT_ATTRIBUTE_MIDDLE_NAME_LOCAL": "Middle Name in Arabic"
+    "REGISTRATION_MESSAGE": "Gracias por registrarse. Tenga en cuenta los detalles de su registro de paciente: #patientId, #name, #gender, #age years",
+    "REGISTRATION_TO_CLINICAL": "Guardar e ir al Panel del paciente",
+    "FILE_UPLOAD_MUST_BE_IMAGE": "El archivo subido debe ser una imagen",
+    "FILE_UPLOAD_MUST_BE_LESS_THAN": "El tamaño del archivo debe ser inferior a",
+    "PATIENT_ATTRIBUTE_GIVEN_NAME_LOCAL": "Primer Nombre Social",
+    "PATIENT_ATTRIBUTE_FAMILY_NAME_LOCAL": "Apellido Social",
+    "PATIENT_ATTRIBUTE_MIDDLE_NAME_LOCAL": "Nombre del al  Medio Social"
 }
