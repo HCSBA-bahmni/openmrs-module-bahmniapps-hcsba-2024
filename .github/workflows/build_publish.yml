@@ -25,8 +25,8 @@ jobs:
         run: |
           curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
           
-      - name: Configurar PATH para el cliente de Transifex
-        run: echo "/home/runner/work/default-config-HCSBA-2024/default-config-HCSBA-2024:$PATH" >> $GITHUB_PATH
+      - name: Configurar PATH para el cliente de Transifex 
+        run: echo "${{ github.workspace }}:${{ env.PATH }}" >> $GITHUB_PATH
 
 
       - name: Configurar Acceso a Transifex
