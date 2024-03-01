@@ -17,6 +17,30 @@ jobs:
       HELM_CHART_PATH: package/helm/
     steps:
       - uses: actions/checkout@v2
+
+      - name: Listar archivos en el directorio .tx
+        run: ls -la .tx/
+      
+      - name: Instalar Cliente de Transifex
+        run: |
+          curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
+          
+      - name: Configurar PATH para el cliente de Transifex
+        run: echo "/home/runner/work/default-config-HCSBA-2024/default-config-HCSBA-2024:$PATH" >> $GITHUB_PATH
+
+
+      - name: Configurar Acceso a Transifex
+        run: |
+          echo "[https://www.transifex.com]" > ${{ github.workspace }}/.transifexrc
+          echo "token = ${{ secrets.TX_TOKEN }}" >> ${{ github.workspace }}/.transifexrc
+          cat .transifexrc
+          cat .tx/config
+
+      - name: Descargar Traducciones Españolas
+        run: |
+          cd   ${{ github.workspace }}/
+          tx pull -l es  # Asume que 'es' es el código de idioma para español
+
       - name: Set env.ARTIFACT_VERSION
         run: |
           wget -q https://raw.githubusercontent.com/Bahmni/bahmni-infra-utils/main/setArtifactVersion.sh && chmod +x setArtifactVersion.sh
