@@ -63,7 +63,7 @@
     "ASSIGN_BED_LABEL": "Asignar",
     "TRANSFER_BED_LABEL": "Transferir",
     "EMPTY_WARD_MESSAGE": "No hay pacientes en este pabellón. ",
-    "BEDMANAGEMENT_DISPOSITION_ADMIT_PATIENT": "Admitir Paciente",
+    "BEDMANAGEMENT_DISPOSITION_ADMIT_PATIENT": "Admisión del Paciente",
     "BEDMANAGEMENT_DISPOSITION_DISCHARGE_PATIENT": "Dar de Alta Paciente",
     "BEDMANAGEMENT_DISPOSITION_TRANSFER_PATIENT": "Transferir Paciente"
 }
