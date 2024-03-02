@@ -45,6 +45,8 @@ jobs:
           cd   ${{ github.workspace }}/
           pwd
           ls
+          cat cat .transifexrc
+          cp .transifexrc $HOME/
           tx pull -l es  # Asume que 'es' es el código de idioma para español
 
       - name: Set env.ARTIFACT_VERSION
