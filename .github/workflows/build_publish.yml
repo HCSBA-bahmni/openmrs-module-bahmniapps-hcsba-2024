@@ -41,6 +41,9 @@ jobs:
       - name: Copiar .transifexrc al Directorio Home
         run: cp ${{ github.workspace }}/.transifexrc ~/
 
+      - name: Establecer TOKEN de Transifex como Variable de Entorno
+        run: echo "TX_TOKEN=${{ secrets.TX_TOKEN }}" >> $GITHUB_ENV
+
       - name: Descargar Traducciones Españolas
         run: |
           cd   ${{ github.workspace }}/
