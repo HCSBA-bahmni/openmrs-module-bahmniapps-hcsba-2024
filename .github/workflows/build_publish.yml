@@ -37,6 +37,9 @@ jobs:
           cat .transifexrc
           cat .tx/config
 
+      - name: Configurar Variable de Entorno TX_CONFIG
+        run: echo "TX_CONFIG=${{ github.workspace }}/.transifexrc" >> $GITHUB_ENV
+
       - name: Descargar Traducciones Españolas
         run: |
           cd   ${{ github.workspace }}/
