@@ -31,6 +31,7 @@ jobs:
 
       - name: Configurar Acceso a Transifex
         run: |
+          cd   ${{ github.workspace }}/
           echo "[https://www.transifex.com]" > ${{ github.workspace }}/.transifexrc
           echo "token = ${{ secrets.TX_TOKEN }}" >> ${{ github.workspace }}/.transifexrc
           cat .transifexrc
