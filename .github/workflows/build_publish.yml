@@ -44,6 +44,34 @@ jobs:
       - name: Establecer TOKEN de Transifex como Variable de Entorno
         run: echo "TX_TOKEN=${{ secrets.TX_TOKEN }}" >> $GITHUB_ENV
 
+      - name: Verificar posición de .transifexrc
+        run: |
+          echo "Verificando la posición de .transifexrc..."
+          if [ -f "$HOME/.transifexrc" ]; then
+            echo ".transifexrc encontrado en $HOME"
+          else
+            echo ".transifexrc no encontrado en $HOME"
+          fi
+
+      - name: Imprimir contenido de .transifexrc (Cuidado con los datos sensibles)
+        run: |
+          echo "Contenido de .transifexrc (asegúrate de no exponer tokens):"
+          cat $HOME/.transifexrc || echo ".transifexrc no encontrado."
+
+      - name: Verificar posición de .tx/config
+        run: |
+          echo "Verificando la posición de .tx/config..."
+          if [ -f ".tx/config" ]; then
+            echo ".tx/config encontrado en el directorio actual"
+          else
+            echo ".tx/config no encontrado en el directorio actual"
+          fi
+
+      - name: Imprimir contenido de .tx/config
+        run: |
+          echo "Contenido de .tx/config:"
+          cat .tx/config || echo ".tx/config no encontrado."
+
       - name: Descargar Traducciones Españolas
         run: |
           cd   ${{ github.workspace }}/
