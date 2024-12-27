@@ -14,7 +14,7 @@ file_filter            = ui/app/i18n/adt/locale_<lang>.json
 source_file            = ui/app/i18n/adt/locale_en.json
 source_lang            = en
 type                   = KEYVALUEJSON
-replace_edited_strings = false
+replace_edited_strings = true
 keep_translations      = false
 
 [o:openmrs:p:bahmni:r:appointments-app]
