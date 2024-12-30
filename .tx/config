@@ -51,12 +51,12 @@ type                   = KEYVALUEJSON
 replace_edited_strings = false
 keep_translations      = false
 
-[o:openmrs:p:bahmni:r:ipd-frontend]
+[o:openmrs:p:bahmni:r:ipd-app]
 file_filter            = ui/app/i18n/ipd/locale_<lang>.json
 source_file            = ui/app/i18n/ipd/locale_en.json
 type                   = KEYVALUEJSON
 minimum_perc           = 0
-resource_name          = IPD fron-tend
+resource_name          = IPD APP
 replace_edited_strings = false
 keep_translations      = false
 
