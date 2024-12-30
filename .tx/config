@@ -9,7 +9,7 @@ type                   = KEYVALUEJSON
 replace_edited_strings = false
 keep_translations      = false
 
-[o:openmrs:p:bahmni:r:default-customization-of-adt-app]
+[o:openmrs:p:bahmni:r:adt-app]
 file_filter            = ui/app/i18n/adt/locale_<lang>.json
 source_file            = ui/app/i18n/adt/locale_en.json
 source_lang            = en
