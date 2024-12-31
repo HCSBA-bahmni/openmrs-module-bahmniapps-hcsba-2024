@@ -15,5 +15,6 @@
   "SEARCH_REACTION": "Buscar Reacciones",
   "COMMON_REACTIONS": "Reacciones frecuentes",
   "ALLERGEN": "Alergeno",
-  "EDIT_FORM_ERROR_MESSAGE": "Por favor, rellene los campos obligatorios o corrija el valor en los campos señalados para continuar"
+  "EDIT_FORM_ERROR_MESSAGE": "Por favor, rellene los campos obligatorios o corrija el valor en los campos señalados para continuar",
+  "EMPTY_NOTES_ERROR": "La nota no puede estar vacía",
 }
