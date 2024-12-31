@@ -1,7 +1,7 @@
 [main]
 host = https://www.transifex.com
 
-[o:openmrs:p:bahmni:r:admin-app]
+[o:openmrs:p:bahmni:r:default-customization-of-admin-app]
 file_filter            = ui/app/i18n/admin/locale_<lang>.json
 source_file            = ui/app/i18n/admin/locale_en.json
 source_lang            = en
