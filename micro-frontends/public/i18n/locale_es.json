@@ -16,5 +16,22 @@
   "COMMON_REACTIONS": "Reacciones frecuentes",
   "ALLERGEN": "Alergeno",
   "EDIT_FORM_ERROR_MESSAGE": "Por favor, rellene los campos obligatorios o corrija el valor en los campos señalados para continuar",
-  "EMPTY_NOTES_ERROR": "La nota no puede estar vacía"
+  "EMPTY_NOTES_ERROR": "La nota no puede estar vacía",
+  "OT_NOTES": "Notas",
+  "FROM": "Desde",
+  "TO": "Hasta",
+  "FROM_DATE_BEFORE_TO_DATE_ERROR": "La fecha Desde debe ser anterior a la fecha Hasta",
+  "DATE_OUT_OF_RANGE_ERROR": "Por favor seleccione una fecha dentro del rango válido",
+  "DELETE_NOTE_TITLE": "Eliminar Nota",
+  "YES_KEY": "Si",
+  "NO_KEY": "No",
+  "DELETE_NOTE_MESSAGE": "¿Está seguro de que quiere eliminar esta nota?",
+  "NOTES_PLACEHOLDER": "Introduzca un máximo de 150 caracteres",
+  "UPDATE_NOTE_TITLE": "Actualizar Nota",
+  "ADD_NOTE_TITLE": "Añadir Nota",
+  "LOADING": "Cargando...",
+  "UPDATE": "Actualizar",
+  "AKNOWLEDGE_BUTTON": "Reconocer",
+  "AKNOWLEDGEMENT_REQUIRED_TEXT": "El reconocimiento es obligatorio",
+  "NO_DRUGS_TO_BE_AKNOWLEDGED_TEXT": "Tú no tienes nuevos medicamentos para ser reconocidos"
 }
