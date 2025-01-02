@@ -34,5 +34,6 @@
   "AKNOWLEDGE_BUTTON": "Reconocer",
   "AKNOWLEDGEMENT_REQUIRED_TEXT": "El reconocimiento es obligatorio",
   "NO_DRUGS_TO_BE_AKNOWLEDGED_TEXT": "Tú no tienes nuevos medicamentos para ser reconocidos",
-  "ADD_BUTTON_TEXT": "Añadir +"
+  "ADD_BUTTON_TEXT": "Añadir +",
+  "SEARCH_ALLERGEN_PLACEHOLDER": "Escriba para buscar alérgeno"
 }
