@@ -45,8 +45,6 @@ const provider = {
 describe("AddAllergy", () => {
   const onClose = jest.fn();
   const onSave = jest.fn();
-
-  // Helper to render with the provider
   const renderWithProvider = (ui) => {
     let renderedComponent;
     act(() => {
