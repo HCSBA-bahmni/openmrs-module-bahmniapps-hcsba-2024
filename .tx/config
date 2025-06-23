@@ -1,7 +1,7 @@
 [main]
 host = https://www.transifex.com
 
-[o:openmrs:p:bahmni:r:admin-app]
+[o:openmrs:p:bahmni:r:default-customization-of-admin-app]
 file_filter            = ui/app/i18n/admin/locale_<lang>.json
 source_file            = ui/app/i18n/admin/locale_en.json
 source_lang            = en
@@ -14,7 +14,7 @@ file_filter            = ui/app/i18n/adt/locale_<lang>.json
 source_file            = ui/app/i18n/adt/locale_en.json
 source_lang            = en
 type                   = KEYVALUEJSON
-replace_edited_strings = false
+replace_edited_strings = true
 keep_translations      = false
 
 [o:openmrs:p:bahmni:r:appointments-app]
@@ -56,7 +56,7 @@ file_filter            = ui/app/i18n/ipd/locale_<lang>.json
 source_file            = ui/app/i18n/ipd/locale_en.json
 type                   = KEYVALUEJSON
 minimum_perc           = 0
-resource_name          = IPD App
+resource_name          = IPD APP
 replace_edited_strings = false
 keep_translations      = false
 
@@ -65,7 +65,7 @@ file_filter            = micro-frontends/public/i18n/locale_<lang>.json
 source_file            = micro-frontends/public/i18n/locale_en.json
 type                   = KEYVALUEJSON
 minimum_perc           = 0
-resource_name          = Micro Frontend App
+resource_name          = Micro Front-End
 replace_edited_strings = false
 keep_translations      = false
 
