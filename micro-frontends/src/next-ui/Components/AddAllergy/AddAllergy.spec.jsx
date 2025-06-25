@@ -4,7 +4,6 @@ import { AddAllergy } from "./AddAllergy";
 import {
   saveAllergiesAPICall
 } from "../../utils/PatientAllergiesControl/AllergyControlUtils";
-import {I18nProvider} from "../i18n/I18nProvider";
 
 jest.mock('../../utils/PatientAllergiesControl/AllergyControlUtils', () => ({
   saveAllergiesAPICall: jest.fn(),
@@ -45,13 +44,6 @@ const provider = {
 describe("AddAllergy", () => {
   const onClose = jest.fn();
   const onSave = jest.fn();
-  const renderWithProvider = (ui) => {
-    let renderedComponent;
-    act(() => {
-      renderedComponent = render(<I18nProvider>{ui}</I18nProvider>);
-    });
-    return renderedComponent;
-  };
   const searchAllergen = () => {
     const searchInput = screen.getByRole("searchbox");
     fireEvent.change(searchInput, { target: { value: "pea" } });
@@ -72,7 +64,7 @@ describe("AddAllergy", () => {
     expect(selectSeverity.checked).toEqual(true);
   };
   it("should render the component", () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -87,7 +79,7 @@ describe("AddAllergy", () => {
   });
 
   it("should call onClose when close button is clicked", () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -103,7 +95,7 @@ describe("AddAllergy", () => {
   });
 
   it("should show Search Allergen when allergen is empty", () => {
-    const { getByTestId } = renderWithProvider(
+    const { getByTestId } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -118,7 +110,7 @@ describe("AddAllergy", () => {
   });
 
   it("should show Allergen List when Search is done", () => {
-    renderWithProvider(
+    render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -135,7 +127,7 @@ describe("AddAllergy", () => {
   });
 
   it("should show select reactions when allergen is selected", () => {
-    renderWithProvider(
+    render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -158,7 +150,7 @@ describe("AddAllergy", () => {
   });
 
   it("should show search Allergen ocClick of back button", () => {
-    renderWithProvider(
+    render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -179,7 +171,7 @@ describe("AddAllergy", () => {
   });
 
   it("should render severity after allergen is selected", () => {
-    renderWithProvider(
+    render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -199,7 +191,7 @@ describe("AddAllergy", () => {
   });
 
   it("should enable save button when reactions and severity are selected", () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -220,7 +212,7 @@ describe("AddAllergy", () => {
   });
 
   it("should update severity when severity is changed", () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -237,7 +229,7 @@ describe("AddAllergy", () => {
   });
 
   it("should render notes", () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -258,7 +250,7 @@ describe("AddAllergy", () => {
   });
 
   it("should save allergies successfully and set isSaveSuccess to true", async () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
@@ -292,7 +284,7 @@ describe("AddAllergy", () => {
   });
 
   it("should set isSaveSuccess to false if saveAllergiesAPICall fails", async () => {
-    const { container } = renderWithProvider(
+    const { container } = render(
       <AddAllergy
         onClose={onClose}
         onSave={onSave}
