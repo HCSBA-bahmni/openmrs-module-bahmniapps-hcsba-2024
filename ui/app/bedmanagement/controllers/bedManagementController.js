@@ -64,10 +64,36 @@ angular.module('bahmni.ipd')
                         }
                     }
                 });
+
                 var rooms = mapRoomInfo(_.groupBy(bedLayouts, 'location'));
-                _.each(rooms, function (room) {
+
+                _.each(rooms, function (room, index) {
                     room.beds = bedManagementService.createLayoutGrid(room.beds);
+
+                    const flattened = _.flatten(room.beds);
+                    const layoutBeds = flattened.filter(cell =>
+                        cell && cell.bed && cell.bed.bedId !== null
+                    );
+
+                    room.totalBeds = layoutBeds.length;
+                    room.availableBeds = layoutBeds.filter(cell =>
+                        cell.bed.status === 'AVAILABLE'
+                    ).length;
+
+                    console.log(`[ROOM INDEX ${index}]`, {
+                        name: room.name,
+                        totalBeds: room.totalBeds,
+                        availableBeds: room.availableBeds,
+                        raw: flattened.map(function (cell, i) {
+                            return {
+                                i: i,
+                                bedId: cell && cell.bed ? cell.bed.bedId : null,
+                                status: cell && cell.bed ? cell.bed.status : null
+                            };
+                        })
+                    });
                 });
+
                 return rooms;
             };
 
@@ -90,13 +116,22 @@ angular.module('bahmni.ipd')
                 return wardService.bedsForWard(department.uuid).then(function (response) {
                     var wardDetails = getWardDetails(department);
                     var rooms = getRoomsForWard(response.data.bedLayouts);
+
+                    // 🔽 Solo contar celdas con cama válida (bedId != null)
+                    let validBeds = _.flatten(rooms.map(r => _.flatten(r.beds)))
+                        .filter(cell => cell && cell.bed && cell.bed.bedId);
+
+                    let totalBeds = validBeds.length;
+                    let occupiedBeds = validBeds.filter(cell => cell.bed.status === 'OCCUPIED').length;
+
                     $scope.ward = {
                         rooms: rooms,
                         uuid: department.uuid,
                         name: department.name,
-                        totalBeds: wardDetails[0].totalBeds,
-                        occupiedBeds: wardDetails[0].occupiedBeds
+                        totalBeds: totalBeds,
+                        occupiedBeds: occupiedBeds
                     };
+
                     $scope.departmentSelected = true;
                     $rootScope.selectedBedInfo.wardName = department.name;
                     $rootScope.selectedBedInfo.wardUuid = department.uuid;

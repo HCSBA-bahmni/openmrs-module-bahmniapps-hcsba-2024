@@ -166,10 +166,10 @@
     .bed-management-header {
       padding: 10px 20px;
       background: #e8e8e8;
-      position: fixed;
+      position: relative;
       box-sizing: border-box;
-      z-index: 10;
-      width: calc(100% - 320px);
+      z-index: auto;
+      width: 100%;
       @media all and (max-width: 1299px) {
         width: calc(100% - 310px);
       }
@@ -211,16 +211,20 @@
   }
   .room-info-wrapper {
     background: #e8e8e8;
-    position: fixed;
-    top: 138px;
-    z-index: 10;
+    position: relative;
+    //top: 138px;
+    z-index: auto;
     box-sizing: border-box;
-    width: calc(100% - 320px);
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
     @media all and (max-width: 1299px) {
       width: calc(100% - 310px);
     }
     .room {
-      display: inline-block;
+      display: flex;
+      flex-direction: column;
+      flex-wrap: wrap;
       .room-details {
         padding: 10px 20px;
         font-size: 10px;
@@ -280,10 +284,10 @@
     margin-bottom: 10px;
     overflow: hidden;
     box-sizing: border-box;
-    position: fixed;
-    width: calc(100% - 320px);
-    z-index: 10;
-    top: 193px;
+    position: relative;
+    width: 100%;
+    z-index: auto;
+    //top: 193px;
     @media all and (max-width: 1299px) {
       width: calc(100% - 310px);
     }
@@ -328,7 +332,7 @@
   .bed-layout-wrapper {
     overflow: auto;
     text-align: center;
-    margin-top: 195px;
+    margin-top: 20px;
     position: relative;
     display: grid;
     padding-left: 10px;
