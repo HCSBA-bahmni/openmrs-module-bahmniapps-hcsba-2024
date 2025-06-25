@@ -70,17 +70,19 @@ angular.module('bahmni.ipd')
                 _.each(rooms, function (room, index) {
                     room.beds = bedManagementService.createLayoutGrid(room.beds);
 
-                    const flattened = _.flatten(room.beds);
-                    const layoutBeds = flattened.filter(cell =>
-                        cell && cell.bed && cell.bed.bedId !== null
-                    );
+                    var flattened = _.flatten(room.beds);
+
+                    var layoutBeds = flattened.filter(function (cell) {
+                        return cell && cell.bed && cell.bed.bedId !== null;
+                    });
 
                     room.totalBeds = layoutBeds.length;
-                    room.availableBeds = layoutBeds.filter(cell =>
-                        cell.bed.status === 'AVAILABLE'
-                    ).length;
 
-                    console.log(`[ROOM INDEX ${index}]`, {
+                    room.availableBeds = layoutBeds.filter(function (cell) {
+                        return cell && cell.bed && cell.bed.status === 'AVAILABLE';
+                    }).length;
+
+                    console.log("[ROOM INDEX " + index + "]", {
                         name: room.name,
                         totalBeds: room.totalBeds,
                         availableBeds: room.availableBeds,
@@ -118,11 +120,20 @@ angular.module('bahmni.ipd')
                     var rooms = getRoomsForWard(response.data.bedLayouts);
 
                     // 🔽 Solo contar celdas con cama válida (bedId != null)
-                    let validBeds = _.flatten(rooms.map(r => _.flatten(r.beds)))
-                        .filter(cell => cell && cell.bed && cell.bed.bedId);
+                    var allFlattenedBeds = [];
+                    for (var i = 0; i < rooms.length; i++) {
+                        var rowBeds = _.flatten(rooms[i].beds);
+                        allFlattenedBeds = allFlattenedBeds.concat(rowBeds);
+                    }
 
-                    let totalBeds = validBeds.length;
-                    let occupiedBeds = validBeds.filter(cell => cell.bed.status === 'OCCUPIED').length;
+                    var validBeds = allFlattenedBeds.filter(function (cell) {
+                        return cell && cell.bed && cell.bed.bedId;
+                    });
+
+                    var totalBeds = validBeds.length;
+                    var occupiedBeds = validBeds.filter(function (cell) {
+                        return cell.bed && cell.bed.status === 'OCCUPIED';
+                    }).length;
 
                     $scope.ward = {
                         rooms: rooms,
@@ -180,7 +191,7 @@ angular.module('bahmni.ipd')
 
             $scope.$on("event:updateSelectedBedInfoForCurrentPatientVisit", function (event, patientUuid) {
                 getVisitInfoByPatientUuid(patientUuid).then(function (visitUuid) {
-                    var options = { patientUuid: patientUuid, visitUuid: visitUuid };
+                    var options = {patientUuid: patientUuid, visitUuid: visitUuid};
                     $state.go("bedManagement.patient", options);
                 });
             });
