@@ -53,51 +53,51 @@ angular.module('bahmni.ipd')
                 return mappedRooms;
             };
 
-            var getRoomsForWard = function (bedLayouts) {
-                bedLayouts.forEach(function (bed) {
-                    if (!bed.bedTagMaps) {
-                        bed.bedTagMaps = [];
-                    }
-                    if (!bed.patient) {
-                        if (bed.patients && bed.patients.length > 0) {
-                            bed.patient = bed.patients[0];
-                        }
-                    }
-                });
-
-                var rooms = mapRoomInfo(_.groupBy(bedLayouts, 'location'));
-
-                _.each(rooms, function (room, index) {
-                    room.beds = bedManagementService.createLayoutGrid(room.beds);
-
-                    var flattened = _.flatten(room.beds);
-
-                    var layoutBeds = flattened.filter(function (cell) {
-                        return cell && cell.bed && cell.bed.bedId !== null;
-                    });
-
-                    room.totalBeds = layoutBeds.length;
-
-                    room.availableBeds = layoutBeds.filter(function (cell) {
-                        return cell && cell.bed && cell.bed.status === 'AVAILABLE';
-                    }).length;
-
-                    console.log("[ROOM INDEX " + index + "]", {
-                        name: room.name,
-                        totalBeds: room.totalBeds,
-                        availableBeds: room.availableBeds,
-                        raw: flattened.map(function (cell, i) {
-                            return {
-                                i: i,
-                                bedId: cell && cell.bed ? cell.bed.bedId : null,
-                                status: cell && cell.bed ? cell.bed.status : null
-                            };
-                        })
-                    });
-                });
-
-                return rooms;
-            };
+            // var getRoomsForWard = function (bedLayouts) {
+            //     bedLayouts.forEach(function (bed) {
+            //         if (!bed.bedTagMaps) {
+            //             bed.bedTagMaps = [];
+            //         }
+            //         if (!bed.patient) {
+            //             if (bed.patients && bed.patients.length > 0) {
+            //                 bed.patient = bed.patients[0];
+            //             }
+            //         }
+            //     });
+            //
+            //     var rooms = mapRoomInfo(_.groupBy(bedLayouts, 'location'));
+            //
+            //     _.each(rooms, function (room, index) {
+            //         room.beds = bedManagementService.createLayoutGrid(room.beds);
+            //
+            //         var flattened = _.flatten(room.beds);
+            //
+            //         var layoutBeds = flattened.filter(function (cell) {
+            //             return cell && cell.bed && cell.bed.bedId !== null;
+            //         });
+            //
+            //         room.totalBeds = layoutBeds.length;
+            //
+            //         room.availableBeds = layoutBeds.filter(function (cell) {
+            //             return cell && cell.bed && cell.bed.status === 'AVAILABLE';
+            //         }).length;
+            //
+            //         console.log("[ROOM INDEX " + index + "]", {
+            //             name: room.name,
+            //             totalBeds: room.totalBeds,
+            //             availableBeds: room.availableBeds,
+            //             raw: flattened.map(function (cell, i) {
+            //                 return {
+            //                     i: i,
+            //                     bedId: cell && cell.bed ? cell.bed.bedId : null,
+            //                     status: cell && cell.bed ? cell.bed.status : null
+            //                 };
+            //             })
+            //         });
+            //     });
+            //
+            //     return rooms;
+            // };
 
             var getWardDetails = function (department) {
                 return _.filter($scope.wards, function (entry) {
@@ -117,7 +117,7 @@ angular.module('bahmni.ipd')
             var loadBedsInfoForWard = function (department) {
                 return wardService.bedsForWard(department.uuid).then(function (response) {
                     var wardDetails = getWardDetails(department);
-                    var rooms = getRoomsForWard(response.data.bedLayouts);
+                    var rooms = bedManagementService.getRoomsForWard(response.data.bedLayouts);
 
                     // 🔽 Solo contar celdas con cama válida (bedId != null)
                     var allFlattenedBeds = [];
@@ -248,6 +248,13 @@ angular.module('bahmni.ipd')
                     scope: $scope,
                     closeByEscape: true,
                     className: "ngdialog-theme-default ng-dialog-adt-popUp"
+                });
+            };
+            $scope.editBedStatus = function () {
+                ngDialog.open({
+                    template: 'views/editBedStatus.html',
+                    className: 'ngdialog-theme-default ng-dialog-adt-popUp',
+                    scope: $scope
                 });
             };
 

@@ -12,7 +12,8 @@ Bahmni.IPD.Constants = (function () {
         bedTagMapUrl: "/openmrs/ws/rest/v1/bedTagMap/",
         visitRepresentation: "custom:(uuid,startDatetime,stopDatetime,visitType,patient)",
         editTagsPrivilege: "Edit Bed Tags",
-        assignBedsPrivilege: "Assign Beds"
+        assignBedsPrivilege: "Assign Beds",
+        editBedStatus: "/openmrs/ws/rest/v1/bed/{{bedUuid}}"
     };
 })();
 

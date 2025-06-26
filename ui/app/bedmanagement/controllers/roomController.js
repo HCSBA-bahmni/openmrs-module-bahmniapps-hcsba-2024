@@ -4,7 +4,7 @@ angular.module('bahmni.ipd')
     .controller('RoomController', ['$scope', '$rootScope', '$state', '$translate', 'appService', 'printer',
         function ($scope, $rootScope, $state, $translate, appService, printer) {
             var init = function () {
-                $scope.defaultTags = ['AVAILABLE', 'OCCUPIED'];
+                $scope.defaultTags = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'CLEANING'];
                 var appDescriptor = appService.getAppDescriptor();
                 $rootScope.bedTagsColorConfig = appDescriptor.getConfigValue("colorForTags") || [];
                 $rootScope.currentView = $rootScope.currentView || "Grid";
@@ -36,9 +36,9 @@ angular.module('bahmni.ipd')
 
             $scope.printWardList = function () {
                 var printTemplateUrl = appService.getAppDescriptor()
-                  .getConfigValue('wardListPrintViewTemplateUrl') || 'views/wardListPrint.html';
+                    .getConfigValue('wardListPrintViewTemplateUrl') || 'views/wardListPrint.html';
                 var configuredTableHeader = appService.getAppDescriptor()
-                  .getConfigValue('wardListPrintAttributes');
+                    .getConfigValue('wardListPrintAttributes');
                 if (configuredTableHeader && configuredTableHeader.length > 0) {
                     $scope.tableHeader = configuredTableHeader;
                 }
@@ -69,11 +69,15 @@ angular.module('bahmni.ipd')
             });
 
             $scope.getTagName = function (tag) {
+                console.log("Getting TagName", tag);
                 if (tag === 'AVAILABLE') {
                     return $translate.instant("KEY_AVAILABLE");
-                }
-                else if (tag === 'OCCUPIED') {
+                } else if (tag === 'OCCUPIED') {
                     return $translate.instant("KEY_OCCUPIED");
+                } else if (tag === 'MAINTENANCE') {
+                    return $translate.instant("KEY_MAINTENANCE");
+                } else if (tag === 'CLEANING') {
+                    return $translate.instant("KEY_CLEANING");
                 }
             };
 

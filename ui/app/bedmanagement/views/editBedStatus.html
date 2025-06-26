@@ -1,0 +1,27 @@
+<div class="revise-refill-modal-wrapper transfer-wrapper" aria-labelledby="dialog-label" ng-controller="EditBedStatusController">
+    <div class="ngdialog-close clearfix"></div>
+    <h4>{{'CHANGE_BED_STATUS' | translate}}</h4>
+
+    <div class="transfer-section clearfix">
+        <p class="transfer-container">
+            <span>{{'BED_KEY' | translate}} {{$root.selectedBedInfo.bed.bedNumber}}</span>
+            <span>{{'LOCATION_KEY' | translate}} {{$root.selectedBedInfo.roomName}}</span>
+            <span>{{'DEPT_KEY' | translate}} {{ward.name}}</span>
+        </p>
+    </div>
+
+    <div class="clearfix">
+        <label>{{'STATUS_KEY' | translate}}</label>
+        <select ng-model="newBedStatus"
+                ng-options="status for status in availableStatuses"
+                class="form-control">
+        </select>
+    </div>
+
+    <div class="dialog-button-group ipd-button-group">
+        <button class="secondary-button" ng-click="updateBedStatus()">{{'SAVE_KEY' | translate}}</button>
+        <button class="secondary-button" ng-click="closeDialog()">{{'CANCEL_KEY' | translate}}</button>
+    </div>
+
+    <span class="ngdialog-end"></span>
+</div>

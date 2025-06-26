@@ -1,7 +1,9 @@
 'use strict';
 
 angular.module('bahmni.ipd')
-    .service('bedManagementService', [function () {
+    .service('bedManagementService', ['$http', function ($http) {
+        var self = this;
+
         var maxX, maxY, minX, minY;
 
         var initialiseMinMaxRowColumnNumbers = function () {
@@ -21,11 +23,13 @@ angular.module('bahmni.ipd')
                 rowLayout = [];
                 for (var j = minY; j <= maxY; j++) {
                     bedLayout = getBedLayoutWithCoordinates(i, j, bedLayouts);
+                    console.log("Bed Layout for row: " + i + ", column: " + j, bedLayout);
                     rowLayout.push({
                         empty: isEmpty(bedLayout),
                         available: isAvailable(bedLayout),
                         bed: {
                             bedId: bedLayout !== null && bedLayout.bedId,
+                            uuid: bedLayout !== null && bedLayout.bedUuid,
                             bedNumber: bedLayout !== null && bedLayout.bedNumber,
                             bedType: bedLayout !== null && bedLayout.bedType !== null && bedLayout.bedType.displayName,
                             bedTagMaps: bedLayout !== null && bedLayout.bedTagMaps,
@@ -69,5 +73,51 @@ angular.module('bahmni.ipd')
                 return false;
             }
             return bedLayout.status === "AVAILABLE";
+        };
+        this.getRoomsForWard = function (bedLayouts) {
+            bedLayouts.forEach(function (bed) {
+                if (!bed.bedTagMaps) bed.bedTagMaps = [];
+                if (!bed.patient && bed.patients && bed.patients.length > 0) {
+                    bed.patient = bed.patients[0];
+                }
+            });
+
+            var rooms = _.map(_.groupBy(bedLayouts, 'location'), function (value, key) {
+                return {
+                    name: key,
+                    beds: value,
+                    totalBeds: value.length,
+                    availableBeds: _.filter(value, { status: 'AVAILABLE' }).length
+                };
+            });
+
+            _.each(rooms, function (room, index) {
+                room.beds = self.createLayoutGrid(room.beds);
+
+                var flattened = _.flatten(room.beds);
+                var layoutBeds = flattened.filter(function (cell) {
+                    return cell && cell.bed && cell.bed.bedId !== null;
+                });
+
+                room.totalBeds = layoutBeds.length;
+                room.availableBeds = layoutBeds.filter(function (cell) {
+                    return cell && cell.bed && cell.bed.status === 'AVAILABLE';
+                }).length;
+            });
+
+            return rooms;
+        };
+        this.updateBedStatus = function (bedUuid, newStatus) {
+            var url = Bahmni.IPD.Constants.editBedStatus.replace("{{bedUuid}}", bedUuid);
+            var payload = {
+                status: newStatus.status
+            };
+            return $http.post(url, payload, {
+                method: 'POST',
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
         };
     }]);

@@ -535,6 +535,16 @@ div[ng-app="adt"] {
   color: #fff;
 }
 
+.maintenance {
+  background: #f0ad4e;
+  color: #fff;
+}
+
+.cleaning {
+  background: #5bc0de;
+  color: #fff;
+}
+
 .cell {
   background: white;
   border: 1px solid blue;
@@ -552,6 +562,24 @@ div[ng-app="adt"] {
   border: 1px solid #0cbc3d;
   .bed-space {
     border: 1px solid #0cbc3d;
+  }
+}
+
+.MAINTENANCE {
+  background: #f0ad4e;
+  color: #fff;
+  .bed-space {
+    background: white;
+    border: none;
+  }
+}
+
+.CLEANING {
+  background: #5bc0de;
+  color: #fff;
+  .bed-space {
+    background: white;
+    border: none;
   }
 }
 

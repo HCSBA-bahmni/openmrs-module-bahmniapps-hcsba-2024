@@ -81,7 +81,7 @@ describe('RoomController', function () {
 
     var translatedMessages = {
             "KEY_AVAILABLE": "Available",
-            "KEY_OCCUPIED": "Occupied"
+            "KEY_OCCUPIED": "Occupied",
             };
 
 
