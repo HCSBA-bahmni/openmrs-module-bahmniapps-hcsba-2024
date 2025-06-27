@@ -7,7 +7,17 @@ describe('BedManagementController', function () {
     var stateParams = {patientUuid: "patientUuid", visitUuid: "visitUuid"};
     var wardService = jasmine.createSpyObj('WardService', ['getWardsList', 'bedsForWard']);
     var visitService = jasmine.createSpyObj('visitService', ['search']);
-    var bedManagementService = jasmine.createSpyObj('BedManagementService', ['createLayoutGrid']);
+    var bedManagementService = jasmine.createSpyObj('BedManagementService', ['createLayoutGrid', 'getRoomsForWard', 'updateWardStats']);
+    bedManagementService.getRoomsForWard.and.returnValue([
+        { name: "Sala 1", beds: [], totalBeds: 2, availableBeds: 1 }
+    ]);
+
+    bedManagementService.updateWardStats.and.callFake(function (rooms) {
+        return {
+            reservedBeds: 1,
+            blockedBeds: 0
+        };
+    });
     var spinner = jasmine.createSpyObj('spinner', ['forPromise']);
     var ngDialog = jasmine.createSpyObj('ngDialog', ['openConfirm', 'close']);
     var messagingService = jasmine.createSpyObj('messagingService', ['showMessage']);

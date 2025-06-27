@@ -47,7 +47,6 @@ module.exports = function (config) {
             'app/components/angular-translate-storage-local/angular-translate-storage-local.js',
             'app/components/angular-translate-storage-cookie/angular-translate-storage-cookie.js',
             'app/components/angular-translate-loader-static-files/angular-translate-loader-static-files.js',
-            'app/components/hustle/hustle.js',
             'app/lib/modernizr.custom.80690.js',
             'app/lib/angular-workers/dist/angular-workers.js',
             'app/common/constants.js',
