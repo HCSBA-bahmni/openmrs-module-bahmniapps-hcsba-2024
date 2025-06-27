@@ -1,9 +1,9 @@
-<div class="ADT-container">
+<div class="ADT-container" ng-if="showAdtButtons()" show-if-privilege="{{assignBedsPrivilege}}">
     <form>
         <div id="observations" ng-if="patient && expectedDateOfDischargeConceptName">
             <edit-adt-observations patient="patient" concept-set-name="expectedDateOfDischargeConceptName" edit-mode="$parent.editMode" visit-type-uuid="currentVisitTypeUuid"></edit-adt-observations>
         </div>
-        <div class="clearfix action-button" ng-if="showAdtButtons()" show-if-privilege="{{assignBedsPrivilege}}">
+        <div class="clearfix action-button">
             <button class="adt-admit" ng-click="admit()" ng-disabled="disableAdmitButton()">{{'ADMIT_KEY' | translate}}</button>
             <button class="adt-transfer" ng-click="transfer()" ng-disabled="disableTransfer()">{{'MOVEMENT_KEY' | translate}}</button>
             <button class="adt-discharge" ng-click="discharge()" ng-disabled="disableDischargeButton()">{{'DISCHARGE_KEY' | translate}}</button>

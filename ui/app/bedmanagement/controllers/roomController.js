@@ -4,7 +4,7 @@ angular.module('bahmni.ipd')
     .controller('RoomController', ['$scope', '$rootScope', '$state', '$translate', 'appService', 'printer',
         function ($scope, $rootScope, $state, $translate, appService, printer) {
             var init = function () {
-                $scope.defaultTags = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'CLEANING'];
+                $scope.defaultTags = ['AVAILABLE', 'OCCUPIED', 'RESERVED', 'BLOCKED'];
                 var appDescriptor = appService.getAppDescriptor();
                 $rootScope.bedTagsColorConfig = appDescriptor.getConfigValue("colorForTags") || [];
                 $rootScope.currentView = $rootScope.currentView || "Grid";
@@ -74,10 +74,10 @@ angular.module('bahmni.ipd')
                     return $translate.instant("KEY_AVAILABLE");
                 } else if (tag === 'OCCUPIED') {
                     return $translate.instant("KEY_OCCUPIED");
-                } else if (tag === 'MAINTENANCE') {
-                    return $translate.instant("KEY_MAINTENANCE");
-                } else if (tag === 'CLEANING') {
-                    return $translate.instant("KEY_CLEANING");
+                } else if (tag === 'RESERVED') {
+                    return $translate.instant("KEY_RESERVED");
+                } else if (tag === 'BLOCKED') {
+                    return $translate.instant("KEY_BLOCKED");
                 }
             };
 

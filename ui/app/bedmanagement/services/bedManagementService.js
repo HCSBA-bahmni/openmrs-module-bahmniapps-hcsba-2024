@@ -87,7 +87,10 @@ angular.module('bahmni.ipd')
                     name: key,
                     beds: value,
                     totalBeds: value.length,
-                    availableBeds: _.filter(value, { status: 'AVAILABLE' }).length
+                    availableBeds: _.filter(value, { status: 'AVAILABLE' }).length,
+                    occupiedBeds: _.filter(value, { status: 'OCCUPIED' }).length,
+                    reservedBeds: _.filter(value, { status: 'RESERVED' }).length,
+                    blockedBeds: _.filter(value, { status: 'BLOCKED' }).length
                 };
             });
 

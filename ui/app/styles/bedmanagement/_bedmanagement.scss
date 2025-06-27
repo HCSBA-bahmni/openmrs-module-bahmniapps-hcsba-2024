@@ -177,7 +177,6 @@
     box-sizing: border-box;
     background: #f9f9fb;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
-
     display: flex;
     flex-direction: column;
 
@@ -221,17 +220,52 @@
       }
 
       .action-button {
-        margin-top: auto;
-        text-align: right;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 10px 0 0;
+        padding: 0 5px;
 
         button {
-          width: 90px;
+          flex: 1;
           padding: 8px 0;
-          border-radius: 4px;
-          font-size: 12px;
+          border-radius: 5px;
+          font-size: 13px;
+          font-weight: 600;
+          border: 1px solid transparent;
+          transition: all 0.2s ease;
+          cursor: pointer;
+
+          &:hover:not([disabled]) {
+            opacity: 0.9;
+          }
+
+          &.adt-admit {
+            background: #28a745;
+            color: #fff;
+            border-color: #28a745;
+          }
+
+          &.adt-transfer {
+            background: #17a2b8;
+            color: #fff;
+            border-color: #17a2b8;
+          }
+
+          &.adt-discharge {
+            background: #6c757d;
+            color: #fff;
+            border-color: #6c757d;
+          }
+
+          &[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
         }
       }
     }
+
 
     .patient-bed-details {
       .bed-tags-wrapper {
@@ -250,6 +284,7 @@
       }
     }
   }
+
 
 
   .right-pane {
@@ -417,6 +452,7 @@
       vertical-align: middle;
     }
 
+
     .bed-tag {
       width: 35px;
       height: 20px;
@@ -517,6 +553,30 @@
     font-size: 10px;
     padding: 7px 0 0 0;
   }
+  .bed-hover-info {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    width: 200px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    font-size: 12px;
+    text-align: left;
+    z-index: 10;
+
+    p {
+      margin: 3px 0;
+      line-height: 1.4;
+      strong {
+        color: #555;
+        font-weight: 600;
+      }
+    }
+  }
+
 }
 
 .adt {
@@ -680,13 +740,13 @@ div[ng-app="adt"] {
   color: #fff;
 }
 
-.maintenance {
+.reserved {
   background: #f0ad4e;
   color: #fff;
 }
 
-.cleaning {
-  background: #5bc0de;
+.blocked {
+  background: #f80707;
   color: #fff;
 }
 
@@ -712,7 +772,7 @@ div[ng-app="adt"] {
   }
 }
 
-.MAINTENANCE {
+.RESERVED {
   background: #f0ad4e;
   color: #fff;
 
@@ -722,8 +782,8 @@ div[ng-app="adt"] {
   }
 }
 
-.CLEANING {
-  background: #5bc0de;
+.BLOCKED {
+  background: #f80707;
   color: #fff;
 
   .bed-space {

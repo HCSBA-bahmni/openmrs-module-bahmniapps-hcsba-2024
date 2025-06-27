@@ -80,6 +80,10 @@
     "LOGOUT_TRANSLATION_KEY": "Logout",
     "DAYS_ADMITTED_MESSAGE": "Days in hospital",
     "DISCHARGE_DATE_LABEL": "Discharge Date",
-    "KEY_MAINTENANCE": "Mantenimiento",
-    "KEY_CLEANING": "Limpieza"
+    "KEY_RESERVED": "Reservada",
+    "KEY_BLOCKED": "Bloqueada",
+    "AVAILABLE_SHORT": "A",
+    "OCCUPIED_SHORT": "O",
+    "KEY_RESERVED_SHORT": "R",
+    "KEY_BLOCKED_SHORT": "B"
 }

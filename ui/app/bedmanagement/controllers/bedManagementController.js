@@ -134,13 +134,22 @@ angular.module('bahmni.ipd')
                     var occupiedBeds = validBeds.filter(function (cell) {
                         return cell.bed && cell.bed.status === 'OCCUPIED';
                     }).length;
+                    var reservedBeds = validBeds.filter(function (cell) {
+                        return cell.bed && cell.bed.status === 'RESERVED';
+                    }).length;
+
+                    var blockedBeds = validBeds.filter(function (cell) {
+                        return cell.bed && cell.bed.status === 'BLOCKED';
+                    }).length;
 
                     $scope.ward = {
                         rooms: rooms,
                         uuid: department.uuid,
                         name: department.name,
                         totalBeds: totalBeds,
-                        occupiedBeds: occupiedBeds
+                        occupiedBeds: occupiedBeds,
+                        reservedBeds: reservedBeds,
+                        blockedBeds: blockedBeds
                     };
 
                     $scope.departmentSelected = true;

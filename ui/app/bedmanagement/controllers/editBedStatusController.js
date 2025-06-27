@@ -13,7 +13,7 @@ angular.module('bahmni.ipd')
             ngDialog
         ) {
             // Estados disponibles para seleccionar
-            $scope.availableStatuses = ['MAINTENANCE', 'CLEANING'];
+            $scope.availableStatuses = ['RESERVED', 'BLOCKED'];
             $scope.newBedStatus = $rootScope.selectedBedInfo.bed.status;
 
             $scope.updateBedStatus = function () {

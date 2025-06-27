@@ -4,15 +4,6 @@ angular.module('bahmni.ipd')
     .controller('RoomGridController', ['$scope', '$rootScope', '$state', '$translate',
         function ($scope, $rootScope, $state, $translate) {
             $scope.getColorForTheTag = function (bed) {
-                _.forEach($rootScope.bedTagsColorConfig, function (tagConfig) {
-                    if (bed.bedTagMaps.length >= 2) {
-                        if ($translate.instant(tagConfig.name) === "MultiTag") {
-                            bed.bedTagMaps[0].bedTag.color = tagConfig.color;
-                        }
-                    } else if (angular.isDefined(bed.bedTagMaps[0]) && $translate.instant(tagConfig.name) === bed.bedTagMaps[0].bedTag.name) {
-                        bed.bedTagMaps[0].bedTag.color = tagConfig.color;
-                    }
-                });
                 setDefaultTagColor(bed);
             };
             var setDefaultTagColor = function (bed) {
@@ -36,5 +27,12 @@ angular.module('bahmni.ipd')
                         $scope.$emit("event:updateSelectedBedInfoForCurrentPatientVisit", bed.patient.uuid);
                     }
                 }
+            };
+            $scope.showHover = function (cell) {
+                cell.showHover = true;
+            };
+
+            $scope.hideHover = function (cell) {
+                cell.showHover = false;
             };
         }]);
