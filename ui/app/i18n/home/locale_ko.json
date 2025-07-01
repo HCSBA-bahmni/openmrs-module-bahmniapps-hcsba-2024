@@ -1,5 +1,5 @@
 {
-    "BAHMNI_PAGE_TITLE_KEY": "Bahmni 홈",
+    "BAHMNI_PAGE_TITLE_KEY": "HCSBA 홈",
     "LOGIN_LABEL_LOGIN_KEY": "로그인",
     "LOGIN_LABEL_SUBMIT_KEY": "제출",
     "LOGIN_LABEL_ENTER_OTP_KEY": "OTP 입력",
@@ -45,9 +45,9 @@
     "YOU_HAVE_NOT_BEEN_SETUP_PROVIDER": "공급자로 설치되지 않았습니다. 관리자에게 문의하세요.",
     "COULD_NOT_GET_PROVIDER": "현재 사용자에 대한 공급자를 찾을 수 없습니다.",
     "WARNING_SERVER_TIME_ZONE_MISMATCH": "서버의 표준시간대가 귀하께서 사용하고 계신 브라우저의 시간/표준시간대와 다릅니다. 시간대가 다를 경우 일부 데이터나 리포트에 오류가 발생할 수 있습니다. 도움이 필요하시다면 관리자에게 문의하세요.",
-    "LOGIN_PAGE_HEADER_TEXT": "BAHMNI EMR 로그인",
+    "LOGIN_PAGE_HEADER_TEXT": "HCSBA EMR 로그인",
     "LOGIN_PAGE_TITLE_TEXT": "제목 텍스트",
-    "LOGIN_UNSUPPORTED_BROWSER_KEY": "Bahmni is supported on Chrome/Firefox Browser",
+    "LOGIN_UNSUPPORTED_BROWSER_KEY": "HCSBA is supported on Chrome/Firefox Browser",
     "DOB_LABEL": "Date of Birth",
     "NO_RESULTS_FOUND": "No results found",
     "PRIVILEGE_REQUIRED": "User is logged in but doesn't have the relevant privilege",

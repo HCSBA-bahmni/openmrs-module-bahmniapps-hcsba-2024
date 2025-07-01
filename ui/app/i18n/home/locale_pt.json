@@ -1,5 +1,5 @@
 {
-    "BAHMNI_PAGE_TITLE_KEY": "Início do Bahmni",
+    "BAHMNI_PAGE_TITLE_KEY": "Início do HCSBA",
     "LOGIN_LABEL_LOGIN_KEY": "Entrar",
     "LOGIN_LABEL_SUBMIT_KEY": "Enviar",
     "LOGIN_LABEL_ENTER_OTP_KEY": "Inserir OTP",
@@ -45,9 +45,9 @@
     "YOU_HAVE_NOT_BEEN_SETUP_PROVIDER": "Não foi configurado como fornecedor, por favor contacte o administrador.",
     "COULD_NOT_GET_PROVIDER": "Não foi possível obter fornecedor para o utilizador actual.",
     "WARNING_SERVER_TIME_ZONE_MISMATCH": "O fuso horário do servidor ({{serverTime}}) é diferente do fuso horário do seu navegador ({{localeTimeZone}}). Isto pode causar erros em dados ou relatórios. Por favor, contato o administrador para suporte adicional.",
-    "LOGIN_PAGE_HEADER_TEXT": "Login do Bahmni EMR",
+    "LOGIN_PAGE_HEADER_TEXT": "Login do HCSBA EMR",
     "LOGIN_PAGE_TITLE_TEXT": "Texto do título",
-    "LOGIN_UNSUPPORTED_BROWSER_KEY": "Bahmni é suportado pelo navegador Chrome",
+    "LOGIN_UNSUPPORTED_BROWSER_KEY": "HCSBA é suportado pelo navegador Chrome",
     "DOB_LABEL": "Data de nascimento",
     "NO_RESULTS_FOUND": "Não foram encontrados resultados",
     "PRIVILEGE_REQUIRED": "O utilizador está logado mas não tem o privilégio relevante",

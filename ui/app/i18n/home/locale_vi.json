@@ -47,7 +47,7 @@
     "WARNING_SERVER_TIME_ZONE_MISMATCH": "Múi giờ máy chủ ({{serverTime}}) khác với thời gian / múi giờ của trình duyệt của bạn ({{localeTimeZone}}). Điều này có thể làm cho một số dữ liệu hoặc báo cáo xuất hiện không chính xác. Vui lòng liên hệ với quản trị viên để được hỗ trợ thêm.",
     "LOGIN_PAGE_HEADER_TEXT": "ĐĂNG NHẬP",
     "LOGIN_PAGE_TITLE_TEXT": "TIÊU ĐỀ VĂN BẢN",
-    "LOGIN_UNSUPPORTED_BROWSER_KEY": "Bahmni is supported on Chrome/Firefox Browser",
+    "LOGIN_UNSUPPORTED_BROWSER_KEY": "HCSBA is supported on Chrome/Firefox Browser",
     "DOB_LABEL": "Ngày Sinh",
     "NO_RESULTS_FOUND": "Không có kết quả nào được tìm thấy",
     "PRIVILEGE_REQUIRED": "Người dùng đăng nhập nhưng không có quyền có liên quan",

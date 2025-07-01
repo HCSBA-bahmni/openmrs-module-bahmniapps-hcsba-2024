@@ -47,7 +47,7 @@
     "WARNING_SERVER_TIME_ZONE_MISMATCH": "服务器时区({{serverTime}}) 与你浏览器时区时间({{localeTimeZone}})不同。可能导致一些数据或报表不正确，请联系管理员获取进一步帮助。",
     "LOGIN_PAGE_HEADER_TEXT": "电子病历系统登录",
     "LOGIN_PAGE_TITLE_TEXT": "标题文本",
-    "LOGIN_UNSUPPORTED_BROWSER_KEY": "Bahmni is supported on Chrome/Firefox Browser",
+    "LOGIN_UNSUPPORTED_BROWSER_KEY": "HCSBA is supported on Chrome/Firefox Browser",
     "DOB_LABEL": "生日",
     "NO_RESULTS_FOUND": "没有找到结果",
     "PRIVILEGE_REQUIRED": "用户已经登录但是没有相关权限",

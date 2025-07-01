@@ -1,5 +1,5 @@
 {
-    "BAHMNI_PAGE_TITLE_KEY": "Bahmni ទំព័ដើម",
+    "BAHMNI_PAGE_TITLE_KEY": "HCSBA ទំព័ដើម",
     "LOGIN_LABEL_LOGIN_KEY": "ចូល",
     "LOGIN_LABEL_SUBMIT_KEY": "ស្នើរជូន",
     "LOGIN_LABEL_ENTER_OTP_KEY": "សូមចូលOTP(ពាក្យ​សម្ងាត់​មួយ​ដង)",
@@ -45,9 +45,9 @@
     "YOU_HAVE_NOT_BEEN_SETUP_PROVIDER": "អ្នកមិនបានកំណត់ដូចអ្នក​ផ្តល់ សូមទាក់ទងអ្នកគ្រប់គ្រង",
     "COULD_NOT_GET_PROVIDER": "មិនអាចទទួលបានអ្នក​ផ្តល់សម្រាប់អ្នកប្រើបច្ចុប្បន្ន",
     "WARNING_SERVER_TIME_ZONE_MISMATCH": "ល្វែងម៉ោងនៅម៉ាស៊ីនបម្រើ({{serverTime}}) គឺខុសគ្នាពី ល្វែងម៉ោងនៅកម្មវិធីរុករករបស់អ្នក({{localeTimeZone}}). ទិន្នន័យឬរបាយការណ៍អាចបង្ហាញខុស. សូមទាក់ទងអ្នកគ្រប់គ្រង",
-    "LOGIN_PAGE_HEADER_TEXT": "BAHMNI EMR ចូល",
+    "LOGIN_PAGE_HEADER_TEXT": "HCSBA EMR ចូល",
     "LOGIN_PAGE_TITLE_TEXT": "ឣត្ថបតចមនងចើង",
-    "LOGIN_UNSUPPORTED_BROWSER_KEY": "Bahmni is supported on Chrome/Firefox Browser",
+    "LOGIN_UNSUPPORTED_BROWSER_KEY": "HCSBA is supported on Chrome/Firefox Browser",
     "DOB_LABEL": "ថ្ងៃខែ​ឆ្នាំ​កំណើត",
     "NO_RESULTS_FOUND": "គ្មានលទ្ធផល",
     "PRIVILEGE_REQUIRED": "អ្នកប្រើបានចូលប៉ុន្តែគ្មានការអនុញ្ញាតចូលប្រើ",

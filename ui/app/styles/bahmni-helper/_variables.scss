@@ -189,14 +189,14 @@ Below listed fonts are used in the whole Bahmni application.
 $max-page-width: 1300px;
 
 /*  _colors - bahmniTheme:  */
-$bahmniPrimaryColor: #00463f;
-$bahmniSecondaryColor: #669999;
-$bahmniTertiaryColor: #457FAC;
+$bahmniPrimaryColor: #0077C8;
+$bahmniSecondaryColor: #7BAE3E;
+$bahmniTertiaryColor: #F7941E;
 
 $bahmniLinkColor: #2b95ff;
 
-$bahmniPrimaryBtnColor: #a1d030;
-$bahmniPrimaryBtnColorHover: #88af28;
+$bahmniPrimaryBtnColor: #0077C8;         // Azul (B de Borja)
+$bahmniPrimaryBtnColorHover: #005ea0;    // Azul más oscuro para hover
 
 $bahmniSectionHeaderColor: #66b298;
 
@@ -255,7 +255,7 @@ $subtlerText: $darkerGrey;
 $link: #007FFF;
 $focus: #FFFDF7;
 
-$success: #A1D030;
+$success: #0077C8;
 $alert: #FFA000;
 $error: #ff6666;
 $successBackground: #ddffdd;

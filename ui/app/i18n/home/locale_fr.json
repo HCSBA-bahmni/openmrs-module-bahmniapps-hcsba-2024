@@ -1,5 +1,5 @@
 {
-    "BAHMNI_PAGE_TITLE_KEY": "Accueil Bahmni",
+    "BAHMNI_PAGE_TITLE_KEY": "Accueil HCSBA",
     "LOGIN_LABEL_LOGIN_KEY": "S'identifier",
     "LOGIN_LABEL_SUBMIT_KEY": "Envoyer",
     "LOGIN_LOCATION_SELECTION_LABEL_KEY": "Continuer",
@@ -46,9 +46,9 @@
     "YOU_HAVE_NOT_BEEN_SETUP_PROVIDER": "Vous n'avez pas été configuré en tant que fournisseur, veuillez contacter l'administrateur",
     "COULD_NOT_GET_PROVIDER": "Impossible d'obtenir le fournisseur pour l'utilisateur actuel",
     "WARNING_SERVER_TIME_ZONE_MISMATCH": "La fuseau horaire du serveur ({{serverTime}}) est différente de l'heure / fuseau horaire de votre navigateur ({{localeTimeZone}}). Cela peut entraîner l'apparition incorrecte de certaines données ou rapports. Veuillez contacter l'administrateur pour obtenir de l'aide.",
-    "LOGIN_PAGE_HEADER_TEXT": "BAHMNI DME LOGIN",
+    "LOGIN_PAGE_HEADER_TEXT": "HCSBA DME LOGIN",
     "LOGIN_PAGE_TITLE_TEXT": "TITRE TEXTE",
-    "LOGIN_UNSUPPORTED_BROWSER_KEY": "Bahmni is supported on Chrome/Firefox Browser",
+    "LOGIN_UNSUPPORTED_BROWSER_KEY": "HCSBA is supported on Chrome/Firefox Browser",
     "DOB_LABEL": "Date de naissance",
     "NO_RESULTS_FOUND": "Aucun résultat trouvé",
     "PRIVILEGE_REQUIRED": "L'utilisateur est connecté mais n'a pas le privilège pertinent",
