@@ -2,7 +2,7 @@
 # All paths should be relative to there
 
 # Title
-title: Bahmni
+title: HIS HCSBA
 
 # The directory containing the source files to parse recursively
 source: app/styles
