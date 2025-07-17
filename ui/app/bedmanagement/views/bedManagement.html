@@ -39,7 +39,7 @@
             </p>
             <p class="patient-attributes">
                 <label>{{'STATUS_KEY' | translate}}</label>
-                <span>{{$root.selectedBedInfo.bed.status}}</span>
+                <span>{{getStatusName($root.selectedBedInfo.bed.status)}}</span>
                 <a ng-click="editBedStatus()" show-if-privilege="{{editTagsPrivilege}}"
                    ng-if="canEditTags()" style="margin-left:10px;">
                     {{'EDIT_KEY' | translate}}

@@ -69,7 +69,6 @@ angular.module('bahmni.ipd')
             });
 
             $scope.getTagName = function (tag) {
-                console.log("Getting TagName", tag);
                 if (tag === 'AVAILABLE') {
                     return $translate.instant("KEY_AVAILABLE");
                 } else if (tag === 'OCCUPIED') {

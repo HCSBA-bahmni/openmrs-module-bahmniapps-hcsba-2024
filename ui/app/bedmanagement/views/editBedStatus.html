@@ -12,8 +12,9 @@
 
     <div class="clearfix">
         <label>{{'STATUS_KEY' | translate}}</label>
-        <select ng-model="newBedStatus"
-                ng-options="status for status in availableStatuses"
+        <select
+                ng-model="newBedStatus"
+                ng-options="status as status.label for status in availableStatuses"
                 class="form-control">
         </select>
     </div>

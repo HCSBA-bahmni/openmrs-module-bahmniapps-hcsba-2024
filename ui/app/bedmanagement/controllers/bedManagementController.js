@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('bahmni.ipd')
-    .controller('BedManagementController', ['$scope', '$rootScope', '$stateParams', '$state', 'spinner', 'wardService', 'bedManagementService', 'visitService', 'messagingService', 'appService', 'ngDialog',
-        function ($scope, $rootScope, $stateParams, $state, spinner, wardService, bedManagementService, visitService, messagingService, appService, ngDialog) {
+    .controller('BedManagementController', ['$scope', '$rootScope', '$stateParams', '$state', 'spinner', 'wardService', 'bedManagementService', 'visitService', 'messagingService', 'appService', 'ngDialog', '$translate',
+        function ($scope, $rootScope, $stateParams, $state, spinner, wardService, bedManagementService, visitService, messagingService, appService, ngDialog, $translate) {
             $scope.wards = null;
             $scope.ward = {};
             $scope.editTagsPrivilege = Bahmni.IPD.Constants.editTagsPrivilege;
@@ -266,6 +266,18 @@ angular.module('bahmni.ipd')
                     scope: $scope
                 });
             };
-
+            $scope.getStatusName = function (tag) {
+                console.log("Getting TagName", tag);
+                if (tag === 'AVAILABLE') {
+                    return $translate.instant("KEY_AVAILABLE");
+                } else if (tag === 'OCCUPIED') {
+                    return $translate.instant("KEY_OCCUPIED");
+                } else if (tag === 'RESERVED') {
+                    return $translate.instant("KEY_RESERVED");
+                } else if (tag === 'BLOCKED') {
+                    return $translate.instant("KEY_BLOCKED");
+                }
+                return tag;
+            };
             init();
         }]);
