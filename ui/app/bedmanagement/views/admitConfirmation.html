@@ -1,35 +1,51 @@
-<div class="revise-refill-modal-wrapper discharge-wrapper" aria-labelledby="dialog-label">
-    <style type="text/css">
-        .opd-header-wrapper {
-            z-index: 10000 !important;
-        }
-    </style>
-    <div class="ngdialog-close clearfix"></div>
-    <div class="clearfix">
-        <h4> {{'ADMIT_SUMMARY_KEY' | translate}} </h4>
-    </div>
-    <div class="transfer-section  discharge-bed-section">
-        <p class="patient-attributes dialog-patient-name">
-            <label for="patient-name">{{'PATIENT_NAME_KEY' | translate}}</label>
-            <span id="patient-name">{{$root.patient.name}}</span>
-            <label for="patient-id">{{'PATIENT_ID_KEY' | translate}}</label>
-            <span id="patient-id">{{$root.patient.identifier}}</span>
-        </p>
+<div class="modern-modal-wrapper" aria-labelledby="dialog-label">
+    <div class="modern-modal">
+        <style type="text/css">
+            .opd-header-wrapper {
+                z-index: 10000 !important;
+            }
+        </style>
 
-        <p class="transfer-container">
-            <b>{{'ADMIT_TO_KEY' | translate}}</b>
-            <span>{{$root.selectedBedInfo.wardName}},</span>
-            <span>{{$root.selectedBedInfo.roomName}},</span>
-            <span>#{{$root.selectedBedInfo.bed.bedNumber}}</span>
-        </p>
-    </div>
-    <div id="adtNotes" ng-if="getAdtConceptConfig" class="concept-set-container">
-        <concept-set concept-set-name="getAdtConceptConfig" observations="adtObservations"></concept-set>
-    </div>
-    <div class="dialog-button-group ipd-button-group">
-        <button id="modal-revise-button1" class="secondary-button" ng-click="admitConfirmation()">{{'ADMIT_KEY' | translate}}</button>
-        <button id="modal-revise-button3" class="secondary-button" ng-click="cancelConfirmationDialog()">{{'CANCEL_KEY' | translate}}</button>
-    </div>
+        <div class="modern-modal-header">
+            <h4>{{'ADMIT_SUMMARY_KEY' | translate}}</h4>
+            <span class="modern-modal-close ngdialog-close"></span>
+        </div>
 
-    <span class="ngdialog-end"></span>
+        <div class="modern-modal-body">
+            <div class="modern-modal-section">
+                <label for="patient-name">{{'PATIENT_NAME_KEY' | translate}}</label>
+                <span id="patient-name">{{$root.patient.name}}</span>
+                <label for="patient-id">{{'PATIENT_ID_KEY' | translate}}</label>
+                <span id="patient-id">{{$root.patient.identifier}}</span>
+            </div>
+
+            <div class="modern-movement-section">
+                <p class="transfer-container">
+                    <b>{{'ADMIT_TO_KEY' | translate}}</b>
+                    <span>{{$root.selectedBedInfo.wardName}},</span>
+                    <span>{{$root.selectedBedInfo.roomName}},</span>
+                    <span>#{{$root.selectedBedInfo.bed.bedNumber}}</span>
+                </p>
+            </div>
+
+            <div id="adtNotes" ng-if="getAdtConceptConfig" class="concept-set-container">
+                <concept-set concept-set-name="getAdtConceptConfig" observations="adtObservations"></concept-set>
+            </div>
+        </div>
+
+        <div class="modern-modal-footer">
+            <button class="modern-button modern-button-primary"
+                    ng-click="admitConfirmation()"
+                    ng-disabled="isDisabled">
+                {{'ADMIT_KEY' | translate}}
+            </button>
+            <button class="modern-button modern-button-secondary"
+                    ng-click="cancelConfirmationDialog()">
+                {{'CANCEL_KEY' | translate}}
+            </button>
+        </div>
+
+
+        <span class="ngdialog-end"></span>
+    </div>
 </div>

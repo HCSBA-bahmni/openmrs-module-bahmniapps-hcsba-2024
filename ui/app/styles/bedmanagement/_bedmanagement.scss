@@ -1296,3 +1296,46 @@ $btn-modern-secondary-color: #ffffff;
     background-color: #d1d5db;
   }
 }
+
+
+// Estructura para el movimiento de camas
+.modern-movement-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  text-align: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+
+  .transfer-container {
+    flex: 1;
+    color: #22c55e; // verde similar a los tags
+    font-weight: 500;
+
+    b {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #111827; // más oscuro para el título
+    }
+
+    span {
+      display: block;
+      margin-top: 2px;
+    }
+  }
+
+  .ipd-transfer-container {
+    font-size: 22px;
+    color: #6b7280; // gris intermedio
+  }
+}
+
+.dialog-patient-name {
+  margin-bottom: 1.5rem;
+
+  label {
+    font-weight: bold;
+    color: #374151;
+    margin-right: 0.5rem;
+  }
+}
