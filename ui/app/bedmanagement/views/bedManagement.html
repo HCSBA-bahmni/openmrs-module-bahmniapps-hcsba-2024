@@ -2,14 +2,14 @@
 <div id="bedManagement" class="bed-management">
     <div class="left-pane">
         <h6>{{'PATIENT_DETAILS_KEY' | translate}}</h6>
-        <div class="admitted-patient-info clearfix">
+        <div class="admitted-patient-info modern-card">
             <p class="patient-attributes">
                 <label>{{'PATIENT_ID_KEY' | translate}}</label>
-                <a ng-click="goToAdtPatientDashboard()">{{ patient.identifier }}</a>
+                <a class="action-link" ng-click="goToAdtPatientDashboard()">{{ patient.identifier }}</a>
             </p>
             <p class="patient-attributes">
                 <label>{{'PATIENT_NAME_KEY' | translate}}</label>
-                <a ng-click="goToAdtPatientDashboard()">{{ patient.name }}</a>
+                <a class="action-link" ng-click="goToAdtPatientDashboard()">{{ patient.name }}</a>
             </p>
             <p class="patient-attributes">
                 <label>{{'AGE_KEY' | translate}}</label>
@@ -24,7 +24,7 @@
         </div>
         <adt patient="patient" encounterConfig="encounterConfig" bed="bed"></adt>
         <h6>{{'BED_DETAILS_KEY' | translate}}</h6>
-        <div class="patient-bed-details clearfix">
+        <div class="patient-bed-details modern-card">
             <p class="patient-attributes">
                 <label>{{'DEPARTMENT_KEY' | translate}}</label>
                 <span>{{ward.name}}</span>
@@ -40,7 +40,7 @@
             <p class="patient-attributes">
                 <label>{{'STATUS_KEY' | translate}}</label>
                 <span>{{getStatusName($root.selectedBedInfo.bed.status)}}</span>
-                <a ng-click="editBedStatus()" show-if-privilege="{{editTagsPrivilege}}"
+                <a class="action-link" ng-click="editBedStatus()" show-if-privilege="{{editTagsPrivilege}}"
                    ng-if="canEditTags()" style="margin-left:10px;">
                     {{'EDIT_KEY' | translate}}
                 </a>
@@ -52,7 +52,7 @@
                         {{tag.bedTag.name}}
                     </span>
                 </span>
-                <a ng-click="editTagsOnTheBed()" show-if-privilege="{{editTagsPrivilege}}"
+                <a class="action-link" ng-click="editTagsOnTheBed()" show-if-privilege="{{editTagsPrivilege}}"
                    ng-if="canEditTags()">{{'EDIT_KEY' | translate}}</a>
             </div>
         </div>

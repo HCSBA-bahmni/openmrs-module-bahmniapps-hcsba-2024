@@ -1,28 +1,30 @@
-<div class="revise-refill-modal-wrapper transfer-wrapper" aria-labelledby="dialog-label" ng-controller="EditBedStatusController">
-    <div class="ngdialog-close clearfix"></div>
-    <h4>{{'CHANGE_BED_STATUS' | translate}}</h4>
+<div class="modern-modal-wrapper" aria-labelledby="dialog-label" ng-controller="EditBedStatusController">
+    <div class="modern-modal">
+        <div class="modern-modal-header">
+            <h4>{{'CHANGE_BED_STATUS' | translate}}</h4>
+            <span class="modern-modal-close ngdialog-close"></span>
+        </div>
 
-    <div class="transfer-section clearfix">
-        <p class="transfer-container">
-            <span>{{'BED_KEY' | translate}} {{$root.selectedBedInfo.bed.bedNumber}}</span>
-            <span>{{'LOCATION_KEY' | translate}} {{$root.selectedBedInfo.roomName}}</span>
-            <span>{{'DEPT_KEY' | translate}} {{ward.name}}</span>
-        </p>
+        <div class="modern-modal-body">
+            <div class="modern-modal-section">
+                <p><strong>{{'BED_KEY' | translate}}:</strong> {{$root.selectedBedInfo.bed.bedNumber}}</p>
+                <p><strong>{{'LOCATION_KEY' | translate}}:</strong> {{$root.selectedBedInfo.roomName}}</p>
+                <p><strong>{{'DEPT_KEY' | translate}}:</strong> {{ward.name}}</p>
+            </div>
+
+            <div class="modern-modal-section">
+                <label for="bed-status">{{'STATUS_KEY' | translate}}</label>
+                <select id="bed-status"
+                        ng-model="newBedStatus"
+                        ng-options="status as status.label for status in availableStatuses"
+                        class="modern-select">
+                </select>
+            </div>
+        </div>
+
+        <div class="modern-modal-footer">
+            <button class="modern-button modern-button-primary" ng-click="updateBedStatus()">{{'SAVE_KEY' | translate}}</button>
+            <button class="modern-button modern-button-secondary" ng-click="closeDialog()">{{'CANCEL_KEY' | translate}}</button>
+        </div>
     </div>
-
-    <div class="clearfix">
-        <label>{{'STATUS_KEY' | translate}}</label>
-        <select
-                ng-model="newBedStatus"
-                ng-options="status as status.label for status in availableStatuses"
-                class="form-control">
-        </select>
-    </div>
-
-    <div class="dialog-button-group ipd-button-group">
-        <button class="secondary-button" ng-click="updateBedStatus()">{{'SAVE_KEY' | translate}}</button>
-        <button class="secondary-button" ng-click="closeDialog()">{{'CANCEL_KEY' | translate}}</button>
-    </div>
-
-    <span class="ngdialog-end"></span>
 </div>

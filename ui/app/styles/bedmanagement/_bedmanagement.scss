@@ -1,3 +1,4 @@
+@import "../bahmni-components/buttons";
 .bed-management-nav {
   overflow: hidden;
   margin: 7px 0 0 10px;
@@ -1020,4 +1021,278 @@ div[ng-app="adt"] {
   height: calc(100vh - 240px);
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+// 💡 Modernizar tarjetas de información
+.modern-card {
+  background: #fff;
+  padding: 1.5em;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5em;
+
+  .patient-attributes {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1em;
+
+    label {
+      font-weight: 600;
+      color: #333;
+      width: 45%;
+    }
+
+    span, a {
+      width: 55%;
+      text-align: right;
+    }
+
+    .bed-tags-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3em;
+
+      .bed-tags-preview {
+        background: #f0f0f0;
+        padding: 0.2em 0.5em;
+        border-radius: 8px;
+        font-size: 0.85em;
+        color: #333;
+      }
+    }
+  }
+}
+
+// 🎯 Link para acciones (editar, ver ficha)
+.action-link {
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// 🎨 Variables de color para botones modernos
+$btn-modern-primary-bg: #007bff;
+$btn-modern-primary-border: #007bff;
+$btn-modern-primary-color: #ffffff;
+
+$btn-modern-secondary-bg: #d31020;
+$btn-modern-secondary-border: #ea1919;
+$btn-modern-secondary-color: #ffffff;
+
+// Estilos modernos para modal
+.modern-modal-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.4);
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1050;
+}
+
+.modern-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 420px;
+  max-width: 90%;
+  padding: 24px;
+  animation: modern-fadeIn 0.25s ease-in-out;
+}
+
+.modern-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eaeaea;
+  margin-bottom: 16px;
+}
+
+.modern-modal-close {
+  cursor: pointer;
+  font-size: 18px;
+  color: #888;
+}
+
+.modern-modal-body {
+  margin-bottom: 24px;
+}
+
+.modern-modal-section {
+  margin-bottom: 16px;
+
+  p {
+    margin: 4px 0;
+  }
+}
+
+.modern-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modern-select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+// ✅ Botón base
+.modern-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-block;
+  border: none; // fallback
+  background-color: transparent; // fallback
+}
+
+// ✅ Botón primario con mixin
+.modern-button-primary {
+  @include button($btn-modern-primary-bg, $btn-modern-primary-border, $btn-modern-primary-color);
+  &:hover {
+    background-color: darken($btn-modern-primary-bg, 10%);
+  }
+}
+
+// ✅ Botón secundario con mixin
+.modern-button-secondary {
+  @include button($btn-modern-secondary-bg, $btn-modern-secondary-border, $btn-modern-secondary-color);
+  &:hover {
+    background-color: darken($btn-modern-secondary-bg, 5%);
+  }
+}
+
+// 🧼 Forzar color en dialog
+.ngdialog .modern-button.modern-button-primary {
+  background-color: $btn-modern-primary-bg !important;
+  color: $btn-modern-primary-color !important;
+}
+
+// Legacy button
+.hcsba-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.hcsba-button-primary {
+  background-color: $btn-modern-primary-bg;
+  color: white;
+
+  &:hover {
+    background-color: darken($btn-modern-primary-bg, 10%);
+  }
+}
+
+// Animación
+@keyframes modern-fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// 🧼 Ocultar estilos heredados del modal base de ngDialog
+.ngdialog {
+  padding: 0 !important;
+  background: transparent !important;
+
+  .ngdialog-content {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .ngdialog-overlay {
+    background: none !important;
+  }
+}
+
+// Estilos adicionales específicos del modal de tags
+.modern-tag-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  max-width: 500px;
+  margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+}
+
+.modern-tag-modal h2 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #2f4050;
+}
+
+.modern-tag-modal .modern-modal-section {
+  margin-bottom: 1.5rem;
+}
+
+.modern-all-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.modern-tag-button {
+  background-color: #e2e8f0;
+  border: none;
+  border-radius: 5px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.3s;
+
+  &:hover {
+    background-color: #cbd5e1;
+  }
+}
+
+.modern-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.modern-action-button {
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+}
+
+
+
+.modern-action-button-primary {
+  @include button(#38bdf8, #38bdf8, white);
+  &:hover {
+    background-color: #0ea5e9;
+  }
+}
+
+.modern-action-button-secondary {
+  @include button(#e5e7eb, #ccc, #374151);
+  &:hover {
+    background-color: #d1d5db;
+  }
 }
