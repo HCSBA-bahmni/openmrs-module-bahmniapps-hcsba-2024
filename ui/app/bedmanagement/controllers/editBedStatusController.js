@@ -15,9 +15,9 @@ angular.module('bahmni.ipd')
         ) {
             // Estados disponibles para seleccionar
             $scope.availableStatuses = [
-                { key: 'RESERVED', label: $translate.instant("KEY_RESERVED") },
-                { key: 'BLOCKED', label: $translate.instant("KEY_BLOCKED") },
-                { key: 'AVAILABLE', label: $translate.instant("KEY_AVAILABLE") }
+                {key: 'RESERVED', label: $translate.instant("KEY_RESERVED")},
+                {key: 'BLOCKED', label: $translate.instant("KEY_BLOCKED")},
+                {key: 'AVAILABLE', label: $translate.instant("KEY_AVAILABLE")}
             ];
             $scope.newBedStatus = $rootScope.selectedBedInfo.bed.status;
 
@@ -28,8 +28,14 @@ angular.module('bahmni.ipd')
                 }
 
                 console.log("Actualizando estado de la cama a:", $scope.newBedStatus.key);
-                console.log("Información de la cama seleccionada:", $rootScope.selectedBedInfo.bed);
+                console.log("Información de la cama seleccionada:", $rootScope.selectedBedInfo);
                 var bedUuid = $rootScope.selectedBedInfo.bed.uuid;
+                var patient = $rootScope.selectedBedInfo.bed.patient ? $rootScope.selectedBedInfo.bed.patient : null;
+
+                if (patient) {
+                    messagingService.showMessage("error", "No se puede cambiar el estado de la cama mientras hay un paciente asignado.");
+                    return;
+                }
 
                 bedManagementService.updateBedStatus(bedUuid, {status: $scope.newBedStatus.key})
                     .then(function () {
