@@ -1,4 +1,5 @@
 @import "../bahmni-components/buttons";
+
 .bed-management-nav {
   overflow: hidden;
   margin: 7px 0 0 10px;
@@ -287,7 +288,6 @@
   }
 
 
-
   .right-pane {
     margin-left: 320px;
     width: calc(100% - 320px);
@@ -554,6 +554,7 @@
     font-size: 10px;
     padding: 7px 0 0 0;
   }
+
   .bed-hover-info {
     position: absolute;
     top: 50px;
@@ -571,6 +572,7 @@
     p {
       margin: 3px 0;
       line-height: 1.4;
+
       strong {
         color: #555;
         font-weight: 600;
@@ -1165,6 +1167,7 @@ $btn-modern-secondary-color: #ffffff;
 // ✅ Botón primario con mixin
 .modern-button-primary {
   @include button($btn-modern-primary-bg, $btn-modern-primary-border, $btn-modern-primary-color);
+
   &:hover {
     background-color: darken($btn-modern-primary-bg, 10%);
   }
@@ -1173,6 +1176,7 @@ $btn-modern-secondary-color: #ffffff;
 // ✅ Botón secundario con mixin
 .modern-button-secondary {
   @include button($btn-modern-secondary-bg, $btn-modern-secondary-border, $btn-modern-secondary-color);
+
   &:hover {
     background-color: darken($btn-modern-secondary-bg, 5%);
   }
@@ -1204,8 +1208,14 @@ $btn-modern-secondary-color: #ffffff;
 
 // Animación
 @keyframes modern-fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 // 🧼 Ocultar estilos heredados del modal base de ngDialog
@@ -1282,9 +1292,9 @@ $btn-modern-secondary-color: #ffffff;
 }
 
 
-
 .modern-action-button-primary {
   @include button(#38bdf8, #38bdf8, white);
+
   &:hover {
     background-color: #0ea5e9;
   }
@@ -1292,6 +1302,7 @@ $btn-modern-secondary-color: #ffffff;
 
 .modern-action-button-secondary {
   @include button(#e5e7eb, #ccc, #374151);
+
   &:hover {
     background-color: #d1d5db;
   }
@@ -1339,3 +1350,195 @@ $btn-modern-secondary-color: #ffffff;
     margin-right: 0.5rem;
   }
 }
+
+
+// Para panel superior de ward y salas
+// Panel derecho moderno
+$modern-panel-bg: #f3f4f6;
+.modern-panel {
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.modern-panel-header {
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+  background-color: white; // Le da un fondo como tarjeta, para integrarlo más visualmente
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  h6 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+}
+
+$btn-modern-department-bg: #f3f4f6;
+$btn-modern-department-border: #d1d5db;
+$btn-modern-department-color: #374151;
+
+.modern-department-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  .modern-department-button {
+    @include button($btn-modern-department-bg, $btn-modern-department-border, $btn-modern-department-color);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px; // más estilo "pill"
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    color: #1f2937;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: darken(#f9fafb, 3%);
+    }
+
+    &.selected {
+      background-color: #e0f2fe;
+      border-color: #38bdf8;
+      color: #0369a1;
+    }
+  }
+}
+
+
+.modern-room-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.modern-room-box, .modern-room-summary {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  padding: 1rem;
+  border-radius: 10px;
+  min-width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  .floor-header {
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  .bed-status {
+    font-size: 0.875rem;
+
+    span {
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+  }
+
+  &.room-selected {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5);
+  }
+  &:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    cursor: pointer;
+  }
+}
+
+.bed-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  padding: 0.3rem 0.6rem;
+  min-width: 2.2rem;
+  text-align: center;
+  white-space: nowrap;
+  color: white;
+}
+
+.bed-available {
+  @extend .bed-chip;
+  color: #10b981; // verde claro
+}
+
+.bed-occupied {
+  @extend .bed-chip;
+  background-color: #22c55e; // verde fuerte
+}
+
+.bed-reserved {
+  @extend .bed-chip;
+  background-color: #f59e0b; // amarillo oscuro
+}
+
+.bed-blocked {
+  @extend .bed-chip;
+  background-color: #ef4444; // rojo fuerte
+}
+
+//Leyenda de las camas
+// Legend container
+.modern-bed-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f9fafb;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+// Each tag item
+.modern-bed-tag {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #374151;
+  gap: 0.5rem;
+}
+
+.tag-icon {
+  font-size: 1.2rem;
+}
+
+// View switch buttons
+.modern-view-switcher {
+  display: flex;
+  gap: 0.5rem;
+
+  button {
+    background-color: #e5e7eb;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background-color: darken(#e5e7eb, 5%);
+    }
+  }
+}
+
+
+
+

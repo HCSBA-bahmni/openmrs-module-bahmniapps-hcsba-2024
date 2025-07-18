@@ -1,6 +1,6 @@
-<div class="room-info-wrapper clearfix">
+<div class="modern-room-list">
     <!-- Sala general -->
-    <div class="room">
+    <div class="modern-room-summary">
         <div class="clearfix total-details room-details">
             <div class="floor-header">{{'TOTAL_BEDS_KEY' | translate}} ( {{ ward.totalBeds }} )</div>
             <div class="bed-status">
@@ -13,14 +13,14 @@
     </div>
 
     <!-- Todas las salas -->
-    <div class="room" ng-repeat="room in ward.rooms">
-        <div class="clearfix room-details" ng-click="onSelectRoom(room.name)" ng-class="{'room-selected': activeRoom == room.name}">
+    <div class="modern-room-box" ng-repeat="room in ward.rooms" ng-class="{'room-selected': activeRoom == room.name}">
+        <div class="clearfix room-details" ng-click="onSelectRoom(room.name)">
             <div class="floor-header">{{ room.name }} ( {{ room.totalBeds }} )</div>
             <div class="bed-status">
-                <span class="available">({{ room.availableBeds }}) {{ 'AVAILABLE_SHORT' | translate }}</span>
-                <span class="occupied">({{ room.occupiedBeds }}) {{ 'OCCUPIED_SHORT' | translate }}</span>
-                <span class="reserved">({{ room.reservedBeds }}) {{ 'KEY_RESERVED_SHORT' | translate }}</span>
-                <span class="blocked">({{ room.blockedBeds }}) {{ 'KEY_BLOCKED_SHORT' | translate }}</span>
+                <span class="bed-available">({{ room.availableBeds }}) {{ 'AVAILABLE_SHORT' | translate }}</span>
+                <span class="bed-occupied">({{ room.occupiedBeds }}) {{ 'OCCUPIED_SHORT' | translate }}</span>
+                <span class="bed-reserved">({{ room.reservedBeds }}) {{ 'KEY_RESERVED_SHORT' | translate }}</span>
+                <span class="bed-blocked">({{ room.blockedBeds }}) {{ 'KEY_BLOCKED_SHORT' | translate }}</span>
 
             </div>
         </div>

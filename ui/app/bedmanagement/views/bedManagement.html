@@ -59,16 +59,18 @@
     </div>
 
 </div>
-<div class="right-pane">
-    <div class="bed-management-header clearfix">
+<div class="right-pane modern-panel">
+    <div class="modern-panel-header">
         <h6>{{'ADMISSION_MASTER' | translate}}</h6>
-        <div class="bed-type-selection">
-            <button ng-repeat="option in wards"
+        <div class="modern-department-selection">
+            <button
+                    ng-repeat="option in wards"
                     ng-click="onSelectDepartment(option.ward)"
-                    ng-class="{'selected': option.ward.isSelected}"
-            >{{ option.ward.name }}
+                    ng-class="{'selected': option.ward.isSelected, 'modern-department-button': true}">
+                {{ option.ward.name }}
             </button>
         </div>
     </div>
     <ward ward="ward" ng-if="departmentSelected"></ward>
 </div>
+
