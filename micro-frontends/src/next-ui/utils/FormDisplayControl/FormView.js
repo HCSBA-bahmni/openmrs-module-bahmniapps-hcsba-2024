@@ -37,9 +37,9 @@ export const buildFormMap = async (formMap) => {
 
     var observationsForSelectedForm = [];
     // se añadio el detalle del formulario para poder obtener los labels creados al momento de crear el formulario
-    var formDetailsAsString = detalleFormResponse.resources[0].value;
-    const formDetails = JSON.parse(formDetailsAsString);
-    const controls = formDetails.controls;
+    var formDetailsAsString = detalleFormResponse?.resources[0]?.value || "{}";
+    const formDetails = JSON.parse(formDetailsAsString) || {};
+    const controls = formDetails.controls || [];
     encounter.observations.forEach(function (obs) {
         if (obs.formFieldPath) {
             var obsFormNameAndVersion = getFormNameAndVersion(obs.formFieldPath);
@@ -47,7 +47,7 @@ export const buildFormMap = async (formMap) => {
 
                 const matchingControl = controls.find(
                     ctrl => ctrl.concept && ctrl.concept.uuid === obs.concept.uuid
-                );
+                ) || {};
                 // se añade el label del control al objeto de observación
                 observationsForSelectedForm.push({
                     ...obs,
