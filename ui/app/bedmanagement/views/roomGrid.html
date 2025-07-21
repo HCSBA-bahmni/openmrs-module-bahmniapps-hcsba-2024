@@ -1,28 +1,30 @@
-<ul class="bed-layout-wrapper">
-    <li ng-repeat="row in room.beds" class="bed-layout-row clearfix">
-        <div ng-repeat="cell in row" class="bed-layout-cells">
-            {{ getColorForTheTag(cell.bed) }}
-            <div class="bed" ng-if="!cell.bed.bedId"></div>
+<ul class="modern-bed-layout">
+    <li ng-repeat="row in room.beds" class="modern-bed-row">
+        <div ng-repeat="cell in row" class="modern-bed-cell">
 
-            <div class="bed {{ cell.bed.status }}"
+            <!-- Cama vacía -->
+            <div class="modern-empty-bed" ng-if="!cell.bed.bedId"></div>
+
+            <!-- Cama activa -->
+            <div class="modern-bed {{ cell.bed.status | lowercase }} {{ getColorForTheTag(cell.bed) }}"
                  ng-class="{
-                    'highlight-bed': cell.bed.bedId == $root.selectedBedInfo.bed.bedId,
-                    'highlight-old-bed': cell.bed.bedId == $root.bedDetails.bedId
-                 }"
+                        'modern-bed-selected': cell.bed.bedId == $root.selectedBedInfo.bed.bedId,
+                        'modern-bed-previous': cell.bed.bedId == $root.bedDetails.bedId
+                      }"
                  ng-if="cell.bed.bedId"
                  ng-click="onSelectBed(cell.bed)"
                  ng-mouseenter="showHover(cell)"
                  ng-mouseleave="hideHover(cell)">
 
-
-                <div class="bed-space"></div>
-                <div class="bed-details">
-                    <span>{{ cell.bed.bedNumber }}</span>
-                    <div ng-if="cell.bed.status === 'OCCUPIED'">
-                        <span>{{ cell.bed.patient.identifiers[0].identifier }}</span>
-                    </div>
+                <div class="modern-bed-head"></div>
+                <div class="modern-bed-details">
+                    <span class="bed-number">{{ cell.bed.bedNumber }}</span>
+                    <span class="patient-id" ng-if="cell.bed.status === 'OCCUPIED'">
+            {{ cell.bed.patient.identifiers[0].identifier }}
+          </span>
                 </div>
             </div>
+
         </div>
     </li>
 </ul>

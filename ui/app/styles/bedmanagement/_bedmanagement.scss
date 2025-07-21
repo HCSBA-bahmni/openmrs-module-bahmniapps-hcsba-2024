@@ -290,7 +290,7 @@
 
   .right-pane {
     margin-left: 320px;
-    width: calc(100% - 320px);
+    //width: calc(100% - 320px);
     min-width: 840px;
     background: #fff;
 
@@ -981,7 +981,7 @@ div[ng-app="adt"] {
 @media all and (max-width: 1299px) {
   .idp-section .right-pane {
     margin-left: 310px;
-    width: calc(100% - 310px);
+    //width: calc(100% - 310px);
   }
 }
 
@@ -1537,6 +1537,106 @@ $btn-modern-department-color: #374151;
       background-color: darken(#e5e7eb, 5%);
     }
   }
+}
+
+// Estilos modernos bedGrid
+.modern-bed-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+
+  .modern-bed-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .modern-bed-cell {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modern-empty-bed {
+    width: 60px;
+    height: 80px;
+    background-color: rgba(229, 231, 235, 0);
+    border-radius: 0.5rem;
+  }
+
+  .modern-bed {
+    width: 120px;
+    height: 55px;
+    border-radius: 0.5rem;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    position: relative;
+
+    &.available {
+      background-color: rgba(220, 222, 221, 0);
+      color: #10b981;
+      border: 2px solid #10b981;
+    }
+
+    &.occupied {
+      background-color: #22c55e;
+      color: white;
+    }
+
+    &.reserved {
+      background-color: #f59e0b;
+      color: white;
+    }
+
+    &.blocked {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    &.modern-bed-selected {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px #60a5fa;
+    }
+
+    .modern-bed-head {
+      width: 12px;
+      height: 100%;
+      background-color: #d1d5db;
+      border-top-left-radius: 0.5rem;
+      border-bottom-left-radius: 0.5rem;
+    }
+
+    .modern-bed-details {
+      flex: 1;
+      padding-left: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      .bed-number {
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .patient-id {
+        font-size: 0.65rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
 }
 
 
