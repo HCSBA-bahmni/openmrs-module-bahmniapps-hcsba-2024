@@ -25,6 +25,9 @@ export const ViewObservationForm = (props) => {
   } = props;
 
   const imageItems = formData?.filter((member) => isValidFileFormat(member));
+  const getLocalizedLabel = (section) => {
+    return section?.label || section?.concept?.shortName || section?.concept?.display;
+  };
 
   return (
     <div>
@@ -71,7 +74,7 @@ export const ViewObservationForm = (props) => {
                           }`}
                           data-testid={`section-label-${index}`}
                         >
-                          {section.concept.shortName}&nbsp;
+                          {getLocalizedLabel(section)}&nbsp;
                           <span className="sub-label">
                             {subLabels(section.concept)}
                           </span>
