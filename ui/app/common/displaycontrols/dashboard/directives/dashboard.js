@@ -20,8 +20,21 @@ angular.module('bahmni.common.displaycontrol.dashboard')
                 return (section && section.dashboardConfig !== undefined && section.dashboardConfig !== null) ? section.dashboardConfig : null;
             };
 
+            var findVaccinationConfig = function (sections) {
+                if (!sections || sections.length === 0) {
+                    return null;
+                }
+                var section = Object.keys(sections).map(function (key) {
+                    return sections[key];
+                }).find(function (section) {
+                    return section.type === Bahmni.Common.Constants.vacunasDisplayControlType;
+                });
+                return (section && section.dashboardConfig !== undefined && section.dashboardConfig !== null) ? section.dashboardConfig : null;
+            };
+
             if ($scope.patient !== undefined) {
                 var dashboardConfig = findFormV2ReactConfig($scope.config.sections);
+                var vaccinationConfig = findVaccinationConfig($scope.config.sections);
                 $scope.formData = {
                     patientUuid: $scope.patient.uuid,
                     patient: $scope.patient,
@@ -72,6 +85,12 @@ angular.module('bahmni.common.displaycontrol.dashboard')
                     provider: $rootScope.currentProvider,
                     activeVisit: $scope.visitHistory ? $scope.visitHistory.activeVisit : null,
                     allergyControlConceptIdMap: appService.getAppDescriptor().getConfigValue("allergyControlConceptIdMap")
+                };
+                $scope.vaccinationData = {
+                    patient: $scope.patient,
+                    currentUser: $rootScope.currentUser,
+                    showEditForActiveEncounter: vaccinationConfig && dashboardConfig.showEditForActiveEncounter || false,
+                    numberOfVisits: vaccinationConfig && dashboardConfig.maximumNoOfVisits || undefined
                 };
                 $scope.appService = appService;
                 $bahmniCookieStore.get(Bahmni.Common.Constants.locationCookieName);
