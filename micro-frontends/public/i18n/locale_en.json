@@ -58,5 +58,12 @@
   "DATE": "Date",
   "RESULT": "Result",
   "PROVIDER": "Provider",
-  "IPS_ERROR_MESSAGE": "Error loading IPS data: {error}"
+  "IPS_ERROR_MESSAGE": "Error loading IPS data: {error}",
+  "IPS_DOCUMENTS_TITLE": "IPS Documents",
+  "NO_DOCUMENTS": "No documents available",
+  "TYPE": "Type",
+  "STATUS": "Status",
+  "ACTIONS": "Actions",
+  "VIEW_DOCUMENT": "View document",
+  "DOWNLOAD_JSON": "Download JSON"
 }
