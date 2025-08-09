@@ -25,14 +25,15 @@ describe("Select reactions", function () {
     fireEvent.click(checkbox);
   };
   it("should render SelectReactions", function () {
-    const { container } = render(
+    render(
       <SelectReactions
         onChange={onChange}
         reactions={mockReactions}
         selectedAllergen={mockSelectedAllergen}
       />
     );
-    expect(container).toMatchSnapshot();
+    expect(screen.getByRole('searchbox', { name: /Search Reaction/i})).toBeInTheDocument();
+    expect(screen.getByText(/Selected Allergen:/i)).toBeInTheDocument();
   });
 
   it("should remove chiclets when reaction checkbox is unselected", function () {

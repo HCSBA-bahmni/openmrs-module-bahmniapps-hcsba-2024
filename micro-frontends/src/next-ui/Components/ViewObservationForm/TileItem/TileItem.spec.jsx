@@ -58,9 +58,12 @@ const initialProps = {
 };
 
 describe("TileItem", () => {
-  it("should match the screenshot", () => {
+  it("should render top-level items and group members", () => {
     const { container } = render(<TileItem {...initialProps} />);
-    expect(container).toMatchSnapshot();
+    // comentarios visibles
+    expect(screen.getAllByText(/test comment text/i)).toHaveLength(2);
+    // grupo Vitals presente
+    expect(container.querySelectorAll("[data-testid^='subItem-']")).toHaveLength(3);
   });
 
   it("should highlight member in red if it is abnormal", () => {

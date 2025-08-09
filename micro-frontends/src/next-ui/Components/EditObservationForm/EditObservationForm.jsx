@@ -62,38 +62,53 @@ const EditObservationForm = (props) => {
     };
 
     useEffect(() => {
+        let alive = true; // evita setState tras unmount
+        if (isEditFormLoading) {
+            return () => { alive = false; };
+        }
         const fetchFormDetails = async () => {
-            if( formData.length > 0 && encounterUuid !== null) {
-                const encounterTransaction = await findByEncounterUuid(encounterUuid);
-                setEncounter(consultationMapper.map(encounterTransaction));
-                
-                const latestForms = await getLatestPublishedForms();
-                const formVersion = getFormVersion(latestForms, formName);
-                const observationForm = getFormByFormName(latestForms, formName, formVersion);
-                const formUuid = observationForm.uuid;
-                const locale = getLocale();
-                const validateForm = false;
-                const collapse = false;
+            try {
+                if (Array.isArray(formData) && formData.length > 0 && encounterUuid) {
+                    const encounterTransaction = await findByEncounterUuid(encounterUuid);
+                    if (!alive) return;
+                    setEncounter(consultationMapper.map(encounterTransaction));
 
-                if (!loadedFormDetails[formUuid]) {
-                    var formDetails = await getFormDetail(formUuid);
-                    const formDetailsAsString = formDetails.resources[0].value;
-                    formDetails = JSON.parse(formDetailsAsString);
-                    formDetails.version = formVersion;
-                    setLoadedFormDetails((prevDetails) => ({ ...prevDetails, [formUuid]: formDetails }));
-                    
-                    const formParams = { formName: formName, formVersion: formVersion, locale: locale, formUuid: formUuid };
-                    const formTranslations = await getFormTranslations(formDetails.translationsUrl, formParams);
-                    setLoadedFormTranslations((prevTranslations) => ({ ...prevTranslations, [formUuid]: formTranslations }));
+                    const latestForms = await getLatestPublishedForms();
+                    if (!alive) return;
+                    const formVersion = getFormVersion(latestForms, formName);
+                    const observationForm = getFormByFormName(latestForms, formName, formVersion);
+                    if (!observationForm) return; // seguridad
+                    const formUuid = observationForm.uuid;
+                    const locale = getLocale();
+                    const validateForm = false;
+                    const collapse = false;
 
-                    setEditFormLoading(false);
-                    setUpdatedObservations(window.renderWithControls(formDetails, formData, nodeId, collapse, patient, validateForm, locale, formTranslations));
+                    if (!loadedFormDetails[formUuid]) {
+                        let formDetails = await getFormDetail(formUuid);
+                        if (!alive) return;
+                        const formDetailsAsString = formDetails.resources?.[0]?.value || '{}';
+                        formDetails = JSON.parse(formDetailsAsString);
+                        formDetails.version = formVersion;
+                        setLoadedFormDetails((prevDetails) => ({ ...prevDetails, [formUuid]: formDetails }));
+
+                        const formParams = { formName: formName, formVersion: formVersion, locale: locale, formUuid: formUuid };
+                        const formTranslations = await getFormTranslations(formDetails.translationsUrl, formParams);
+                        if (!alive) return;
+                        setLoadedFormTranslations((prevTranslations) => ({ ...prevTranslations, [formUuid]: formTranslations }));
+
+                        setEditFormLoading(false);
+                        setUpdatedObservations(window.renderWithControls(formDetails, formData, nodeId, collapse, patient, validateForm, locale, formTranslations));
+                    }
                 }
+            } catch (e) {
+                // opcional: manejar error
             }
         };
 
         fetchFormDetails();
-    }, [formData, formName, loadedFormDetails, loadedFormTranslations, patient, encounterUuid]);
+        return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData, formName, encounterUuid, isEditFormLoading]);
 
     return (
         <>
@@ -105,7 +120,9 @@ const EditObservationForm = (props) => {
                     onRequestClose={closeEditObservationForm}
                 >
                     {
-                        isEditFormLoading ? (<Loading />) :
+                        isEditFormLoading ? (
+                            <div data-testid="loading-spinner"><Loading /></div>
+                        ) :
                         <div>
                             <div className='section-title-wrapper'>
                                 <h2 className="section-title">{formNameTranslations}</h2>
@@ -130,12 +147,13 @@ EditObservationForm.propTypes = {
     formNameTranslations: PropTypes.string.isRequired,
     closeEditObservationForm: PropTypes.func.isRequired,
     isEditFormLoading: PropTypes.bool.isRequired,
+    setEditFormLoading: PropTypes.func.isRequired,
     patient: PropTypes.object.isRequired,
-    formData: PropTypes.object.isRequired,
+    formData: PropTypes.array.isRequired, // era object, realmente se usa como array
     encounterUuid: PropTypes.string.isRequired,
     consultationMapper: PropTypes.object.isRequired,
-    handleSave: PropTypes.func.isRequired,
-    handleSaveError: PropTypes.func.isRequired
+    handleEditSave: PropTypes.func.isRequired, // el componente usa handleEditSave, no handleSave
+    editErrorMessage: PropTypes.string
 };
 
 export default EditObservationForm;

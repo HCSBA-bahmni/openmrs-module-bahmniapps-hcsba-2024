@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EditObservationForm from './EditObservationForm';
 import { getFormByFormName, getFormDetail, getFormTranslations } from "./EditObservationFormUtils";
 import { findByEncounterUuid } from '../../utils/FormDisplayControl/FormView';
@@ -107,50 +107,44 @@ describe('EditObservationForm', () => {
         jest.clearAllMocks();
     });
 
-    test('renders loading state correctly', async () => {
-        act(() =>{
-            const { container } = render(<EditObservationForm {...props} />);
-            expect(container.getElementsByClassName('edit-observation-form-modal').length).toBe(0);
-        });
-        
+    test('muestra estado de carga (Loading) cuando isEditFormLoading=true', async () => {
+        const localProps = { ...props, isEditFormLoading: true };
+        render(<EditObservationForm {...localProps} />);
+        expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
     });
 
-    test('renders form correctly after loading', async () => {
-        props.isEditFormLoading = false;
-        act(() =>render(<EditObservationForm {...props} />));
-        await waitFor(() => expect(screen.getByText('Test Form Translations')).toBeTruthy());
-        expect(screen.getByText(/SAVE/i)).toBeTruthy();
-        expect(screen.getByText('Test Form Translations')).toBeTruthy();
+    test('renderiza formulario cuando carga finaliza', async () => {
+        const localProps = { ...props, isEditFormLoading: false };
+        render(<EditObservationForm {...localProps} />);
+        await waitFor(() => expect(screen.getByText('Test Form Translations')).toBeInTheDocument());
+        expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
     });
 
-    test('calls handleSave on save button click', async () => {
-        props.isEditFormLoading = false;
-        act(() =>render(<EditObservationForm {...props} />));
-        await waitFor(() => expect(screen.getByText(/SAVE/i)).toBeTruthy());
-        await act(() =>fireEvent.click(screen.getByText(/SAVE/i)));
-        await waitFor(() => expect(props.handleEditSave).toHaveBeenCalled());
+    test('llama handleEditSave al hacer click en SAVE sin errores', async () => {
+        const localProps = { ...props, isEditFormLoading: false };
+        render(<EditObservationForm {...localProps} />);
+        await waitFor(() => screen.getByRole('button', { name: /save/i }));
+        fireEvent.click(screen.getByRole('button', { name: /save/i }));
+        await waitFor(() => expect(localProps.handleEditSave).toHaveBeenCalled());
     });
 
-    test('fetches form details and sets state correctly', async () => {
-        props.isEditFormLoading = false;
-        act(() =>render(<EditObservationForm {...props} />));
+    test('carga detalles de formulario y setea estados', async () => {
+        const localProps = { ...props, isEditFormLoading: false };
+        render(<EditObservationForm {...localProps} />);
         await waitFor(() => expect(getLatestPublishedForms).toHaveBeenCalled());
-        await waitFor(() => expect(findByEncounterUuid).toHaveBeenCalledWith(props.encounterUuid));
+        await waitFor(() => expect(findByEncounterUuid).toHaveBeenCalledWith(localProps.encounterUuid));
         await waitFor(() => expect(getFormDetail).toHaveBeenCalledWith('form-uuid'));
         await waitFor(() => expect(getFormTranslations).toHaveBeenCalled());
     });
 
-    test('does not call handleEditSave on save button click when error occurs', async () => {
-        props.isEditFormLoading = false;
-        window.renderWithControls.mockReturnValue({
-            getValue: jest.fn().mockReturnValue({
-                errors: ["error", "error1"],
-                observations: []
-            })
+    test('no llama handleEditSave si existen errores en observaciones', async () => {
+        window.renderWithControls.mockReturnValueOnce({
+            getValue: jest.fn().mockReturnValue({ errors: ['e1'], observations: [] })
         });
-        act(() =>render(<EditObservationForm {...props} />));
-        await waitFor(() => expect(screen.getByText(/SAVE/i)).toBeTruthy());
-        await act(() =>fireEvent.click(screen.getByText(/SAVE/i)));
-        await waitFor(() => expect(props.handleEditSave).not.toHaveBeenCalled());
+        const localProps = { ...props, isEditFormLoading: false };
+        render(<EditObservationForm {...localProps} />);
+        await waitFor(() => screen.getByRole('button', { name: /save/i }));
+        fireEvent.click(screen.getByRole('button', { name: /save/i }));
+        await waitFor(() => expect(localProps.handleEditSave).not.toHaveBeenCalled());
     });
 });

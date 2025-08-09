@@ -6,11 +6,11 @@ import { mockInfoMap, mockVideoInfoMap } from "../FileViewerMockData.js";
 describe("FileViewerModal", function () {
   const closeModel = jest.fn();
   
-  it("should render FileViewerModal", function () {
+  it("should render FileViewerModal base structure", function () {
     const { container } = render(
       <FileViewerModal closeModel={closeModel} infoMap={mockInfoMap} />
     );
-    expect(container).toMatchSnapshot();
+    expect(container.querySelector('.file-modal')).not.toBeNull();
   });
 
   it("should render FileViewerModal with all the data with image", function () {

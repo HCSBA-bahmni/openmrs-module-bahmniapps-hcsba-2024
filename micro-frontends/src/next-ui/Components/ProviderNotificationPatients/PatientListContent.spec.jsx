@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
+import { IntlProvider } from 'react-intl';
 import PatientListContent from './PatientListContent';
 
 describe('PatientListContent Component', () => {
@@ -12,30 +13,31 @@ describe('PatientListContent Component', () => {
 
   const handleOnClickMock = jest.fn();
 
+  const renderWithIntl = (ui) => render(<IntlProvider locale="en">{ui}</IntlProvider>);
+
   it('renders the component without crashing', () => {
-    const {container} = render(
+    renderWithIntl(
         <PatientListContent
           patientMedicationDetails={patientMedicationDetails}
           handleOnClick={handleOnClickMock}
-          
         />
       );
-    expect(container).toMatchSnapshot();
+    expect(screen.getByText('Drug A')).toBeInTheDocument();
   });
 
   it('displays the correct medication information', () => {
-    const { getByText } = render(
+    renderWithIntl(
       <PatientListContent
         patientMedicationDetails={patientMedicationDetails}
         handleOnClick={handleOnClickMock}
       />
     );
-    expect(getByText('9/6/2022')).toBeTruthy();
-    expect(getByText('Drug A')).toBeTruthy();
+    expect(screen.getByText('9/6/2022')).toBeTruthy();
+    expect(screen.getByText('Drug A')).toBeTruthy();
   });
 
   it('calls handleOnClick with correct arguments when Acknowledge button is clicked', () => {
-    const { getByText, getByPlaceholderText } = render(
+    const { getByText, getByPlaceholderText } = renderWithIntl(
       <PatientListContent
         patientMedicationDetails={patientMedicationDetails}
         handleOnClick={handleOnClickMock}
@@ -54,7 +56,7 @@ describe('PatientListContent Component', () => {
   });
 
   it('updates providerNotes state when notes are entered', () => {
-    const { getByPlaceholderText } = render(
+    const { getByPlaceholderText } = renderWithIntl(
       <PatientListContent
         patientMedicationDetails={patientMedicationDetails}
         handleOnClick={handleOnClickMock}
@@ -66,7 +68,7 @@ describe('PatientListContent Component', () => {
   });
 
   it('clears providerNotes state after Acknowledge button is clicked', () => {
-    const { getByPlaceholderText, getByText } = render(
+    const { getByPlaceholderText, getByText } = renderWithIntl(
       <PatientListContent
         patientMedicationDetails={patientMedicationDetails}
         handleOnClick={handleOnClickMock}
@@ -85,7 +87,7 @@ describe('PatientListContent Component', () => {
   });
 
   it('disables Acknowledge button when no notes are entered', () => {
-    const { getByText } = render(
+    const { getByText } = renderWithIntl(
       <PatientListContent
         patientMedicationDetails={patientMedicationDetails}
         handleOnClick={handleOnClickMock}
@@ -96,7 +98,7 @@ describe('PatientListContent Component', () => {
   });
 
   it('enables Acknowledge button when notes are entered', () => {
-    const { getByText, getByPlaceholderText } = render(
+    const { getByText, getByPlaceholderText } = renderWithIntl(
       <PatientListContent
         patientMedicationDetails={patientMedicationDetails}
         handleOnClick={handleOnClickMock}

@@ -15,27 +15,28 @@ export const ViewAllergiesAndReactions = (props) => {
             </div>
             <div>
                 {allergies.map((allergy, index) => {
-                    const title = <div key={index}
+                    const title = <div
                                        className={` allergies-row ${showTextAsAbnormal ? "allergies-red-text" 
                                            : allergy.severity === "severe" ? "allergies-red-text": ""}`}>
                         <div>{allergy.allergen}</div>
                         <div>{allergy.reactions.join(", ")}</div>
                         <div className={"capitalize"}>{allergy.severity}</div>
-                    </div>
-                    return (<Accordion>
-                        <AccordionItem title={title}>
-                            <div className={"allergies-accordion-item"}>
-                                <div>
-                                    {allergy.note &&
-                                        <div className={"allergies-row-note"}><Document size={20}/>
-                                            {allergy.note}</div>}
+                    </div>;
+                    return (
+                        <Accordion key={`${allergy.allergen}-${index}`} data-testid={`allergy-accordion-${index}`}>
+                            <AccordionItem title={title}>
+                                <div className={"allergies-accordion-item"}>
+                                    <div>
+                                        {allergy.note &&
+                                            <div className={"allergies-row-note"}><Document size={20}/>
+                                                {allergy.note}</div>}
+                                    </div>
+                                    <div className={"allergy-provider"}>
+                                        {allergy.provider}
+                                    </div>
                                 </div>
-                                <div className={"allergy-provider"}>
-                                    {allergy.provider}
-                                </div>
-                            </div>
-                        </AccordionItem>
-                    </Accordion>)
+                            </AccordionItem>
+                        </Accordion>)
                 })}
             </div>
         </div>
@@ -45,3 +46,7 @@ ViewAllergiesAndReactions.propTypes = {
     allergies: PropTypes.array.isRequired,
     showTextAsAbnormal: PropTypes.bool,
 }
+
+ViewAllergiesAndReactions.defaultProps = {
+    showTextAsAbnormal: false
+};

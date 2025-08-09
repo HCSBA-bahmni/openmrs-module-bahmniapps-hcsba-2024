@@ -15,11 +15,18 @@ export const SelectReactions = (props) => {
   const [searchResults, setSearchResults] = useState(initialReactionIds);
   const [isSearchResultEmpty, setIsSearchResultEmpty] = useState(true);
   const [selectedReactions, setSelectedReactions] = useState([]);
-  const [allReactions] = useState(cloneDeep(reactions));
+  // Inicializamos asegurando que toda reacción tiene isSelected boolean para evitar transición uncontrolled->controlled
+  const [allReactions] = useState(() => {
+    const cloned = cloneDeep(reactions);
+    Object.keys(cloned).forEach((id) => {
+      if (typeof cloned[id].isSelected !== "boolean") cloned[id].isSelected = false;
+    });
+    return cloned;
+  });
   const [searchKey, setSearchKey] = useState("");
 
   const search = (key) => {
-    setSearchKey(key)
+    setSearchKey(key);
     if (!key) {
       setIsSearchResultEmpty(true);
       setSearchResults(initialReactionIds);
@@ -50,8 +57,8 @@ export const SelectReactions = (props) => {
     }
   };
   useEffect(() => {
-    if(selectedReactions.length > 0){
-      setSearchKey("")
+    if (selectedReactions.length > 0) {
+      setSearchKey("");
     }
     onChange(selectedReactions);
   }, [selectedReactions]);
@@ -59,11 +66,16 @@ export const SelectReactions = (props) => {
   return (
     <div className={"section-next-ui"}>
       <div className={"font-large selected-allergen"}>
-        <FormattedMessage id={"SELECTED_ALLERGEN"} defaultMessage={"Selected Allergen:"}/> {selectedAllergen.name}</div>
-      <div className={"font-large bold"}><FormattedMessage id={"SEARCH_REACTION"} defaultMessage={"Search Reaction"}/><span className={"red-text"}>&nbsp;*</span></div>
+        <FormattedMessage id={"SELECTED_ALLERGEN"} defaultMessage={"Selected Allergen:"} /> {selectedAllergen.name}
+      </div>
+      <div className={"font-large bold"}>
+        <FormattedMessage id={"SEARCH_REACTION"} defaultMessage={"Search Reaction"} />
+        <span className={"red-text"}>&nbsp;*</span>
+      </div>
       <div>
         <Search
           id={"reaction-search"}
+          labelText="Search Reaction" /* requerido por Carbon para accesibilidad */
           placeholder={"Type to search Reactions"}
           value={searchKey}
           onChange={(e) => {
@@ -97,7 +109,7 @@ export const SelectReactions = (props) => {
       <div>
         {isSearchResultEmpty && (
           <div className={"font-small selected-allergen"}>
-            <FormattedMessage id={"COMMON_REACTIONS"} defaultMessage={"Common Reactions"}/>
+            <FormattedMessage id={"COMMON_REACTIONS"} defaultMessage={"Common Reactions"} />
           </div>
         )}
         {searchResults.map((reactionId) => {

@@ -59,6 +59,7 @@ export function SearchAllergen(props) {
       <div>
         <Search
           id={"allergen-search"}
+          labelText="Search Allergen" /* requerido por Carbon para accesibilidad */
           placeholder={"Type to search Allergen"}
           onChange={(e) => {
             search(e.target.value);

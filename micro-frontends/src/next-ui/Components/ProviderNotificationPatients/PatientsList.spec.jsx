@@ -35,5 +35,6 @@ describe('PatientsList', () => {
       </I18nProvider>
     );
     expect(await screen.findByText(/John Doe - Male/)).toBeInTheDocument();
+    expect(screen.getByText(/Drug A/)).toBeInTheDocument();
   });
 });

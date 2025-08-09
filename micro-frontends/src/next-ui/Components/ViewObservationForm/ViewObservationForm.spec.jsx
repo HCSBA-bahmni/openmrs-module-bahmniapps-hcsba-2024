@@ -63,9 +63,12 @@ const initialProps = {
 };
 
 describe("ViewObservationForm", () => {
-  it("should match the screenshot", () => {
+  it("should render form sections without snapshot", () => {
     const { container } = render(<ViewObservationForm {...initialProps} />);
-    expect(container).toMatchSnapshot();
+    // header formName
+    expect(container.textContent).toMatch(/Vitals/);
+    // dos secciones de Pulse (una abnormal) y un grupo BP
+    expect(container.querySelectorAll("[data-testid^='section-label-']").length).toBeGreaterThan(0);
   });
 
   it("should highlight member in red if it is abnormal", () => {

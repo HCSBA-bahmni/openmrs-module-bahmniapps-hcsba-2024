@@ -83,7 +83,8 @@ describe("AddAllergy", () => {
   it("should render the component", () => {
     const { container } = renderAddAllergy();
     expect(screen.getByText(/Allergies and Reactions/i)).toBeInTheDocument();
-    expect(screen.getByText(/Search Allergen/i)).toBeInTheDocument();
+    // buscar input específico por role=searchbox (único) evitando colisión con wrapper role=search
+    expect(screen.getByRole('searchbox', { name: /Search Allergen/i })).toBeInTheDocument();
     expect(container.querySelector('button[disabled]')).toBeTruthy();
   });
 
