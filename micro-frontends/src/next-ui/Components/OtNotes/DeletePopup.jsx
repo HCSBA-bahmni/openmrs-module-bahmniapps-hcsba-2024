@@ -31,6 +31,11 @@ export function DeletePopup(props) {
 }
 
 DeletePopup.propTypes = {
-    hostData: PropTypes.Object,
-    hostApi: PropTypes.Object,
+    hostData: PropTypes.shape({
+        noteId: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+    }),
+    hostApi: PropTypes.shape({
+        onClose: PropTypes.func,
+        onSuccess: PropTypes.func
+    })
 }

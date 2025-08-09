@@ -23,7 +23,7 @@ const PatientsList = ({ patientListWithMedications, handleOnClick }) => {
   const renderPatientListContent = (patient) => (
     patient.map((medication, index) => (
       <PatientListContent
-        key={index}
+        key={medication.medication_administration_uuid || `${medication.patient_uuid}-${index}`}
         patientMedicationDetails={medication}
         handleOnClick={handleOnClick}
       />
@@ -33,7 +33,7 @@ const PatientsList = ({ patientListWithMedications, handleOnClick }) => {
   return (
     <Accordion className="patient-list-dropdown">
       {patientListWithMedications && patientListWithMedications.map((patient, index) => (
-        <AccordionItem key={index} title={renderPatientListTitle(patient)}>
+        <AccordionItem key={patient[0]?.patient_uuid || index} title={renderPatientListTitle(patient)}>
           {renderPatientListContent(patient)}
         </AccordionItem>
       ))}

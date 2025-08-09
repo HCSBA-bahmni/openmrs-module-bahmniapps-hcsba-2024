@@ -10,13 +10,13 @@ const ErrorNotification = ({setEditError, editErrorMessage}) => {
   />;
   return (
     <I18nProvider>
-        <div class="message-container error-message-container">
-            <div class="message-text">
-                <div class="types-for-errors error-message">
+        <div className="message-container error-message-container">
+            <div className="message-text">
+                <div className="types-for-errors error-message">
                     {errorMessage}
                 </div>
-                <div class="button-wrapper">
-                    <button type="button" onClick={()=>{setEditError(false)}} class="show-btn">OK</button>
+                <div className="button-wrapper">
+                    <button type="button" onClick={()=>{setEditError(false)}} className="show-btn">OK</button>
                 </div>
             </div>
         </div>
