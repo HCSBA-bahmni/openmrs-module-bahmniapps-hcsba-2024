@@ -1,6 +1,5 @@
 import axios from "axios";
 import { GET_ALL_FORMS_BASE_URL } from "../../constants";
-import { build } from "./BuildFormView.js";
 
 jest.mock("axios");
 
@@ -242,8 +241,14 @@ describe('build function', () => {
     });
 
     it('should fetch all forms and update observations when hasNoHierarchy is false', async () => {
+        console.log('TEST start build');
         axios.get.mockResolvedValueOnce({ status: 200, data: [] });
-        await build(mockObservations, false);
+        const { build } = require('./BuildFormView.js');
+        expect(typeof build).toBe('function');
+        const result = build(mockObservations, false); // puede devolver promesa o undefined
+        // Normalizar a promesa resuelta
+        await Promise.resolve(result);
+        console.log('TEST after build');
         expect(axios.get).toHaveBeenCalledWith(GET_ALL_FORMS_BASE_URL, { params: { v: "custom:(version,name,uuid)" } });
     });
 
