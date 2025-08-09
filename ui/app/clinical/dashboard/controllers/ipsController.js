@@ -4,7 +4,6 @@
 angular.module('bahmni.clinical')
     .controller('IpsController', ['$scope', '$state', '$location', 'patientService', 'visitService', 'ipsService', 'appService',
         function ($scope, $state, $location, patientService, visitService, ipsService, appService) {
-
             // Inicialización
             var init = function () {
                 $scope.patient = patientService.getPatient();
