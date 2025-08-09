@@ -413,11 +413,11 @@ export function IpsDisplayControl(props) {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {rows.map((row) => {
+                        {(rows || []).map((row) => {
                           const doc = documents.find((d) => d.id === row.id);
                           return (
-                            <TableRow {...getRowProps({ row })}>
-                              {row.cells.map((cell) => (
+                            <TableRow {...getRowProps({ row })} key={row.id}>
+                              {(row.cells || []).map((cell) => (
                                 <TableCell key={cell.id}>{cell.value}</TableCell>
                               ))}
                               <TableCell>
@@ -674,9 +674,9 @@ export function IpsDisplayControl(props) {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {rows.map((row) => (
-                                <TableRow {...getRowProps({ row })}>
-                                  {row.cells.map((cell) => (
+                              {(rows || []).map((row) => (
+                                <TableRow {...getRowProps({ row })} key={row.id}>
+                                  {(row.cells || []).map((cell) => (
                                     <TableCell key={cell.id}>{cell.value}</TableCell>
                                   ))}
                                 </TableRow>
