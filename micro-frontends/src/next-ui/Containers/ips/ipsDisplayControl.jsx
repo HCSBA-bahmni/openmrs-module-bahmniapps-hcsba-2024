@@ -377,7 +377,12 @@ export function IpsDisplayControl(props) {
                 </Grid>
 
                 {/* Modal Viewer ITI-68 */}
-                <ComposedModal open={viewerOpen} onClose={() => setViewerOpen(false)} size="lg">
+                <ComposedModal
+                    open={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    size="lg"
+                    className="custom-wide-modal"
+                >
                     <ModalHeader
                         label="ITI-68"
                         title={tx?.("DOC_VIEWER") || "Visor de Documento"}

@@ -23,6 +23,11 @@
     }
   }
 
+  .custom-wide-modal .bx--modal-container {
+    max-width: 90vw; /* 90% del viewport */
+    width: 90vw;
+  }
+
   .ips-patient-info {
     margin-bottom: 2rem;
 
