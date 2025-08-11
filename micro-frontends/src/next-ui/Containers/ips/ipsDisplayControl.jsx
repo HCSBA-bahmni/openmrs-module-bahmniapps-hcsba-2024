@@ -27,7 +27,8 @@ import {
     ModalHeader,
     ModalBody,
     ModalFooter,
-    InlineLoading
+    InlineLoading,
+    Pagination
 } from "carbon-components-react";
 import { View16, DocumentPdf16 } from "@carbon/icons-react";
 import axios from "axios";
@@ -103,6 +104,11 @@ export function IpsDisplayControl(props) {
     const [viewerError, setViewerError] = useState(null);
     const [viewerBundle, setViewerBundle] = useState(null);
 
+    // paginación
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const pageSizes = [10, 20, 50, 100];
+
     /* -------- ITI-67 load -------- */
     useEffect(() => {
         let cancelled = false;
@@ -129,6 +135,11 @@ export function IpsDisplayControl(props) {
             cancelled = true;
         };
     }, [identifier]);
+
+    // ajustar página si cambian documentos o pageSize
+    useEffect(() => {
+        setPage(1);
+    }, [documents, pageSize]);
 
     /* -------- Acciones -------- */
     const handleGenerateIPS = () => {
@@ -193,9 +204,7 @@ export function IpsDisplayControl(props) {
             composition?.type?.coding?.[0]?.display ||
             "Clinical Document";
 
-        const timestamp =
-            bundle?.timestamp || composition?.date || null;
-
+        const timestamp = bundle?.timestamp || composition?.date || null;
         const sections = composition?.section || [];
 
         return (
@@ -282,6 +291,11 @@ export function IpsDisplayControl(props) {
         );
     }
 
+    // slice para paginación
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const docsPage = documents.slice(start, end);
+
     return (
         <I18nProvider>
             <div className="ips-display-control">
@@ -307,69 +321,85 @@ export function IpsDisplayControl(props) {
                                         <FormattedMessage id="NO_DOCREF" defaultMessage="No documents found" />
                                     </p>
                                 ) : (
-                                    <DataTable
-                                        rows={documents.map((doc, idx) => ({
-                                            id: doc.id || String(idx),
-                                            type:
-                                                doc.type?.text ||
-                                                doc.type?.coding?.[0]?.display ||
-                                                doc.type?.coding?.[0]?.code ||
-                                                "—",
-                                            date: doc.date ? new Date(doc.date).toLocaleString() : "—",
-                                            status: doc.status || "—",
-                                            actions: "view"
-                                        }))}
-                                        headers={[
-                                            { key: "type", header: tx?.("DOC_TYPE") || "Type" },
-                                            { key: "date", header: tx?.("DATE") || "Date" },
-                                            { key: "status", header: tx?.("STATUS") || "Status" },
-                                            { key: "actions", header: tx?.("ACTIONS") || "Actions" }
-                                        ]}
-                                    >
-                                        {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
-                                            <TableContainer>
-                                                <Table {...getTableProps()}>
-                                                    <TableHead>
-                                                        <TableRow>
-                                                            {headers.map((h) => (
-                                                                <TableHeader {...getHeaderProps({ header: h })}>{h.header}</TableHeader>
-                                                            ))}
-                                                        </TableRow>
-                                                    </TableHead>
-                                                    <TableBody>
-                                                        {rows.map((row) => {
-                                                            const docForRow =
-                                                                documents.find((d) => (d.id || "") === row.id) || null;
-                                                            const canView = !!docForRow?.content?.[0]?.attachment?.url;
+                                    <>
+                                        <DataTable
+                                            rows={docsPage.map((doc, idx) => ({
+                                                id: doc.id || String(start + idx), // id estable por página
+                                                type:
+                                                    doc.type?.text ||
+                                                    doc.type?.coding?.[0]?.display ||
+                                                    doc.type?.coding?.[0]?.code ||
+                                                    "—",
+                                                date: doc.date ? new Date(doc.date).toLocaleString() : "—",
+                                                status: doc.status || "—",
+                                                actions: "view"
+                                            }))}
+                                            headers={[
+                                                { key: "type", header: tx?.("DOC_TYPE") || "Type" },
+                                                { key: "date", header: tx?.("DATE") || "Date" },
+                                                { key: "status", header: tx?.("STATUS") || "Status" },
+                                                { key: "actions", header: tx?.("ACTIONS") || "Actions" }
+                                            ]}
+                                        >
+                                            {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+                                                <TableContainer>
+                                                    <Table {...getTableProps()}>
+                                                        <TableHead>
+                                                            <TableRow>
+                                                                {headers.map((h) => (
+                                                                    <TableHeader {...getHeaderProps({ header: h })}>{h.header}</TableHeader>
+                                                                ))}
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                            {rows.map((row, i) => {
+                                                                // doc correspondiente en la página actual
+                                                                const docForRow = docsPage[i] || null;
+                                                                const canView = !!docForRow?.content?.[0]?.attachment?.url;
 
-                                                            return (
-                                                                <TableRow {...getRowProps({ row })}>
-                                                                    {row.cells.map((cell) => {
-                                                                        if (cell.info.header !== "actions") {
-                                                                            return <TableCell key={cell.id}>{cell.value}</TableCell>;
-                                                                        }
-                                                                        return (
-                                                                            <TableCell key={cell.id}>
-                                                                                <Button
-                                                                                    kind="ghost"
-                                                                                    size="sm"
-                                                                                    renderIcon={View16}
-                                                                                    disabled={!canView}
-                                                                                    onClick={() => docForRow && handleViewDocument(docForRow)}
-                                                                                >
-                                                                                    <FormattedMessage id="VIEW_DOC" defaultMessage="Ver doc" />
-                                                                                </Button>
-                                                                            </TableCell>
-                                                                        );
-                                                                    })}
-                                                                </TableRow>
-                                                            );
-                                                        })}
-                                                    </TableBody>
-                                                </Table>
-                                            </TableContainer>
-                                        )}
-                                    </DataTable>
+                                                                return (
+                                                                    <TableRow {...getRowProps({ row })}>
+                                                                        {row.cells.map((cell) => {
+                                                                            if (cell.info.header !== "actions") {
+                                                                                return <TableCell key={cell.id}>{cell.value}</TableCell>;
+                                                                            }
+                                                                            return (
+                                                                                <TableCell key={cell.id}>
+                                                                                    <Button
+                                                                                        kind="ghost"
+                                                                                        size="sm"
+                                                                                        renderIcon={View16}
+                                                                                        disabled={!canView}
+                                                                                        onClick={() => docForRow && handleViewDocument(docForRow)}
+                                                                                    >
+                                                                                        <FormattedMessage id="VIEW_DOC" defaultMessage="Ver doc" />
+                                                                                    </Button>
+                                                                                </TableCell>
+                                                                            );
+                                                                        })}
+                                                                    </TableRow>
+                                                                );
+                                                            })}
+                                                        </TableBody>
+                                                    </Table>
+                                                </TableContainer>
+                                            )}
+                                        </DataTable>
+
+                                        {/* Paginación */}
+                                        <div className="ips-pagination">
+                                            <Pagination
+                                                page={page}
+                                                pageSize={pageSize}
+                                                pageSizes={pageSizes}
+                                                totalItems={documents.length}
+                                                onChange={({ page: p, pageSize: ps }) => {
+                                                    setPage(p);
+                                                    setPageSize(ps);
+                                                }}
+                                            />
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </Column>
