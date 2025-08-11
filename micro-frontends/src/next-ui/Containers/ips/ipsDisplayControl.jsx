@@ -22,7 +22,12 @@ import {
     Loading,
     Grid,
     Row,
-    Column
+    Column,
+    ComposedModal,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    InlineLoading
 } from "carbon-components-react";
 import { View16, DocumentPdf16 } from "@carbon/icons-react";
 import axios from "axios";
@@ -30,16 +35,17 @@ import axios from "axios";
 /* ===========================
    CONFIG ITI-67/68
    =========================== */
-// En producción, mueve estos valores a variables de entorno
+// En producción, usa variables de entorno
 const REGIONAL_BASE = "https://10.68.174.206:5000/regional";
 const BASIC_USER = "mediator-proxy@openhim.org";
 const BASIC_PASS = "Lopior.123";
-const BASIC_AUTH = "Basic " + (typeof btoa === "function" ? btoa(`${BASIC_USER}:${BASIC_PASS}`) : "");
+const BASIC_AUTH =
+    "Basic " + (typeof btoa === "function" ? btoa(`${BASIC_USER}:${BASIC_PASS}`) : "");
 
 // Headers con Basic Auth
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
-    "Accept": accept,
-    "Authorization": BASIC_AUTH
+    Accept: accept,
+    Authorization: BASIC_AUTH
 });
 
 // Une base + path cuidando slashes
@@ -56,14 +62,10 @@ const fetchDocumentReferences = async (patientIdentifier) => {
     const ensured = q.startsWith("RUN*") ? q : `RUN*${q}`;
     const url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
     try {
-        const res = await axios.get(url, {
-            headers: buildAuthHeaders("application/fhir+json")
-        });
+        const res = await axios.get(url, { headers: buildAuthHeaders("application/fhir+json") });
         return res.data; // axios ya parsea JSON
     } catch (err) {
-        if (err.response) {
-            throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
-        }
+        if (err.response) throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
         throw err;
     }
 };
@@ -77,17 +79,31 @@ const parseDocRefsFromBundle = (bundle) => {
 };
 
 /* ===========================
+   Helpers de render FHIR
+   =========================== */
+const getResource = (bundle, resourceType) =>
+    (bundle?.entry || []).map((e) => e.resource).find((r) => r?.resourceType === resourceType) || null;
+
+const safeDiv = (html) => ({ __html: html || "" });
+
+/* ===========================
    COMPONENTE
    =========================== */
 export function IpsDisplayControl(props) {
-    const { hostData, hostApi, tx } = props; // hostApi se deja por si usas generateDocument
+    const { hostData, hostApi, tx } = props;
     const { patientUuid, identifier } = hostData || {};
 
     const [isLoading, setIsLoading] = useState(true);
     const [documents, setDocuments] = useState([]);
     const [error, setError] = useState(null);
 
-    // Carga ITI-67
+    // modal state (ITI-68 viewer)
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerLoading, setViewerLoading] = useState(false);
+    const [viewerError, setViewerError] = useState(null);
+    const [viewerBundle, setViewerBundle] = useState(null);
+
+    /* -------- ITI-67 load -------- */
     useEffect(() => {
         let cancelled = false;
         const run = async () => {
@@ -109,10 +125,12 @@ export function IpsDisplayControl(props) {
             }
         };
         run();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [identifier]);
 
-    // Generar IPS (si lo mantienes en Angular, sino quítalo)
+    /* -------- Acciones -------- */
     const handleGenerateIPS = () => {
         if (hostApi?.ipsService?.generateDocument) {
             hostApi.ipsService.generateDocument(patientUuid, identifier);
@@ -121,7 +139,7 @@ export function IpsDisplayControl(props) {
         }
     };
 
-    // ITI-68: ver documento desde attachment.url
+    // ITI-68: ver documento usando attachment.url (p. ej. "Bundle/18")
     const handleViewDocument = async (doc) => {
         const att = doc?.content?.[0]?.attachment;
         const attachmentUrl = att?.url;
@@ -130,39 +148,110 @@ export function IpsDisplayControl(props) {
             return;
         }
         const url = resolveRegionalUrl(attachmentUrl);
+
+        // Si es PDF, abrir como binario en nueva pestaña
+        if (att?.contentType?.toLowerCase?.().includes("pdf")) {
+            try {
+                const binRes = await axios.get(url, {
+                    headers: buildAuthHeaders("*/*"),
+                    responseType: "blob"
+                });
+                const href = URL.createObjectURL(binRes.data);
+                window.open(href, "_blank");
+            } catch (err) {
+                console.error("[ITI-68] Error abriendo PDF:", err);
+            }
+            return;
+        }
+
+        // Render como Bundle bonito en un modal
+        setViewerOpen(true);
+        setViewerLoading(true);
+        setViewerError(null);
+        setViewerBundle(null);
         try {
-            // Si sabemos el contentType y es PDF, vamos directo a binario
-            if (att?.contentType && /pdf/i.test(att.contentType)) {
-                const bin = await fetch(url, { headers: buildAuthHeaders("*/*") });
-                if (!bin.ok) throw new Error(`ITI-68 ${bin.status} ${bin.statusText}`);
-                const blob = await bin.blob();
-                const href = URL.createObjectURL(blob);
-                window.open(href, "_blank");
-                return;
-            }
-
-            // 1) Intentar FHIR JSON (Bundle del documento)
-            const tryJson = await fetch(url, { headers: buildAuthHeaders("application/fhir+json") });
-            if (tryJson.ok) {
-                const json = await tryJson.json();
-                // Mostrar en nueva pestaña como JSON legible
-                const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
-                const href = URL.createObjectURL(blob);
-                window.open(href, "_blank");
-                return;
-            }
-
-            // 2) Fallback binario (PDF u otro)
-            const tryBin = await fetch(url, { headers: buildAuthHeaders("*/*") });
-            if (!tryBin.ok) throw new Error(`ITI-68 ${tryBin.status} ${tryBin.statusText}`);
-            const blob = await tryBin.blob();
-            const href = URL.createObjectURL(blob);
-            window.open(href, "_blank");
+            const jsonRes = await axios.get(url, {
+                headers: buildAuthHeaders("application/fhir+json")
+            });
+            setViewerBundle(jsonRes.data);
         } catch (err) {
-            console.error("[ITI-68] Error:", err);
+            console.error("[ITI-68] Error cargando Bundle:", err);
+            setViewerError(err?.response ? `ITI-68 ${err.response.status} ${err.response.statusText}` : String(err));
+        } finally {
+            setViewerLoading(false);
         }
     };
 
+    /* -------- Render helpers del modal -------- */
+    const renderBundleViewer = (bundle) => {
+        if (!bundle) return null;
+
+        const composition = getResource(bundle, "Composition");
+        const patient = getResource(bundle, "Patient");
+        const title =
+            composition?.title ||
+            composition?.type?.coding?.[0]?.display ||
+            "Clinical Document";
+
+        const timestamp =
+            bundle?.timestamp || composition?.date || null;
+
+        const sections = composition?.section || [];
+
+        return (
+            <div className="ips-bundle-viewer">
+                <div className="bundle-header">
+                    <h3 className="bundle-title">{title}</h3>
+                    {timestamp && (
+                        <div className="bundle-meta">
+                            <small>
+                                <FormattedMessage id="DOC_DATE" defaultMessage="Date" />:{" "}
+                                {new Date(timestamp).toLocaleString()}
+                            </small>
+                        </div>
+                    )}
+                </div>
+
+                {/* Patient */}
+                <div className="bundle-block">
+                    <h4><FormattedMessage id="PATIENT" defaultMessage="Patient" /></h4>
+                    {patient?.text?.div ? (
+                        <div
+                            className="bundle-html"
+                            dangerouslySetInnerHTML={safeDiv(patient.text.div)}
+                        />
+                    ) : (
+                        <div className="bundle-fallback">
+                            <div><b>ID:</b> {patient?.id || "—"}</div>
+                            <div><b>Identifier:</b> {patient?.identifier?.[0]?.value || "—"}</div>
+                            <div><b>Name:</b> {patient?.name?.[0]?.text || "—"}</div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Sections */}
+                {sections.map((sec, i) => (
+                    <div key={i} className="bundle-block">
+                        <h4>{sec.title || sec.code?.coding?.[0]?.display || `Section ${i + 1}`}</h4>
+                        {sec.text?.div ? (
+                            <div
+                                className="bundle-html"
+                                dangerouslySetInnerHTML={safeDiv(sec.text.div)}
+                            />
+                        ) : (
+                            <ul className="bundle-list">
+                                {(sec.entry || []).map((ref, k) => (
+                                    <li key={k}>{ref.reference}</li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    /* -------- UI principal -------- */
     const formsHeading = (
         <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard" />
     );
@@ -172,9 +261,7 @@ export function IpsDisplayControl(props) {
             <I18nProvider>
                 <div className="ips-display-control-loading">
                     <Loading
-                        description={
-                            <FormattedMessage id="LOADING_MESSAGE" defaultMessage="Loading... Please Wait" />
-                        }
+                        description={<FormattedMessage id="LOADING_MESSAGE" defaultMessage="Loading... Please Wait" />}
                     />
                 </div>
             </I18nProvider>
@@ -212,10 +299,7 @@ export function IpsDisplayControl(props) {
                         <Column lg={12}>
                             <div className="ips-section">
                                 <h3>
-                                    <FormattedMessage
-                                        id="IPS_DOCREF_TITLE"
-                                        defaultMessage="Clinical Documents (ITI-67)"
-                                    />
+                                    <FormattedMessage id="IPS_DOCREF_TITLE" defaultMessage="Clinical Documents (ITI-67)" />
                                 </h3>
 
                                 {documents.length === 0 ? (
@@ -233,8 +317,7 @@ export function IpsDisplayControl(props) {
                                                 "—",
                                             date: doc.date ? new Date(doc.date).toLocaleString() : "—",
                                             status: doc.status || "—",
-                                            actions: "view",
-                                            doc // conservar doc completo para la acción
+                                            actions: "view"
                                         }))}
                                         headers={[
                                             { key: "type", header: tx?.("DOC_TYPE") || "Type" },
@@ -249,34 +332,39 @@ export function IpsDisplayControl(props) {
                                                     <TableHead>
                                                         <TableRow>
                                                             {headers.map((h) => (
-                                                                <TableHeader {...getHeaderProps({ header: h })}>
-                                                                    {h.header}
-                                                                </TableHeader>
+                                                                <TableHeader {...getHeaderProps({ header: h })}>{h.header}</TableHeader>
                                                             ))}
                                                         </TableRow>
                                                     </TableHead>
                                                     <TableBody>
-                                                        {rows.map((row) => (
-                                                            <TableRow {...getRowProps({ row })}>
-                                                                {row.cells.map((cell) => {
-                                                                    if (cell.info.header !== "actions") {
-                                                                        return <TableCell key={cell.id}>{cell.value}</TableCell>;
-                                                                    }
-                                                                    return (
-                                                                        <TableCell key={cell.id}>
-                                                                            <Button
-                                                                                kind="ghost"
-                                                                                size="sm"
-                                                                                renderIcon={View16}
-                                                                                onClick={() => handleViewDocument(row?.original?.doc)}
-                                                                            >
-                                                                                <FormattedMessage id="VIEW_DOC" defaultMessage="Ver doc" />
-                                                                            </Button>
-                                                                        </TableCell>
-                                                                    );
-                                                                })}
-                                                            </TableRow>
-                                                        ))}
+                                                        {rows.map((row) => {
+                                                            const docForRow =
+                                                                documents.find((d) => (d.id || "") === row.id) || null;
+                                                            const canView = !!docForRow?.content?.[0]?.attachment?.url;
+
+                                                            return (
+                                                                <TableRow {...getRowProps({ row })}>
+                                                                    {row.cells.map((cell) => {
+                                                                        if (cell.info.header !== "actions") {
+                                                                            return <TableCell key={cell.id}>{cell.value}</TableCell>;
+                                                                        }
+                                                                        return (
+                                                                            <TableCell key={cell.id}>
+                                                                                <Button
+                                                                                    kind="ghost"
+                                                                                    size="sm"
+                                                                                    renderIcon={View16}
+                                                                                    disabled={!canView}
+                                                                                    onClick={() => docForRow && handleViewDocument(docForRow)}
+                                                                                >
+                                                                                    <FormattedMessage id="VIEW_DOC" defaultMessage="Ver doc" />
+                                                                                </Button>
+                                                                            </TableCell>
+                                                                        );
+                                                                    })}
+                                                                </TableRow>
+                                                            );
+                                                        })}
                                                     </TableBody>
                                                 </Table>
                                             </TableContainer>
@@ -287,6 +375,36 @@ export function IpsDisplayControl(props) {
                         </Column>
                     </Row>
                 </Grid>
+
+                {/* Modal Viewer ITI-68 */}
+                <ComposedModal open={viewerOpen} onClose={() => setViewerOpen(false)} size="lg">
+                    <ModalHeader
+                        label="ITI-68"
+                        title={tx?.("DOC_VIEWER") || "Visor de Documento"}
+                    />
+                    <ModalBody hasScrollingContent>
+                        {viewerLoading && (
+                            <div className="bundle-loading">
+                                <InlineLoading description={tx?.("LOADING") || "Cargando documento..."} />
+                            </div>
+                        )}
+                        {!viewerLoading && viewerError && (
+                            <div className="bundle-error">
+                                <FormattedMessage
+                                    id="DOC_VIEWER_ERROR"
+                                    defaultMessage="No se pudo cargar el documento: {error}"
+                                    values={{ error: viewerError }}
+                                />
+                            </div>
+                        )}
+                        {!viewerLoading && !viewerError && viewerBundle && renderBundleViewer(viewerBundle)}
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button kind="secondary" onClick={() => setViewerOpen(false)}>
+                            <FormattedMessage id="CLOSE" defaultMessage="Cerrar" />
+                        </Button>
+                    </ModalFooter>
+                </ComposedModal>
             </div>
         </I18nProvider>
     );
