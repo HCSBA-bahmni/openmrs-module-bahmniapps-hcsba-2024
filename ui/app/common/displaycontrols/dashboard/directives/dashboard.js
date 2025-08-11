@@ -73,6 +73,33 @@ angular.module('bahmni.common.displaycontrol.dashboard')
                     activeVisit: $scope.visitHistory ? $scope.visitHistory.activeVisit : null,
                     allergyControlConceptIdMap: appService.getAppDescriptor().getConfigValue("allergyControlConceptIdMap")
                 };
+                // [AÑADIR] justo después de $scope.allergyData = { ... } y antes de $scope.appService = appService;
+
+                // 1) Resuelve el identifier preferido del paciente
+                var preferredIdentifier =
+                    ($scope.patient.primaryIdentifier && $scope.patient.primaryIdentifier.identifier) ||
+                    $scope.patient.identifier ||
+                    (($scope.patient.identifiers && $scope.patient.identifiers.length > 0) ? $scope.patient.identifiers[0].identifier : null);
+
+                // 2) Data que le vas a pasar al MFE IPS
+                $scope.ipsData = {
+                    patientUuid: $scope.patient.uuid,
+                    identifier: preferredIdentifier
+                    // si necesitas más, agrégalo aquí (ej: location, user, etc.)
+                };
+
+                // 3) API (callbacks) opcional que tu MFE puede invocar
+                $scope.ipsApi = {
+                    refresh: function () {
+                        // [opcional] si tu MFE te pide recargar algo en Angular, hazlo acá
+                        // por ejemplo: $state.go($state.current, {}, { reload: true });
+                    },
+                    onOpenDoc: function (docId) {
+                        // [opcional] callback al abrir un documento del IPS
+                        // spinner.forPromise(...); o lo que estimes
+                    }
+                };
+
                 $scope.appService = appService;
                 $bahmniCookieStore.get(Bahmni.Common.Constants.locationCookieName);
             }

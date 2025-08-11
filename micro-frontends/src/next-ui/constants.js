@@ -16,6 +16,7 @@ export const verifierFunction = "Verifier";
 export const document_images_path = "../../document_images/";
 const RESTWS_V1 = hostUrl + "/openmrs/ws/rest/v1";
 
+
 export const FORM_BASE_URL = RESTWS_V1 + "/bahmnicore/patient/{patientUuid}/forms";
 export const ENCOUNTER_BASE_URL = RESTWS_V1 + "/bahmnicore/bahmniencounter/{encounterUuid}";
 export const GET_ALL_FORMS_BASE_URL = RESTWS_V1 + "/bahmniie/form/allForms";

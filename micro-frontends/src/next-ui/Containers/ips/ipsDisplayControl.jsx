@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+
 import "../../../styles/carbon-conflict-fixes.scss";
 import "../../../styles/carbon-theme.scss";
 import "../../../styles/common.scss";
@@ -19,190 +20,162 @@ import {
     TableCell,
     Button,
     Loading,
-    Tile,
-    Tag,
     Grid,
     Row,
     Column
 } from "carbon-components-react";
-import { View16, Download16, DocumentPdf16 } from "@carbon/icons-react";
+import { View16, DocumentPdf16 } from "@carbon/icons-react";
+import axios from "axios";
 
-/** NOTE: for reasons known only to react2angular,
- * any functions passed in as props will be undefined at the start, even ones inside other objects
- * so you need to use the conditional operator like props.hostApi?.callback even though it is a mandatory prop
- */
+/* ===========================
+   CONFIG ITI-67/68
+   =========================== */
+// En producción, mueve estos valores a variables de entorno
+const REGIONAL_BASE = "https://10.68.174.206:5000/regional";
+const BASIC_USER = "mediator-proxy@openhim.org";
+const BASIC_PASS = "Lopior.123";
+const BASIC_AUTH = "Basic " + (typeof btoa === "function" ? btoa(`${BASIC_USER}:${BASIC_PASS}`) : "");
 
+// Headers con Basic Auth
+const buildAuthHeaders = (accept = "application/fhir+json") => ({
+    "Accept": accept,
+    "Authorization": BASIC_AUTH
+});
+
+// Une base + path cuidando slashes
+const joinUrl = (base, path) =>
+    `${base.replace(/\/+$/, "")}/${String(path || "").replace(/^\/+/, "")}`;
+
+// Si attachment.url viene relativo (p.ej. "Bundle/18"), resolver contra REGIONAL_BASE
+const resolveRegionalUrl = (maybeRelative) =>
+    /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
+
+// ITI-67: GET DocumentReference?patient.identifier=...
+const fetchDocumentReferences = async (patientIdentifier) => {
+    const q = String(patientIdentifier || "");
+    const ensured = q.startsWith("RUN*") ? q : `RUN*${q}`;
+    const url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
+    try {
+        const res = await axios.get(url, {
+            headers: buildAuthHeaders("application/fhir+json")
+        });
+        return res.data; // axios ya parsea JSON
+    } catch (err) {
+        if (err.response) {
+            throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
+        }
+        throw err;
+    }
+};
+
+// Normaliza Bundle -> DocumentReference[]
+const parseDocRefsFromBundle = (bundle) => {
+    if (!bundle || bundle.total === 0) return [];
+    return (bundle.entry || [])
+        .map((e) => e.resource)
+        .filter((r) => r?.resourceType === "DocumentReference");
+};
+
+/* ===========================
+   COMPONENTE
+   =========================== */
 export function IpsDisplayControl(props) {
-    const { hostData, hostApi, tx, appService } = props;
-    const { patient, provider, activeVisit } = hostData || {};
+    const { hostData, hostApi, tx } = props; // hostApi se deja por si usas generateDocument
+    const { patientUuid, identifier } = hostData || {};
 
-    // Estados del componente
     const [isLoading, setIsLoading] = useState(true);
-    const [ipsData, setIpsData] = useState({
-        vacunas: [],
-        alergias: [],
-        medicamentos: [],
-        diagnosticos: [],
-        procedimientos: []
-    });
+    const [documents, setDocuments] = useState([]);
     const [error, setError] = useState(null);
 
+    // Carga ITI-67
     useEffect(() => {
-        console.log("IpsDisplayControl montado");
-        buildIpsData();
-    }, [patient]);
-
-    const buildIpsData = async () => {
-        if (!patient || !patient.uuid) {
-            setIsLoading(false);
-            return;
-        }
-
-        try {
+        let cancelled = false;
+        const run = async () => {
             setIsLoading(true);
-            console.log("Construyendo datos IPS para paciente:", patient);
-            
-            // Aquí harías las llamadas a las APIs reales para obtener los datos IPS
-            // Por ahora, usamos datos mock para demostración
-            const mockIpsData = {
-                vacunas: [
-                    {
-                        id: "1",
-                        vacuna: "COVID-19 (Pfizer)",
-                        fecha: "2024-01-15",
-                        dosis: "1ra dosis",
-                        lote: "ABC123",
-                        proveedor: "Hospital Central"
-                    },
-                    {
-                        id: "2",
-                        vacuna: "Influenza",
-                        fecha: "2023-10-10",
-                        dosis: "Anual",
-                        lote: "FLU456",
-                        proveedor: "Centro de Salud"
-                    }
-                ],
-                alergias: [
-                    {
-                        id: "1",
-                        alergeno: "Penicilina",
-                        severidad: "Severa",
-                        reaccion: "Anafilaxia",
-                        fecha: "2023-05-20"
-                    },
-                    {
-                        id: "2",
-                        alergeno: "Maní",
-                        severidad: "Moderada",
-                        reaccion: "Urticaria",
-                        fecha: "2022-03-15"
-                    }
-                ],
-                medicamentos: [
-                    {
-                        id: "1",
-                        medicamento: "Metformina 500mg",
-                        dosis: "2 veces al día",
-                        fechaInicio: "2023-01-10",
-                        estado: "Activo"
-                    },
-                    {
-                        id: "2",
-                        medicamento: "Losartán 50mg",
-                        dosis: "1 vez al día",
-                        fechaInicio: "2023-06-05",
-                        estado: "Activo"
-                    }
-                ],
-                diagnosticos: [
-                    {
-                        id: "1",
-                        diagnostico: "Diabetes Mellitus Tipo 2",
-                        codigo: "E11",
-                        fecha: "2023-01-10",
-                        estado: "Activo"
-                    },
-                    {
-                        id: "2",
-                        diagnostico: "Hipertensión Arterial",
-                        codigo: "I10",
-                        fecha: "2023-06-05",
-                        estado: "Activo"
-                    }
-                ],
-                procedimientos: [
-                    {
-                        id: "1",
-                        procedimiento: "Electrocardiograma",
-                        fecha: "2024-01-20",
-                        resultado: "Normal",
-                        proveedor: "Dr. García"
-                    }
-                ]
-            };
+            setError(null);
+            try {
+                if (!identifier) {
+                    setDocuments([]);
+                    return;
+                }
+                const bundle = await fetchDocumentReferences(identifier);
+                const docs = parseDocRefsFromBundle(bundle);
+                if (!cancelled) setDocuments(docs);
+            } catch (e) {
+                console.error("[IPS] ITI-67 error:", e);
+                if (!cancelled) setError(e.message || String(e));
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        };
+        run();
+        return () => { cancelled = true; };
+    }, [identifier]);
 
-            setIpsData(mockIpsData);
-        } catch (err) {
-            console.error("Error construyendo datos IPS:", err);
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
+    // Generar IPS (si lo mantienes en Angular, sino quítalo)
     const handleGenerateIPS = () => {
         if (hostApi?.ipsService?.generateDocument) {
-            hostApi.ipsService.generateDocument(patient.uuid);
+            hostApi.ipsService.generateDocument(patientUuid, identifier);
         } else {
-            console.log("Generando documento IPS para paciente:", patient?.uuid);
-            // Implementar la lógica de generación de IPS
+            console.log("Generar IPS (noop):", { patientUuid, identifier });
         }
     };
 
-    const handleViewDetails = (section, itemId) => {
-        if (hostApi?.navigation?.ipsDetails) {
-            hostApi.navigation.ipsDetails(section, itemId);
+    // ITI-68: ver documento desde attachment.url
+    const handleViewDocument = async (doc) => {
+        const att = doc?.content?.[0]?.attachment;
+        const attachmentUrl = att?.url;
+        if (!attachmentUrl) {
+            console.warn("[ITI-68] Sin attachment.url en DocumentReference:", doc?.id);
+            return;
         }
-    };
+        const url = resolveRegionalUrl(attachmentUrl);
+        try {
+            // Si sabemos el contentType y es PDF, vamos directo a binario
+            if (att?.contentType && /pdf/i.test(att.contentType)) {
+                const bin = await fetch(url, { headers: buildAuthHeaders("*/*") });
+                if (!bin.ok) throw new Error(`ITI-68 ${bin.status} ${bin.statusText}`);
+                const blob = await bin.blob();
+                const href = URL.createObjectURL(blob);
+                window.open(href, "_blank");
+                return;
+            }
 
-    const getSeverityColor = (severity) => {
-        switch (severity?.toLowerCase()) {
-            case 'severa': return 'red';
-            case 'moderada': return 'orange';
-            case 'leve': return 'yellow';
-            default: return 'gray';
-        }
-    };
+            // 1) Intentar FHIR JSON (Bundle del documento)
+            const tryJson = await fetch(url, { headers: buildAuthHeaders("application/fhir+json") });
+            if (tryJson.ok) {
+                const json = await tryJson.json();
+                // Mostrar en nueva pestaña como JSON legible
+                const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+                const href = URL.createObjectURL(blob);
+                window.open(href, "_blank");
+                return;
+            }
 
-    const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'activo': return 'green';
-            case 'inactivo': return 'gray';
-            case 'completado': return 'blue';
-            default: return 'gray';
+            // 2) Fallback binario (PDF u otro)
+            const tryBin = await fetch(url, { headers: buildAuthHeaders("*/*") });
+            if (!tryBin.ok) throw new Error(`ITI-68 ${tryBin.status} ${tryBin.statusText}`);
+            const blob = await tryBin.blob();
+            const href = URL.createObjectURL(blob);
+            window.open(href, "_blank");
+        } catch (err) {
+            console.error("[ITI-68] Error:", err);
         }
     };
 
     const formsHeading = (
-        <FormattedMessage
-            id={"DASHBOARD_TITLE_IPS_LAC_KEY"}
-            defaultMessage={"IPS LAC Dashboard"}
-        />
-    );
-
-    const loadingMessage = (
-        <FormattedMessage
-            id={"LOADING_MESSAGE"}
-            defaultMessage={"Loading... Please Wait"}
-        />
+        <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard" />
     );
 
     if (isLoading) {
         return (
             <I18nProvider>
                 <div className="ips-display-control-loading">
-                    <Loading description={loadingMessage} />
+                    <Loading
+                        description={
+                            <FormattedMessage id="LOADING_MESSAGE" defaultMessage="Loading... Please Wait" />
+                        }
+                    />
                 </div>
             </I18nProvider>
         );
@@ -223,304 +196,124 @@ export function IpsDisplayControl(props) {
     }
 
     return (
-        <>
-            <I18nProvider>
-                <div className="ips-display-control">
-                    {/* Header */}
-                    <div className="ips-header">
-                        <h2 className={"forms-display-control-section-title"}>
-                            {formsHeading}
-                        </h2>
-                        <Button
-                            kind="primary"
-                            renderIcon={DocumentPdf16}
-                            onClick={handleGenerateIPS}
-                        >
-                            <FormattedMessage
-                                id="GENERATE_IPS_DOCUMENT"
-                                defaultMessage="Generate IPS Document"
-                            />
-                        </Button>
-                    </div>
-
-                    {/* Patient Information */}
-                    <div className="ips-patient-info">
-                        <Tile>
-                            <h3>
-                                <FormattedMessage
-                                    id="PATIENT_INFORMATION"
-                                    defaultMessage="Patient Information"
-                                />
-                            </h3>
-                            <p><strong>
-                                <FormattedMessage id="PATIENT_NAME" defaultMessage="Name" />:
-                            </strong> {patient?.display || "Unknown"}</p>
-                            <p><strong>
-                                <FormattedMessage id="PATIENT_ID" defaultMessage="ID" />:
-                            </strong> {patient?.uuid}</p>
-                            {activeVisit && (
-                                <p><strong>
-                                    <FormattedMessage id="ACTIVE_VISIT" defaultMessage="Active Visit" />:
-                                </strong> {activeVisit.visitType?.display}</p>
-                            )}
-                        </Tile>
-                    </div>
-
-                    <Grid>
-                        {/* Vacunas */}
-                        <Row>
-                            <Column lg={6} md={6} sm={4}>
-                                <div className="ips-section">
-                                    <h3>
-                                        <FormattedMessage
-                                            id="IPS_VACUNAS_TITLE"
-                                            defaultMessage="Immunizations"
-                                        />
-                                    </h3>
-                                    {ipsData.vacunas.length === 0 ? (
-                                        <p className="empty-message">
-                                            <FormattedMessage
-                                                id="NO_VACUNAS"
-                                                defaultMessage="No immunizations recorded"
-                                            />
-                                        </p>
-                                    ) : (
-                                        <div className="items-list">
-                                            {ipsData.vacunas.map((vacuna) => (
-                                                <Tile key={vacuna.id} className="item-tile">
-                                                    <div className="item-header">
-                                                        <strong>{vacuna.vacuna}</strong>
-                                                        <Button
-                                                            kind="ghost"
-                                                            size="sm"
-                                                            renderIcon={View16}
-                                                            onClick={() => handleViewDetails('vacunas', vacuna.id)}
-                                                        >
-                                                            <FormattedMessage id="VIEW" defaultMessage="View" />
-                                                        </Button>
-                                                    </div>
-                                                    <p>{vacuna.dosis} - {new Date(vacuna.fecha).toLocaleDateString()}</p>
-                                                    <p><small>{vacuna.proveedor}</small></p>
-                                                </Tile>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </Column>
-
-                            {/* Alergias */}
-                            <Column lg={6} md={6} sm={4}>
-                                <div className="ips-section">
-                                    <h3>
-                                        <FormattedMessage
-                                            id="IPS_ALERGIAS_TITLE"
-                                            defaultMessage="Allergies"
-                                        />
-                                    </h3>
-                                    {ipsData.alergias.length === 0 ? (
-                                        <p className="empty-message">
-                                            <FormattedMessage
-                                                id="NO_ALERGIAS"
-                                                defaultMessage="No allergies recorded"
-                                            />
-                                        </p>
-                                    ) : (
-                                        <div className="items-list">
-                                            {ipsData.alergias.map((alergia) => (
-                                                <Tile key={alergia.id} className="item-tile">
-                                                    <div className="item-header">
-                                                        <strong>{alergia.alergeno}</strong>
-                                                        <Tag type={getSeverityColor(alergia.severidad)}>
-                                                            {alergia.severidad}
-                                                        </Tag>
-                                                    </div>
-                                                    <p>{alergia.reaccion}</p>
-                                                    <p><small>{new Date(alergia.fecha).toLocaleDateString()}</small></p>
-                                                </Tile>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </Column>
-                        </Row>
-
-                        {/* Medicamentos */}
-                        <Row>
-                            <Column lg={6} md={6} sm={4}>
-                                <div className="ips-section">
-                                    <h3>
-                                        <FormattedMessage
-                                            id="IPS_MEDICAMENTOS_TITLE"
-                                            defaultMessage="Current Medications"
-                                        />
-                                    </h3>
-                                    {ipsData.medicamentos.length === 0 ? (
-                                        <p className="empty-message">
-                                            <FormattedMessage
-                                                id="NO_MEDICAMENTOS"
-                                                defaultMessage="No current medications"
-                                            />
-                                        </p>
-                                    ) : (
-                                        <div className="items-list">
-                                            {ipsData.medicamentos.map((medicamento) => (
-                                                <Tile key={medicamento.id} className="item-tile">
-                                                    <div className="item-header">
-                                                        <strong>{medicamento.medicamento}</strong>
-                                                        <Tag type={getStatusColor(medicamento.estado)}>
-                                                            {medicamento.estado}
-                                                        </Tag>
-                                                    </div>
-                                                    <p>{medicamento.dosis}</p>
-                                                    <p><small>
-                                                        <FormattedMessage id="SINCE" defaultMessage="Since" />: {new Date(medicamento.fechaInicio).toLocaleDateString()}
-                                                    </small></p>
-                                                </Tile>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </Column>
-
-                            {/* Diagnósticos */}
-                            <Column lg={6} md={6} sm={4}>
-                                <div className="ips-section">
-                                    <h3>
-                                        <FormattedMessage
-                                            id="IPS_DIAGNOSTICOS_TITLE"
-                                            defaultMessage="Diagnoses"
-                                        />
-                                    </h3>
-                                    {ipsData.diagnosticos.length === 0 ? (
-                                        <p className="empty-message">
-                                            <FormattedMessage
-                                                id="NO_DIAGNOSTICOS"
-                                                defaultMessage="No diagnoses recorded"
-                                            />
-                                        </p>
-                                    ) : (
-                                        <div className="items-list">
-                                            {ipsData.diagnosticos.map((diagnostico) => (
-                                                <Tile key={diagnostico.id} className="item-tile">
-                                                    <div className="item-header">
-                                                        <strong>{diagnostico.diagnostico}</strong>
-                                                        <Tag type={getStatusColor(diagnostico.estado)}>
-                                                            {diagnostico.estado}
-                                                        </Tag>
-                                                    </div>
-                                                    <p>
-                                                        <FormattedMessage id="CODE" defaultMessage="Code" />: {diagnostico.codigo}
-                                                    </p>
-                                                    <p><small>{new Date(diagnostico.fecha).toLocaleDateString()}</small></p>
-                                                </Tile>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </Column>
-                        </Row>
-
-                        {/* Procedimientos */}
-                        <Row>
-                            <Column lg={12}>
-                                <div className="ips-section">
-                                    <h3>
-                                        <FormattedMessage
-                                            id="IPS_PROCEDIMIENTOS_TITLE"
-                                            defaultMessage="Recent Procedures"
-                                        />
-                                    </h3>
-                                    {ipsData.procedimientos.length === 0 ? (
-                                        <p className="empty-message">
-                                            <FormattedMessage
-                                                id="NO_PROCEDIMIENTOS"
-                                                defaultMessage="No recent procedures"
-                                            />
-                                        </p>
-                                    ) : (
-                                        <DataTable
-                                            rows={ipsData.procedimientos.map(proc => ({
-                                                id: proc.id,
-                                                procedimiento: proc.procedimiento,
-                                                fecha: new Date(proc.fecha).toLocaleDateString(),
-                                                resultado: proc.resultado,
-                                                proveedor: proc.proveedor
-                                            }))}
-                                            headers={[
-                                                { key: "procedimiento", header: tx("PROCEDURE") || "Procedure" },
-                                                { key: "fecha", header: tx("DATE") || "Date" },
-                                                { key: "resultado", header: tx("RESULT") || "Result" },
-                                                { key: "proveedor", header: tx("PROVIDER") || "Provider" }
-                                            ]}
-                                        >
-                                            {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
-                                                <TableContainer>
-                                                    <Table {...getTableProps()}>
-                                                        <TableHead>
-                                                            <TableRow>
-                                                                {headers.map((header) => (
-                                                                    <TableHeader {...getHeaderProps({ header })}>
-                                                                        {header.header}
-                                                                    </TableHeader>
-                                                                ))}
-                                                            </TableRow>
-                                                        </TableHead>
-                                                        <TableBody>
-                                                            {rows.map((row) => (
-                                                                <TableRow {...getRowProps({ row })}>
-                                                                    {row.cells.map((cell) => (
-                                                                        <TableCell key={cell.id}>{cell.value}</TableCell>
-                                                                    ))}
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </TableContainer>
-                                            )}
-                                        </DataTable>
-                                    )}
-                                </div>
-                            </Column>
-                        </Row>
-                    </Grid>
+        <I18nProvider>
+            <div className="ips-display-control">
+                {/* Header */}
+                <div className="ips-header">
+                    <h2 className={"forms-display-control-section-title"}>{formsHeading}</h2>
+                    <Button kind="primary" renderIcon={DocumentPdf16} onClick={handleGenerateIPS}>
+                        <FormattedMessage id="GENERATE_IPS_DOCUMENT" defaultMessage="Generate IPS Document" />
+                    </Button>
                 </div>
-            </I18nProvider>
-        </>
+
+                <Grid>
+                    {/* DocumentReference (ITI-67) */}
+                    <Row>
+                        <Column lg={12}>
+                            <div className="ips-section">
+                                <h3>
+                                    <FormattedMessage
+                                        id="IPS_DOCREF_TITLE"
+                                        defaultMessage="Clinical Documents (ITI-67)"
+                                    />
+                                </h3>
+
+                                {documents.length === 0 ? (
+                                    <p className="empty-message">
+                                        <FormattedMessage id="NO_DOCREF" defaultMessage="No documents found" />
+                                    </p>
+                                ) : (
+                                    <DataTable
+                                        rows={documents.map((doc, idx) => ({
+                                            id: doc.id || String(idx),
+                                            type:
+                                                doc.type?.text ||
+                                                doc.type?.coding?.[0]?.display ||
+                                                doc.type?.coding?.[0]?.code ||
+                                                "—",
+                                            date: doc.date ? new Date(doc.date).toLocaleString() : "—",
+                                            status: doc.status || "—",
+                                            actions: "view",
+                                            doc // conservar doc completo para la acción
+                                        }))}
+                                        headers={[
+                                            { key: "type", header: tx?.("DOC_TYPE") || "Type" },
+                                            { key: "date", header: tx?.("DATE") || "Date" },
+                                            { key: "status", header: tx?.("STATUS") || "Status" },
+                                            { key: "actions", header: tx?.("ACTIONS") || "Actions" }
+                                        ]}
+                                    >
+                                        {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+                                            <TableContainer>
+                                                <Table {...getTableProps()}>
+                                                    <TableHead>
+                                                        <TableRow>
+                                                            {headers.map((h) => (
+                                                                <TableHeader {...getHeaderProps({ header: h })}>
+                                                                    {h.header}
+                                                                </TableHeader>
+                                                            ))}
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {rows.map((row) => (
+                                                            <TableRow {...getRowProps({ row })}>
+                                                                {row.cells.map((cell) => {
+                                                                    if (cell.info.header !== "actions") {
+                                                                        return <TableCell key={cell.id}>{cell.value}</TableCell>;
+                                                                    }
+                                                                    return (
+                                                                        <TableCell key={cell.id}>
+                                                                            <Button
+                                                                                kind="ghost"
+                                                                                size="sm"
+                                                                                renderIcon={View16}
+                                                                                onClick={() => handleViewDocument(row?.original?.doc)}
+                                                                            >
+                                                                                <FormattedMessage id="VIEW_DOC" defaultMessage="Ver doc" />
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    );
+                                                                })}
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        )}
+                                    </DataTable>
+                                )}
+                            </div>
+                        </Column>
+                    </Row>
+                </Grid>
+            </div>
+        </I18nProvider>
     );
 }
 
 IpsDisplayControl.propTypes = {
     hostData: PropTypes.shape({
-        patient: PropTypes.shape({
-            uuid: PropTypes.string.isRequired,
-            display: PropTypes.string
-        }),
-        provider: PropTypes.shape({
-            uuid: PropTypes.string,
-            display: PropTypes.string
-        }),
-        activeVisit: PropTypes.shape({
-            uuid: PropTypes.string,
-            visitType: PropTypes.shape({
-                display: PropTypes.string
-            })
-        })
+        patientUuid: PropTypes.string.isRequired,
+        identifier: PropTypes.string.isRequired
     }).isRequired,
     hostApi: PropTypes.shape({
-        navigation: PropTypes.shape({
-            ipsDetails: PropTypes.func
-        }),
         ipsService: PropTypes.shape({
             generateDocument: PropTypes.func
-        }),
-        dataService: PropTypes.shape({
-            getImmunizations: PropTypes.func,
-            getAllergies: PropTypes.func,
-            getCurrentMedications: PropTypes.func,
-            getDiagnoses: PropTypes.func,
-            getProcedures: PropTypes.func
         })
     }),
-    tx: PropTypes.func,
-    appService: PropTypes.object
+    tx: PropTypes.func
+};
+
+IpsDisplayControl.defaultProps = {
+    hostData: {
+        patientUuid: "",
+        identifier: ""
+    },
+    hostApi: {
+        ipsService: {
+            generateDocument: () => {}
+        }
+    },
+    tx: (key) => key
 };
