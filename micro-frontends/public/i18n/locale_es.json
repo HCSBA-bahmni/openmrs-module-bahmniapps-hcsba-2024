@@ -39,6 +39,7 @@
   "ADD_BUTTON_TEXT": "Añadir +",
   "SEARCH_ALLERGEN_PLACEHOLDER": "Escriba para buscar alérgeno",
   "GENERATE_IPS_DOCUMENT": "Generar Documento IPS",
+  "READ_VHL_DOCUMENT": "Leer Documento VHL",
   "PATIENT_INFORMATION": "Información del Paciente",
   "PATIENT_NAME": "Nombre",
   "PATIENT_ID": "ID",

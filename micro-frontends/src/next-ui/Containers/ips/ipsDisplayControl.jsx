@@ -30,8 +30,9 @@ import {
     InlineLoading,
     Pagination
 } from "carbon-components-react";
-import { View16, DocumentPdf16 } from "@carbon/icons-react";
+import {View16, QrCode32} from "@carbon/icons-react";
 import axios from "axios";
+import QRCode from 'qrcode';
 
 /* ===========================
    CONFIG ITI-67/68
@@ -42,6 +43,11 @@ const BASIC_USER = "mediator-proxy@openhim.org";
 const BASIC_PASS = "Lopior.123";
 const BASIC_AUTH =
     "Basic " + (typeof btoa === "function" ? btoa(`${BASIC_USER}:${BASIC_PASS}`) : "");
+/* ===========================
+   CONFIG VHL SHARE (QR)
+   =========================== */
+const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
+const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
 
 // Headers con Basic Auth
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
@@ -71,6 +77,21 @@ const fetchDocumentReferences = async (patientIdentifier) => {
     }
 };
 
+const fetchIpsJsonUrl = async (hc1) => {
+    const resp = await axios.post(
+        `${VHL_RESOLVE_URL}?format=text`,
+        { qrCodeContent: hc1 },
+        {
+            headers: {
+                ...buildAuthHeaders("text/plain"),
+                "Content-Type": "application/json"
+            },
+            responseType: "text"
+        }
+    );
+    return resp.data.trim(); // p.ej. http://10.68.174.221:8182/v2/ips-json/....?key=...
+};
+
 // Normaliza Bundle -> DocumentReference[]
 const parseDocRefsFromBundle = (bundle) => {
     if (!bundle || bundle.total === 0) return [];
@@ -91,8 +112,8 @@ const safeDiv = (html) => ({ __html: html || "" });
    COMPONENTE
    =========================== */
 export function IpsDisplayControl(props) {
-    const { hostData, hostApi, tx } = props;
-    const { patientUuid, identifier } = hostData || {};
+    const { hostData, tx } = props;
+    const { identifier } = hostData || {};
 
     const [isLoading, setIsLoading] = useState(true);
     const [documents, setDocuments] = useState([]);
@@ -108,6 +129,13 @@ export function IpsDisplayControl(props) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const pageSizes = [10, 20, 50, 100];
+
+    // compartir VHL
+    const [shareLoading, setShareLoading] = useState(false);
+    const [shareError, setShareError] = useState(null);
+    const [shareText, setShareText] = useState("");   // el "HC1: ..."
+    const [shareQrDataUrl, setShareQrDataUrl] = useState(""); // dataURL del QR
+
 
     /* -------- ITI-67 load -------- */
     useEffect(() => {
@@ -143,11 +171,7 @@ export function IpsDisplayControl(props) {
 
     /* -------- Acciones -------- */
     const handleGenerateIPS = () => {
-        if (hostApi?.ipsService?.generateDocument) {
-            hostApi.ipsService.generateDocument(patientUuid, identifier);
-        } else {
-            console.log("Generar IPS (noop):", { patientUuid, identifier });
-        }
+        console.log("[IPS] Generating IPS document...");
     };
 
     // ITI-68: ver documento usando attachment.url (p. ej. "Bundle/18")
@@ -207,19 +231,155 @@ export function IpsDisplayControl(props) {
         const timestamp = bundle?.timestamp || composition?.date || null;
         const sections = composition?.section || [];
 
+        const handleShareVHL = async () => {
+            try {
+                setShareLoading(true);
+                setShareError(null);
+                setShareText("");
+                setShareQrDataUrl("");
+
+                if (!viewerBundle) {
+                    setShareError("No hay documento cargado para compartir.");
+                    return;
+                }
+
+                // 👉 IMPORTANTE: Asegúrate que VHL_ISSUANCE_URL apunte al mediator (ej. https://10.68.174.206:5000/vhl/_generate)
+                const resp = await axios.post(
+                    VHL_ISSUANCE_URL,
+                    viewerBundle, // enviamos el Bundle FHIR puro
+                    {
+                        headers: {
+                            ...buildAuthHeaders("application/json"), // Accept + Authorization (Basic)
+                            "Content-Type": "application/json"
+                        },
+                        responseType: "json"
+                    }
+                );
+
+                const hc1 =
+                    resp?.data?.hc1
+                        ? String(resp.data.hc1).trim()
+                        : (typeof resp?.data === "string" ? resp.data.trim() : "");
+
+                if (!hc1) {
+                    setShareError("El emisor no devolvió un código HC1 válido.");
+                    return;
+                }
+
+                setShareText(hc1);
+
+                // Generamos el QR (import QRCode from "qrcode";)
+                const dataUrl = await QRCode.toDataURL(hc1, {
+                    errorCorrectionLevel: "M",
+                    margin: 1,
+                    scale: 6
+                });
+                setShareQrDataUrl(dataUrl);
+            } catch (e) {
+                console.error("[VHL] Error al compartir:", e);
+                const msg = e?.response
+                    ? `${e.response.status} ${e.response.statusText}`
+                    : e?.message || String(e);
+                setShareError(`Error al emitir VHL: ${msg}`);
+            } finally {
+                setShareLoading(false);
+            }
+        };
+
+        const handleCopyShareText = async () => {
+            try {
+                await navigator.clipboard.writeText(shareText || "");
+            } catch { /* noop */ }
+        };
+
         return (
             <div className="ips-bundle-viewer">
-                <div className="bundle-header">
-                    <h3 className="bundle-title">{title}</h3>
-                    {timestamp && (
-                        <div className="bundle-meta">
-                            <small>
-                                <FormattedMessage id="DOC_DATE" defaultMessage="Date" />:{" "}
-                                {new Date(timestamp).toLocaleString()}
-                            </small>
-                        </div>
-                    )}
+                <div
+                    className="bundle-header"
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        flexWrap: "wrap"
+                    }}
+                >
+                    <h3 className="bundle-title" style={{ margin: 0 }}>{title}</h3>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                        <Button
+                            kind="primary"
+                            size="sm"
+                            onClick={handleShareVHL}
+                            disabled={shareLoading}
+                        >
+                            <FormattedMessage id="SHARE_VHL" defaultMessage="Compartir VHL" />
+                        </Button>
+                    </div>
                 </div>
+
+                {timestamp && (
+                    <div className="bundle-meta" style={{ marginBottom: "1rem" }}>
+                        <small>
+                            <FormattedMessage id="DOC_DATE" defaultMessage="Date" />:{" "}
+                            {new Date(timestamp).toLocaleString()}
+                        </small>
+                    </div>
+                )}
+
+                {/* Resultado de compartir VHL */}
+                {(shareLoading || shareError || shareText) && (
+                    <div className="vhl-share-block" style={{ marginBottom: "1rem" }}>
+                        {shareLoading && (
+                            <InlineLoading description={tx?.("EMITTING_VHL") || "Emitiendo VHL..."} />
+                        )}
+
+                        {!shareLoading && shareError && (
+                            <div className="bundle-error" style={{ color: "#da1e28" }}>
+                                {shareError}
+                            </div>
+                        )}
+
+                        {!shareLoading && !shareError && shareText && (
+                            <div
+                                className="vhl-share-result"
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "auto 1fr",
+                                    gap: "1rem",
+                                    alignItems: "center"
+                                }}
+                            >
+                                {shareQrDataUrl ? (
+                                    <img
+                                        src={shareQrDataUrl}
+                                        alt="QR VHL"
+                                        style={{ width: 168, height: 168 }}
+                                    />
+                                ) : null}
+                                <div>
+                                    <div
+                                        style={{
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-word",
+                                            background: "var(--cds-layer, #f4f4f4)",
+                                            padding: "0.75rem",
+                                            borderRadius: "0.25rem",
+                                            fontFamily: "monospace",
+                                            fontSize: "0.825rem",
+                                            lineHeight: 1.3,
+                                            marginBottom: "0.5rem"
+                                        }}
+                                    >
+                                        {shareText}
+                                    </div>
+                                    <Button kind="secondary" size="sm" onClick={handleCopyShareText}>
+                                        <FormattedMessage id="COPY_VHL" defaultMessage="Copiar código" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Patient */}
                 <div className="bundle-block">
@@ -259,6 +419,8 @@ export function IpsDisplayControl(props) {
             </div>
         );
     };
+
+
 
     /* -------- UI principal -------- */
     const formsHeading = (
@@ -302,8 +464,8 @@ export function IpsDisplayControl(props) {
                 {/* Header */}
                 <div className="ips-header">
                     <h2 className={"forms-display-control-section-title"}>{formsHeading}</h2>
-                    <Button kind="primary" renderIcon={DocumentPdf16} onClick={handleGenerateIPS}>
-                        <FormattedMessage id="GENERATE_IPS_DOCUMENT" defaultMessage="Generate IPS Document" />
+                    <Button kind="primary" renderIcon={QrCode32} onClick={handleGenerateIPS}>
+                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer VHL" />
                     </Button>
                 </div>
 
