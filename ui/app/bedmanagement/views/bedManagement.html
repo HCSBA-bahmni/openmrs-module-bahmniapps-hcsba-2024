@@ -22,6 +22,19 @@
                 <span ng-show="patient.gender == 'O'">{{'GENDER_OTHER_KEY' | translate}}</span>
             </p>
         </div>
+        <!-- ADD: botón para abrir diálogo (solo si hay paciente) -->
+        <div class="modern-card" style="margin-top:8px;">
+            <button
+                    class="confirm"
+                    ng-if="patient && patient.uuid"
+                    ng-click="openCustomDialog()">
+                {{ 'PATIENT_VISIT_ACTION' | translate }}
+            </button>
+            <span class="form-field" ng-if="!patient || !patient.uuid" style="opacity:.7;">
+                {{ 'SELECCIONA_PACIENTE_PARA_CONTINUAR' | translate }}
+            </span>
+        </div>
+
         <adt patient="patient" encounterConfig="encounterConfig" bed="bed"></adt>
         <h6>{{'BED_DETAILS_KEY' | translate}}</h6>
         <div class="patient-bed-details modern-card">

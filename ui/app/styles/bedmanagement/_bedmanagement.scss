@@ -1639,6 +1639,119 @@ $btn-modern-department-color: #374151;
 
 }
 
+/* ==============================
+   Sección dinámica de visitas
+   ============================== */
+.visit-dynamic-group {
+  margin-top: 8px;
+
+  .visit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .modern-button.modern-button-secondary[disabled],
+    .modern-button.modern-button-secondary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .visit-item {
+    padding: 8px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr 1fr;
+      gap: 8px;
+
+      @media (max-width: 1024px) {
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      label {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      input[type="text"],
+      input[type="tel"],
+      input[type="number"] {
+        width: 100%;
+        min-height: 32px;
+        padding: 6px 8px;
+        border: 1px solid rgba(0,0,0,0.12);
+        border-radius: 6px;
+        background: #fff;
+        outline: none;
+        transition: border-color 120ms ease, box-shadow 120ms ease;
+
+        &:focus {
+          border-color: rgba(0,0,0,0.28);
+          box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+        }
+      }
+    }
+  }
+}
+/* ==============================
+   Variante modal ancho (visitas)
+   ============================== */
+.modern-modal-wide {
+  .modern-modal {
+    max-width: 960px; /* más espacio para la grilla */
+    width: 90%;       /* ajusta para pantallas pequeñas */
+  }
+
+  .modern-modal-body {
+    padding: 20px;
+  }
+
+  .visit-dynamic-group .form-row {
+    grid-template-columns: 1fr 1.5fr 1fr;
+  }
+}
+/* Botón solo ícono (basado en modern-button) */
+.modern-button.icon-only {
+  padding: 4px 6px;
+  min-width: auto;
+  line-height: 1;
+
+  i {
+    font-size: 1rem; /* tamaño del ícono */
+  }
+}
+
+/* Variante roja para iconos de eliminar */
+.modern-button.icon-only i.fa-trash {
+  color: #dc2626; /* rojo */
+}
+
+.modern-button.icon-only:hover i.fa-trash {
+  color: #b91c1c; /* rojo más oscuro en hover */
+}
+
+
 
 
 

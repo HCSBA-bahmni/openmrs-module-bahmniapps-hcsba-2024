@@ -53,6 +53,122 @@ angular.module('bahmni.ipd')
                 return mappedRooms;
             };
 
+            // ADD: estado inicial (máx. 3)
+            $scope.visitas = [];
+
+// ADD: helpers
+            $scope.addVisita = function () {
+                if ($scope.visitas.length >= 3) return;
+                $scope.visitas.push({ doc: '', nombre: '', contacto: '' });
+            };
+
+            $scope.removeVisita = function (idx) {
+                $scope.visitas.splice(idx, 1);
+            };
+            $scope.form = $scope.form || { customComment: '' };
+
+            // ADD: función para abrir diálogo validando paciente
+            $scope.openCustomDialog = function () {
+                if (!$scope.patient || !$scope.patient.uuid) return;
+                $scope.visitas = ($scope.visitas && $scope.visitas.length) ? $scope.visitas : [{ doc: '', nombre: '', contacto: '' }];
+                $scope.form.customComment = $scope.form.customComment || ''; // init seguro
+                ngDialog.open({
+                    template: 'views/custom-action-dialog.html',
+                    className: 'ngdialog-theme-default modern-modal-wide',
+                    scope: $scope,
+                    data: { patient: $scope.patient },
+                    showClose: false,          // usamos el "ngdialog-close clearfix" del template
+                    closeByEscape: true,
+                    closeByDocument: true
+                });
+            };
+
+            // MOD: ahora envía visitas + comentario
+            $scope.confirmCustomAction = function () {
+                // --- cama: arma algo tipo "Ward-Room-BedNumber" si está todo disponible
+                var camaCode = null;
+                try {
+                    var s = $rootScope.selectedBedInfo || {};
+                    var wardName = ($scope.ward && $scope.ward.name) || null;
+                    var roomName = s.roomName || null;
+                    var bedNumber = s.bed && s.bed.bedNumber != null ? String(s.bed.bedNumber) : null;
+
+                    if (wardName && roomName && bedNumber) {
+                        camaCode = wardName + '-' + roomName + '-' + bedNumber;
+                    } else if (bedNumber) {
+                        camaCode = bedNumber; // fallback mínimo
+                    }
+                } catch (e) {
+                    camaCode = null;
+                }
+
+                // --- paciente
+                var rutPaciente = ($scope.patient && $scope.patient.identifier) || null;
+                // si aplica quitar el prefijo "RUN*"
+                if (rutPaciente && rutPaciente.startsWith('RUN*')) {
+                    rutPaciente = rutPaciente.substring(4);
+                }
+                var nombrePaciente = ($scope.patient && $scope.patient.name) || null;
+                var edadPaciente = ($scope.patient && $scope.patient.age) || null;
+                // si está undefined -> null; si es '' (vacío), se respeta como ''
+                var observaciones = (typeof $scope.form.customComment === 'undefined')
+                    ? null
+                    : $scope.form.customComment;
+                // --- visitas: mapea los 3 campos del modal y rellena resto en null
+                var visitasPayload = [];
+                if ($scope.visitas && $scope.visitas.length) {
+                    for (var i = 0; i < $scope.visitas.length; i++) {
+                        var v = $scope.visitas[i] || {};
+                        visitasPayload.push({
+                            rut: v.doc || null,            // Nº Documento Visita -> rut visitante (si aplica)
+                            entregado: null,               // Bahmni no lo provee aquí
+                            lanyard: null,                 // Bahmni no lo provee
+                            quien_entrega: null,           // Bahmni no lo provee
+                            telefono: v.contacto || null   // contacto ingresado
+                        });
+                    }
+                }
+
+                // --- arma payload final
+                var payload = {
+                    data_paciente: {
+                        cama: camaCode,
+                        rut: rutPaciente,
+                        nombre_paciente: nombrePaciente,
+                        edad: edadPaciente,
+                        id_nacionalidad: null,          // no disponible en esta vista
+                        observaciones: observaciones,
+                        nombre_tutor: null,             // no disponible
+                        rut_tutor: null,                // no disponible
+                        fono_contacto: null,            // no disponible
+                        pertenece_pueblo: null          // no disponible
+                    },
+                    visitas: visitasPayload
+                };
+
+                // --- imprime bonito para validar
+                console.log('Payload a enviar (bedManagement):\n', JSON.stringify(payload, null, 2));
+                // limpiamos los datos del modal
+                $scope.visitas = [];
+                $scope.form.customComment = '';
+                // cierra modal (dejamos el POST real para el siguiente paso)
+                ngDialog.closeAll();
+            };
+
+            // ADD: helper para validar el formulario del modal
+            $scope.isVisitasInvalid = function () {
+                if (!$scope.patient || !$scope.patient.uuid) return true;
+                if (!$scope.visitas || $scope.visitas.length === 0) return true;
+
+                for (var i = 0; i < $scope.visitas.length; i++) {
+                    var v = $scope.visitas[i] || {};
+                    if (!v.doc || !v.nombre || !v.contacto) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
             // var getRoomsForWard = function (bedLayouts) {
             //     bedLayouts.forEach(function (bed) {
             //         if (!bed.bedTagMaps) {

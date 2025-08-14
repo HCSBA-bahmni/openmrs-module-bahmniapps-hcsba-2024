@@ -1,0 +1,92 @@
+<!-- Reutilizando estilo existente -->
+<div class="modern-modal-wrapper" aria-labelledby="dialog-label">
+    <div class="modern-modal">
+
+        <!-- Mantener fix de z-index -->
+        <style type="text/css">
+            .opd-header-wrapper {
+                z-index: 10000 !important;
+            }
+        </style>
+
+        <div class="ngdialog-close clearfix"></div>
+
+        <!-- Contenido principal -->
+        <div class="modern-modal-body">
+            <div class="modern-modal-section">
+                <!-- ADD: Sección dinámica de visitas (máx. 3) -->
+
+                <p>
+                    {{ 'PATIENT_ID_KEY' | translate }}:
+                    <strong>{{ patient.name }} ({{ patient.identifier }})</strong>
+                </p>
+                <div class="visit-dynamic-group">
+                    <div class="visit-header"
+                         style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                        <h4 style="margin:0;">{{ 'VISITAS_KEY' | translate }}</h4>
+                        <button
+                                type="button"
+                                class="modern-button modern-button-secondary"
+                                ng-click="addVisita()"
+                                ng-disabled="visitas.length >= 3">
+                            {{ 'AGREGAR_VISITA_KEY' | translate }} ({{visitas.length}}/3)
+                        </button>
+                    </div>
+
+                    <div class="visit-item modern-card" ng-repeat="v in visitas track by $index"
+                         style="padding:8px;margin-bottom:8px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                            <strong>{{ 'VISITA_N_KEY' | translate:{n: ($index + 1)} }}</strong>
+                            <button
+                                    type="button"
+                                    class="modern-button modern-button-secondary"
+                                    ng-click="removeVisita($index)"
+                                    ng-if="visitas.length > 1"
+                                    title="{{ 'ELIMINAR_KEY' | translate }}">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+
+                        <div class="form-row" style="display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:8px;">
+                            <div class="form-field">
+                                <label>{{ 'NRO_DOC_VISITA_KEY' | translate }}</label>
+                                <input type="text" ng-model="v.doc" required
+                                       placeholder="{{ 'PLACEHOLDER_DOC_KEY' | translate }}"/>
+                            </div>
+
+                            <div class="form-field">
+                                <label>{{ 'NOMBRE_COMPLETO_KEY' | translate }}</label>
+                                <input type="text" ng-model="v.nombre" required
+                                       placeholder="{{ 'PLACEHOLDER_NOMBRE_KEY' | translate }}"/>
+                            </div>
+
+                            <div class="form-field">
+                                <label>{{ 'CONTACTO_KEY' | translate }}</label>
+                                <input type="tel" ng-model="v.contacto" required
+                                       placeholder="{{ 'PLACEHOLDER_CONTACTO_KEY' | translate }}"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-field" style="margin-top:10px;">
+                    <label>{{ 'COMENTARIO_KEY' | translate }}</label>
+                    <textarea ng-model="form.customComment" rows="4" style="width:100%;"></textarea>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="modern-modal-footer">
+                <button id="modal-revise-button1" class="modern-button modern-button-primary"
+                        ng-click="confirmCustomAction()"
+                        ng-disabled="isVisitasInvalid()"
+                >
+                    {{ 'SAVE_KEY' | translate }}
+                </button>
+                <button id="modal-revise-button3" class="modern-button modern-button-secondary"
+                        ng-click="closeThisDialog()">
+                    {{ 'CANCEL_KEY' | translate }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
