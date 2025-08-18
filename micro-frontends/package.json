@@ -39,6 +39,7 @@
     "carbon-components": "^10.19.0",
     "carbon-components-react": "^7.25.0",
     "classnames": "2.3.1",
+    "html5-qrcode": "^2.3.8",
     "moment": "^2.29.4",
     "prop-types": "^15.7.2",
     "qrcode": "^1.5.4",
