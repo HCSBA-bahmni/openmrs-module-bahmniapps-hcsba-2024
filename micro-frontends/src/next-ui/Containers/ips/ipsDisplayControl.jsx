@@ -68,7 +68,10 @@ const resolveRegionalUrl = (maybeRelative) =>
 // ITI-67: GET DocumentReference?patient.identifier=...
 const fetchDocumentReferences = async (patientIdentifier) => {
     const q = String(patientIdentifier || "");
-    const ensured = q.startsWith("RUN*") ? q : `RUN*${q}`;
+    // Ahora se usa el identificador tal cual llega, sin anteponer nada
+    // Lógica anterior (por si se requiere en el futuro):
+    // const ensured = q.startsWith("RUT*") ? q : `RUT*${q}`;
+    const ensured = q;
     const url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
     try {
         const res = await axios.get(url, { headers: buildAuthHeaders("application/fhir+json") });
