@@ -65,17 +65,37 @@ const joinUrl = (base, path) =>
 const resolveRegionalUrl = (maybeRelative) =>
     /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
 
-// ITI-67: GET DocumentReference?patient.identifier=...
+// ITI-67: GET DocumentReference?patient.identifier=... (soporta paginación FHIR)
 const fetchDocumentReferences = async (patientIdentifier) => {
     const q = String(patientIdentifier || "");
     // Ahora se usa el identificador tal cual llega, sin anteponer nada
     // Lógica anterior (por si se requiere en el futuro):
     // const ensured = q.startsWith("RUT*") ? q : `RUT*${q}`;
     const ensured = q;
-    const url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
+    let url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
+    let allEntries = [];
+    let firstBundle = null;
     try {
-        const res = await axios.get(url, { headers: buildAuthHeaders("application/fhir+json") });
-        return res.data;
+        while (url) {
+            const res = await axios.get(url, { headers: buildAuthHeaders("application/fhir+json") });
+            const bundle = res.data;
+            if (!firstBundle) firstBundle = bundle;
+            if (Array.isArray(bundle.entry)) {
+                allEntries = allEntries.concat(bundle.entry);
+            }
+            // Buscar link 'next' en el bundle
+            const nextLink = (bundle.link || []).find(l => l.relation === "next");
+            url = nextLink ? nextLink.url : null;
+        }
+        // Devolver un bundle "fusionado" con todas las entries
+        if (firstBundle) {
+            return {
+                ...firstBundle,
+                entry: allEntries,
+                total: allEntries.length
+            };
+        }
+        return { entry: [], total: 0 };
     } catch (err) {
         if (err.response) throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
         throw err;
