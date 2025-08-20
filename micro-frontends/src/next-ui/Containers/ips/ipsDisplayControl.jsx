@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {useState, useEffect, useRef} from "react";
 import PropTypes from "prop-types";
 
 import "../../../styles/carbon-conflict-fixes.scss";
@@ -7,8 +7,8 @@ import "../../../styles/common.scss";
 import "../formDisplayControl/formDisplayControl.scss";
 import "./ipsDisplayControl.scss";
 
-import { I18nProvider } from "../../Components/i18n/I18nProvider";
-import { FormattedMessage } from "react-intl";
+import {I18nProvider} from "../../Components/i18n/I18nProvider";
+import {FormattedMessage} from "react-intl";
 import {
     DataTable,
     TableContainer,
@@ -31,7 +31,7 @@ import {
     Pagination,
     TextArea,
 } from "carbon-components-react";
-import { View16, QrCode32 } from "@carbon/icons-react";
+import {View16, QrCode32} from "@carbon/icons-react";
 import axios from "axios";
 import QRCode from "qrcode";
 
@@ -49,7 +49,7 @@ const BASIC_AUTH =
    CONFIG VHL (Mediator)
    =========================== */
 const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
-const VHL_RESOLVE_URL  = "https://10.68.174.206:5000/vhl/_resolve";
+const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
 
 // Headers con Basic Auth (por OpenHIM)
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
@@ -65,41 +65,94 @@ const joinUrl = (base, path) =>
 const resolveRegionalUrl = (maybeRelative) =>
     /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
 
-// ITI-67: GET DocumentReference?patient.identifier=... (soporta paginación FHIR)
+// --- helper para normalizar el "next" ---
+const normalizeNextUrl = (raw) => {
+    if (!raw) return null;
+    let u = String(raw);
+
+    // Si viene relativo (p.ej. "/regional/DocumentReference?..."
+    // o sólo parámetros "?_getpages=..."), resuélvelo contra REGIONAL_BASE
+    if (!/^https?:\/\//i.test(u)) {
+        if (u.startsWith("?")) {
+            // algunos servidores devuelven sólo query; engánchalo al recurso
+            u = joinUrl(REGIONAL_BASE, `DocumentReference${u}`);
+        } else {
+            u = joinUrl(REGIONAL_BASE, u);
+        }
+    }
+
+    // Evitar mixed-content si la app corre en https
+    try {
+        const parsed = new URL(u);
+        if (window.location.protocol === "https:" && parsed.protocol === "http:") {
+            parsed.protocol = "https:";
+        }
+        return parsed.toString();
+    } catch {
+        return u;
+    }
+};
+
+// ITI-67: GET DocumentReference?patient.identifier=... (paginación robusta)
 const fetchDocumentReferences = async (patientIdentifier) => {
     const q = String(patientIdentifier || "");
-    // Ahora se usa el identificador tal cual llega, sin anteponer nada
-    // Lógica anterior (por si se requiere en el futuro):
-    // const ensured = q.startsWith("RUT*") ? q : `RUT*${q}`;
-    const ensured = q;
+    const ensured = q; // usa tal cual; si necesitas "RUN*" vuelve a activarlo aquí
+
     let url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
-    let allEntries = [];
+    const allEntries = [];
     let firstBundle = null;
-    try {
-        while (url) {
-            const res = await axios.get(url, { headers: buildAuthHeaders("application/fhir+json") });
-            const bundle = res.data;
-            if (!firstBundle) firstBundle = bundle;
-            if (Array.isArray(bundle.entry)) {
-                allEntries = allEntries.concat(bundle.entry);
+
+    const visited = new Set();
+    const MAX_PAGES = 20; // hard stop para evitar loops infinitos
+
+    for (let page = 0; url && page < MAX_PAGES; page++) {
+        // normaliza por si la primera también viene rara (reverse proxy, etc)
+        url = normalizeNextUrl(url);
+
+        if (visited.has(url)) {
+            console.warn("[IPS] Loop de paginación detectado. Cortando en:", url);
+            break;
+        }
+        visited.add(url);
+
+        let res;
+        try {
+            res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+        } catch (err) {
+            // si la primera página falla, propaga el error; si no, corta y muestra lo ya acumulado
+            if (page === 0) {
+                if (err.response) throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
+                throw err;
             }
-            // Buscar link 'next' en el bundle
-            const nextLink = (bundle.link || []).find(l => l.relation === "next");
-            url = nextLink ? nextLink.url : null;
+            console.warn("[IPS] Error al traer página de paginación; se mostrará lo acumulado:", err?.message || err);
+            break;
         }
-        // Devolver un bundle "fusionado" con todas las entries
-        if (firstBundle) {
-            return {
-                ...firstBundle,
-                entry: allEntries,
-                total: allEntries.length
-            };
+
+        const bundle = res?.data || {};
+        if (!firstBundle) firstBundle = bundle;
+
+        if (Array.isArray(bundle.entry)) {
+            allEntries.push(...bundle.entry);
         }
-        return { entry: [], total: 0 };
-    } catch (err) {
-        if (err.response) throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
-        throw err;
+
+        const links = Array.isArray(bundle.link) ? bundle.link : [];
+        const nextObj = links.find((l) => String(l?.relation || "").toLowerCase() === "next");
+        const rawNext = nextObj?.url || nextObj?.href;
+
+        url = normalizeNextUrl(rawNext); // null si no hay más páginas
     }
+
+    // Si no hubo ni primera página válida
+    if (!firstBundle) {
+        return {resourceType: "Bundle", type: "searchset", entry: [], total: 0};
+    }
+
+    // Devuelve un "Bundle" fusionado
+    return {
+        ...firstBundle,
+        entry: allEntries,
+        total: allEntries.length,
+    };
 };
 
 // Normaliza Bundle -> DocumentReference[]
@@ -116,14 +169,14 @@ const parseDocRefsFromBundle = (bundle) => {
 const getResource = (bundle, resourceType) =>
     (bundle?.entry || []).map((e) => e.resource).find((r) => r?.resourceType === resourceType) || null;
 
-const safeDiv = (html) => ({ __html: html || "" });
+const safeDiv = (html) => ({__html: html || ""});
 
 /* ===========================
    COMPONENTE
    =========================== */
 export function IpsDisplayControl(props) {
-    const { hostData, tx } = props;
-    const { identifier } = hostData || {};
+    const {hostData, tx} = props;
+    const {identifier} = hostData || {};
 
     const [isLoading, setIsLoading] = useState(true);
     const [documents, setDocuments] = useState([]);
@@ -203,8 +256,14 @@ export function IpsDisplayControl(props) {
         try {
             if (scannerRef.current) {
                 // detener sólo si está escaneando
-                try { await scannerRef.current.stop(); } catch {}
-                try { await scannerRef.current.clear(); } catch {}
+                try {
+                    await scannerRef.current.stop();
+                } catch {
+                }
+                try {
+                    await scannerRef.current.clear();
+                } catch {
+                }
             }
         } finally {
             scannerRef.current = null;
@@ -221,7 +280,7 @@ export function IpsDisplayControl(props) {
         await new Promise((r) => setTimeout(r, 60));
 
         try {
-            const { Html5Qrcode } = await import("html5-qrcode");
+            const {Html5Qrcode} = await import("html5-qrcode");
             const id = "vhl-qr-region";
             const el = document.getElementById(id);
             if (!el) {
@@ -234,13 +293,14 @@ export function IpsDisplayControl(props) {
             scannerRef.current = scanner;
 
             await scanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: 250 },
+                {facingMode: "environment"},
+                {fps: 10, qrbox: 250},
                 async (decodedText) => {
                     setVhlInput(decodedText || "");
                     await stopVhlScan();
                 },
-                () => {} // ignorar frames fallidos
+                () => {
+                } // ignorar frames fallidos
             );
         } catch (e) {
             console.error("[VHL] Error iniciando cámara:", e);
@@ -266,7 +326,7 @@ export function IpsDisplayControl(props) {
 
             const resp = await axios.post(
                 VHL_RESOLVE_URL,
-                { qrCodeContent: vhlInput.trim() },
+                {qrCodeContent: vhlInput.trim()},
                 {
                     headers: {
                         ...buildAuthHeaders("application/json"),
@@ -304,7 +364,7 @@ export function IpsDisplayControl(props) {
 
         try {
             const res = await axios.get(location, {
-                headers: { Accept: "application/fhir+json" },
+                headers: {Accept: "application/fhir+json"},
                 responseType: "json",
             });
             setViewerBundle(res.data);
@@ -448,20 +508,20 @@ export function IpsDisplayControl(props) {
                         flexWrap: "wrap",
                     }}
                 >
-                    <h3 className="bundle-title" style={{ margin: 0 }}>
+                    <h3 className="bundle-title" style={{margin: 0}}>
                         {title}
                     </h3>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
                         <Button kind="primary" size="sm" onClick={handleShareVHL} disabled={shareLoading}>
-                            <FormattedMessage id="SHARE_VHL" defaultMessage="Compartir VHL" />
+                            <FormattedMessage id="SHARE_VHL" defaultMessage="Compartir VHL"/>
                         </Button>
                     </div>
                 </div>
 
                 {timestamp && (
-                    <div className="bundle-meta" style={{ marginBottom: "1rem" }}>
+                    <div className="bundle-meta" style={{marginBottom: "1rem"}}>
                         <small>
-                            <FormattedMessage id="DOC_DATE" defaultMessage="Date" />:{" "}
+                            <FormattedMessage id="DOC_DATE" defaultMessage="Date"/>:{" "}
                             {new Date(timestamp).toLocaleString()}
                         </small>
                     </div>
@@ -469,7 +529,7 @@ export function IpsDisplayControl(props) {
 
                 {/* Resultado de compartir VHL */}
                 {(shareLoading || shareError || shareText) && (
-                    <div className="vhl-share-block" style={{ marginBottom: "1rem" }}>
+                    <div className="vhl-share-block" style={{marginBottom: "1rem"}}>
                         {shareLoading && (
                             <InlineLoading
                                 description={tx?.("EMITTING_VHL") || "Emitiendo VHL..."}
@@ -477,7 +537,7 @@ export function IpsDisplayControl(props) {
                         )}
 
                         {!shareLoading && shareError && (
-                            <div className="bundle-error" style={{ color: "#da1e28" }}>
+                            <div className="bundle-error" style={{color: "#da1e28"}}>
                                 {shareError}
                             </div>
                         )}
@@ -493,7 +553,7 @@ export function IpsDisplayControl(props) {
                                 }}
                             >
                                 {shareQrDataUrl ? (
-                                    <img src={shareQrDataUrl} alt="QR VHL" style={{ width: 168, height: 168 }} />
+                                    <img src={shareQrDataUrl} alt="QR VHL" style={{width: 168, height: 168}}/>
                                 ) : null}
                                 <div>
                                     <div
@@ -512,7 +572,7 @@ export function IpsDisplayControl(props) {
                                         {shareText}
                                     </div>
                                     <Button kind="secondary" size="sm" onClick={handleCopyShareText}>
-                                        <FormattedMessage id="COPY_VHL" defaultMessage="Copiar código" />
+                                        <FormattedMessage id="COPY_VHL" defaultMessage="Copiar código"/>
                                     </Button>
                                 </div>
                             </div>
@@ -523,10 +583,10 @@ export function IpsDisplayControl(props) {
                 {/* Patient */}
                 <div className="bundle-block">
                     <h4>
-                        <FormattedMessage id="PATIENT" defaultMessage="Patient" />
+                        <FormattedMessage id="PATIENT" defaultMessage="Patient"/>
                     </h4>
                     {patient?.text?.div ? (
-                        <div className="bundle-html" dangerouslySetInnerHTML={safeDiv(patient.text.div)} />
+                        <div className="bundle-html" dangerouslySetInnerHTML={safeDiv(patient.text.div)}/>
                     ) : (
                         <div className="bundle-fallback">
                             <div>
@@ -547,7 +607,7 @@ export function IpsDisplayControl(props) {
                     <div key={i} className="bundle-block">
                         <h4>{sec.title || sec.code?.coding?.[0]?.display || `Section ${i + 1}`}</h4>
                         {sec.text?.div ? (
-                            <div className="bundle-html" dangerouslySetInnerHTML={safeDiv(sec.text.div)} />
+                            <div className="bundle-html" dangerouslySetInnerHTML={safeDiv(sec.text.div)}/>
                         ) : (
                             <ul className="bundle-list">
                                 {(sec.entry || []).map((ref, k) => (
@@ -563,7 +623,7 @@ export function IpsDisplayControl(props) {
 
     /* -------- UI principal -------- */
     const formsHeading = (
-        <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard" />
+        <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard"/>
     );
 
     if (isLoading) {
@@ -572,7 +632,7 @@ export function IpsDisplayControl(props) {
                 <div className="ips-display-control-loading">
                     <Loading
                         description={
-                            <FormattedMessage id="LOADING_MESSAGE" defaultMessage="Loading... Please Wait" />
+                            <FormattedMessage id="LOADING_MESSAGE" defaultMessage="Loading... Please Wait"/>
                         }
                     />
                 </div>
@@ -587,7 +647,7 @@ export function IpsDisplayControl(props) {
                     <FormattedMessage
                         id="IPS_ERROR_MESSAGE"
                         defaultMessage="Error loading IPS data: {error}"
-                        values={{ error }}
+                        values={{error}}
                     />
                 </div>
             </I18nProvider>
@@ -608,7 +668,7 @@ export function IpsDisplayControl(props) {
 
                     {/* Leer VHL: abre modal para pegar/escanner y resolver */}
                     <Button kind="primary" renderIcon={QrCode32} onClick={handleOpenVhlReader}>
-                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer VHL" />
+                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer VHL"/>
                     </Button>
                 </div>
 
@@ -626,7 +686,7 @@ export function IpsDisplayControl(props) {
 
                                 {documents.length === 0 ? (
                                     <p className="empty-message">
-                                        <FormattedMessage id="NO_DOCREF" defaultMessage="No documents found" />
+                                        <FormattedMessage id="NO_DOCREF" defaultMessage="No documents found"/>
                                     </p>
                                 ) : (
                                     <>
@@ -643,19 +703,19 @@ export function IpsDisplayControl(props) {
                                                 actions: "view",
                                             }))}
                                             headers={[
-                                                { key: "type", header: tx?.("DOC_TYPE") || "Type" },
-                                                { key: "date", header: tx?.("DATE") || "Date" },
-                                                { key: "status", header: tx?.("STATUS") || "Status" },
-                                                { key: "actions", header: tx?.("ACTIONS") || "Actions" },
+                                                {key: "type", header: tx?.("DOC_TYPE") || "Type"},
+                                                {key: "date", header: tx?.("DATE") || "Date"},
+                                                {key: "status", header: tx?.("STATUS") || "Status"},
+                                                {key: "actions", header: tx?.("ACTIONS") || "Actions"},
                                             ]}
                                         >
-                                            {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+                                            {({rows, headers, getTableProps, getHeaderProps, getRowProps}) => (
                                                 <TableContainer>
                                                     <Table {...getTableProps()}>
                                                         <TableHead>
                                                             <TableRow>
                                                                 {headers.map((h) => (
-                                                                    <TableHeader {...getHeaderProps({ header: h })}>
+                                                                    <TableHeader {...getHeaderProps({header: h})}>
                                                                         {h.header}
                                                                     </TableHeader>
                                                                 ))}
@@ -667,10 +727,11 @@ export function IpsDisplayControl(props) {
                                                                 const canView = !!docForRow?.content?.[0]?.attachment?.url;
 
                                                                 return (
-                                                                    <TableRow {...getRowProps({ row })}>
+                                                                    <TableRow {...getRowProps({row})}>
                                                                         {row.cells.map((cell) => {
                                                                             if (cell.info.header !== "actions") {
-                                                                                return <TableCell key={cell.id}>{cell.value}</TableCell>;
+                                                                                return <TableCell
+                                                                                    key={cell.id}>{cell.value}</TableCell>;
                                                                             }
                                                                             return (
                                                                                 <TableCell key={cell.id}>
@@ -683,7 +744,8 @@ export function IpsDisplayControl(props) {
                                                                                             docForRow && handleViewDocument(docForRow)
                                                                                         }
                                                                                     >
-                                                                                        <FormattedMessage id="VIEW_DOC" defaultMessage="Ver doc" />
+                                                                                        <FormattedMessage id="VIEW_DOC"
+                                                                                                          defaultMessage="Ver doc"/>
                                                                                     </Button>
                                                                                 </TableCell>
                                                                             );
@@ -704,7 +766,7 @@ export function IpsDisplayControl(props) {
                                                 pageSize={pageSize}
                                                 pageSizes={pageSizes}
                                                 totalItems={documents.length}
-                                                onChange={({ page: p, pageSize: ps }) => {
+                                                onChange={({page: p, pageSize: ps}) => {
                                                     setPage(p);
                                                     setPageSize(ps);
                                                 }}
@@ -719,9 +781,9 @@ export function IpsDisplayControl(props) {
 
                 {/* Modal: Lector VHL (pegar / cámara) */}
                 <ComposedModal open={vhlModalOpen} onClose={handleCloseVhlModal} size="lg">
-                    <ModalHeader label="VHL" title={tx?.("READ_VHL_DOCUMENT") || "Leer VHL"} />
+                    <ModalHeader label="VHL" title={tx?.("READ_VHL_DOCUMENT") || "Leer VHL"}/>
                     <ModalBody hasScrollingContent>
-                        <div className="vhl-reader" style={{ display: "grid", gap: "1rem" }}>
+                        <div className="vhl-reader" style={{display: "grid", gap: "1rem"}}>
                             <TextArea
                                 id="vhl-input"
                                 labelText={tx?.("PASTE_VHL_HC1") || "Pega el código VHL (HC1)"}
@@ -733,7 +795,7 @@ export function IpsDisplayControl(props) {
 
                             {/* Scanner */}
                             <div>
-                                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
                                     <Button
                                         kind={vhlScanActive ? "danger--tertiary" : "tertiary"}
                                         size="sm"
@@ -744,7 +806,7 @@ export function IpsDisplayControl(props) {
                                             : (tx?.("SCAN_QR") || "Escanear QR")}
                                     </Button>
                                     {vhlScanError && (
-                                        <span style={{ color: "#da1e28", fontSize: 12 }}>{vhlScanError}</span>
+                                        <span style={{color: "#da1e28", fontSize: 12}}>{vhlScanError}</span>
                                     )}
                                 </div>
 
@@ -768,21 +830,21 @@ export function IpsDisplayControl(props) {
                                             description={tx?.("RESOLVING_VHL") || "Resolviendo VHL..."}
                                         />
                                     ) : (
-                                        <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL" />
+                                        <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL"/>
                                     )}
                                 </Button>
                                 {resolveError && (
-                                    <div style={{ color: "#da1e28", marginTop: "0.5rem" }}>{resolveError}</div>
+                                    <div style={{color: "#da1e28", marginTop: "0.5rem"}}>{resolveError}</div>
                                 )}
                             </div>
 
                             {/* Archivos del manifiesto */}
                             {resolveFiles.length > 0 && (
                                 <div className="manifest-files">
-                                    <h4 style={{ marginBottom: "0.5rem" }}>
-                                        <FormattedMessage id="MANIFEST_FILES" defaultMessage="Archivos disponibles" />
+                                    <h4 style={{marginBottom: "0.5rem"}}>
+                                        <FormattedMessage id="MANIFEST_FILES" defaultMessage="Archivos disponibles"/>
                                     </h4>
-                                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                                    <ul style={{listStyle: "none", padding: 0, margin: 0}}>
                                         {resolveFiles.map((f, idx) => (
                                             <li
                                                 key={idx}
@@ -795,7 +857,7 @@ export function IpsDisplayControl(props) {
                                                     borderTop: idx === 0 ? "none" : "1px solid #e0e0e0",
                                                 }}
                                             >
-                                                <div style={{ minWidth: 0 }}>
+                                                <div style={{minWidth: 0}}>
                                                     <div
                                                         style={{
                                                             fontFamily: "monospace",
@@ -806,11 +868,12 @@ export function IpsDisplayControl(props) {
                                                     >
                                                         {f.location}
                                                     </div>
-                                                    <small style={{ opacity: 0.7 }}>{f.contentType || "application/fhir+json"}</small>
+                                                    <small
+                                                        style={{opacity: 0.7}}>{f.contentType || "application/fhir+json"}</small>
                                                 </div>
-                                                <div style={{ flexShrink: 0 }}>
+                                                <div style={{flexShrink: 0}}>
                                                     <Button kind="ghost" size="sm" onClick={() => openResolvedFile(f)}>
-                                                        <FormattedMessage id="OPEN" defaultMessage="Abrir" />
+                                                        <FormattedMessage id="OPEN" defaultMessage="Abrir"/>
                                                     </Button>
                                                 </div>
                                             </li>
@@ -822,7 +885,7 @@ export function IpsDisplayControl(props) {
                     </ModalBody>
                     <ModalFooter>
                         <Button kind="secondary" onClick={handleCloseVhlModal}>
-                            <FormattedMessage id="CLOSE" defaultMessage="Cerrar" />
+                            <FormattedMessage id="CLOSE" defaultMessage="Cerrar"/>
                         </Button>
                     </ModalFooter>
                 </ComposedModal>
@@ -834,7 +897,7 @@ export function IpsDisplayControl(props) {
                     size="lg"
                     className="custom-wide-modal"
                 >
-                    <ModalHeader label="ITI-68" title={tx?.("DOC_VIEWER") || "Visor de Documento"} />
+                    <ModalHeader label="ITI-68" title={tx?.("DOC_VIEWER") || "Visor de Documento"}/>
                     <ModalBody hasScrollingContent>
                         {viewerLoading && (
                             <div className="bundle-loading">
@@ -848,7 +911,7 @@ export function IpsDisplayControl(props) {
                                 <FormattedMessage
                                     id="DOC_VIEWER_ERROR"
                                     defaultMessage="No se pudo cargar el documento: {error}"
-                                    values={{ error: viewerError }}
+                                    values={{error: viewerError}}
                                 />
                             </div>
                         )}
@@ -856,7 +919,7 @@ export function IpsDisplayControl(props) {
                     </ModalBody>
                     <ModalFooter>
                         <Button kind="secondary" onClick={() => setViewerOpen(false)}>
-                            <FormattedMessage id="CLOSE" defaultMessage="Cerrar" />
+                            <FormattedMessage id="CLOSE" defaultMessage="Cerrar"/>
                         </Button>
                     </ModalFooter>
                 </ComposedModal>
@@ -885,7 +948,8 @@ IpsDisplayControl.defaultProps = {
     },
     hostApi: {
         ipsService: {
-            generateDocument: () => {},
+            generateDocument: () => {
+            },
         },
     },
     tx: (key) => key,
