@@ -12,7 +12,7 @@ import {FormattedMessage} from "react-intl";
 
 /** NOTE: for reasons known only to react2angular,
  * any functions passed in as props will be undefined at the start, even ones inside other objects
- * so you need to use the conditional operator like props.hostApi?.callback even though it is a mandatory prop
+ * so you need to use the conditional operator like props.hostApi?.callback even though it is a mandatory propa
  */
 
 export function VacunasDisplayControl(props) {
