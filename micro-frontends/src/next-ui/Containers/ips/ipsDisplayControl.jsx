@@ -65,99 +65,87 @@ const joinUrl = (base, path) =>
 const resolveRegionalUrl = (maybeRelative) =>
     /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
 
-// --- helper para normalizar el "next" ---
-const normalizeNextUrl = (raw) => {
-    if (!raw) return null;
-    let u = String(raw);
-
-    // Si viene relativo (p.ej. "/regional/DocumentReference?..."
-    // o sólo parámetros "?_getpages=..."), resuélvelo contra REGIONAL_BASE
-    if (!/^https?:\/\//i.test(u)) {
-        if (u.startsWith("?")) {
-            // algunos servidores devuelven sólo query; engánchalo al recurso
-            u = joinUrl(REGIONAL_BASE, `DocumentReference${u}`);
-        } else {
-            u = joinUrl(REGIONAL_BASE, u);
-        }
-    }
-
-    // Evitar mixed-content si la app corre en https
-    try {
-        const parsed = new URL(u);
-        if (window.location.protocol === "https:" && parsed.protocol === "http:") {
-            parsed.protocol = "https:";
-        }
-        return parsed.toString();
-    } catch {
-        return u;
-    }
-};
-
-// ITI-67: GET DocumentReference?patient.identifier=... (paginación robusta)
+// ITI-67 vía mediador con _count escalonado (50→100→150→…).
+// Repite la misma búsqueda aumentando _count hasta que desaparece el link "next"
+// (sin seguir el "next" del servidor FHIR directo).
 const fetchDocumentReferences = async (patientIdentifier) => {
-    const q = String(patientIdentifier || "");
-    const ensured = q; // usa tal cual; si necesitas "RUN*" vuelve a activarlo aquí
+    const raw = String(patientIdentifier || "").trim();
+    // Si no viene con RUN*, lo agregamos (tu backend lo espera así).
+    const ensured = /^RUN\*/i.test(raw) ? raw : `RUN*${raw}`;
 
-    let url = `${REGIONAL_BASE}/DocumentReference?patient.identifier=${encodeURIComponent(ensured)}`;
-    const allEntries = [];
-    let firstBundle = null;
+    const STEP = 50;        // incremento por iteración
+    const MAX_COUNT = 2000; // hard-stop de seguridad
+    let bestBundle = null;
+    let bestEntries = [];
+    let lastLen = 0;
+    let stalled = 0;
 
-    const visited = new Set();
-    const MAX_PAGES = 20; // hard stop para evitar loops infinitos
-
-    for (let page = 0; url && page < MAX_PAGES; page++) {
-        // normaliza por si la primera también viene rara (reverse proxy, etc)
-        url = normalizeNextUrl(url);
-
-        if (visited.has(url)) {
-            console.warn("[IPS] Loop de paginación detectado. Cortando en:", url);
-            break;
-        }
-        visited.add(url);
+    for (let count = STEP; count <= MAX_COUNT; count += STEP) {
+        const url =
+            `${REGIONAL_BASE}/DocumentReference` +
+            `?patient.identifier=${encodeURIComponent(ensured)}&_count=${count}`;
 
         let res;
         try {
             res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
         } catch (err) {
-            // si la primera página falla, propaga el error; si no, corta y muestra lo ya acumulado
-            if (page === 0) {
+            // Si falla al principio, propaga el error; si falla en iteraciones posteriores, corta con lo mejor que tengas
+            if (count === STEP) {
                 if (err.response) throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
                 throw err;
+            } else {
+                console.warn("[IPS] Error con _count escalonado; se usará el mejor bundle obtenido:", err?.message || err);
+                break;
             }
-            console.warn("[IPS] Error al traer página de paginación; se mostrará lo acumulado:", err?.message || err);
-            break;
         }
 
         const bundle = res?.data || {};
-        if (!firstBundle) firstBundle = bundle;
+        const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
+        const currLen = entries.length;
 
-        if (Array.isArray(bundle.entry)) {
-            allEntries.push(...bundle.entry);
+        // Guardamos el bundle más "completo"
+        if (currLen > bestEntries.length) {
+            bestEntries = entries;
+            bestBundle = bundle;
         }
 
+        // ¿Servidor aún publica "next"?
         const links = Array.isArray(bundle.link) ? bundle.link : [];
-        const nextObj = links.find((l) => String(l?.relation || "").toLowerCase() === "next");
-        const rawNext = nextObj?.url || nextObj?.href;
+        const hasNext = links.some((l) => String(l?.relation || "").toLowerCase() === "next");
 
-        url = normalizeNextUrl(rawNext); // null si no hay más páginas
+        // Heurística anti-loop: si no crece, contamos "stalls"
+        if (currLen <= lastLen) {
+            stalled += 1;
+        } else {
+            stalled = 0;
+        }
+        lastLen = currLen;
+
+        // Condiciones de término:
+        // 1) no hay next → ya cargamos todo en esta iteración
+        // 2) se estancó 2 veces seguidas → probablemente hay un límite de _count del servidor
+        if (!hasNext || stalled >= 2) {
+            break;
+        }
     }
 
-    // Si no hubo ni primera página válida
-    if (!firstBundle) {
-        return {resourceType: "Bundle", type: "searchset", entry: [], total: 0};
+    // Si no hubo bundle válido, devolvemos uno vacío "searchset"
+    if (!bestBundle) {
+        return {resourceType: "Bundle", type: "searchset", entry: [], total: 0, link: []};
     }
 
-    // Devuelve un "Bundle" fusionado
+    // Devolvemos un Bundle "fusionado" (metadatos del mejor bundle, entries completas y sin next externo)
     return {
-        ...firstBundle,
-        entry: allEntries,
-        total: allEntries.length,
+        ...bestBundle,
+        entry: bestEntries,
+        total: bestEntries.length,
+        link: [], // limpiamos links para no tentar al front a seguir paginación del FHIR directo
     };
 };
 
 // Normaliza Bundle -> DocumentReference[]
 const parseDocRefsFromBundle = (bundle) => {
-    if (!bundle || bundle.total === 0) return [];
+    if (!bundle || !Array.isArray(bundle.entry) || bundle.entry.length === 0) return [];
     return (bundle.entry || [])
         .map((e) => e.resource)
         .filter((r) => r?.resourceType === "DocumentReference");
@@ -222,7 +210,9 @@ export function IpsDisplayControl(props) {
                 }
                 const bundle = await fetchDocumentReferences(identifier);
                 const docs = parseDocRefsFromBundle(bundle);
-                if (!cancelled) setDocuments(docs);
+                // Orden: más nuevos primero
+                const docsSorted = [...docs].sort((a, b) => getDocTimestamp(b) - getDocTimestamp(a));
+                if (!cancelled) setDocuments(docsSorted);
             } catch (e) {
                 console.error("[IPS] ITI-67 error:", e);
                 if (!cancelled) setError(e.message || String(e));
@@ -255,19 +245,26 @@ export function IpsDisplayControl(props) {
     const stopVhlScan = async () => {
         try {
             if (scannerRef.current) {
-                // detener sólo si está escaneando
-                try {
-                    await scannerRef.current.stop();
-                } catch {
-                }
-                try {
-                    await scannerRef.current.clear();
-                } catch {
-                }
+                try { await scannerRef.current.stop(); } catch {}
+                try { await scannerRef.current.clear(); } catch {}
             }
         } finally {
             scannerRef.current = null;
             setVhlScanActive(false);
+        }
+    };
+
+    // Espera a que el contenedor exista y tenga tamaño real (>0)
+    const waitRegionReady = async (id, timeoutMs = 4000) => {
+        const start = Date.now();
+        for (;;) {
+            const el = document.getElementById(id);
+            if (el) {
+                const r = el.getBoundingClientRect();
+                if (r.width > 10 && r.height > 10) return el;
+            }
+            if (Date.now() - start > timeoutMs) throw new Error("QR region no está listo");
+            await new Promise(r => setTimeout(r, 60));
         }
     };
 
@@ -276,35 +273,55 @@ export function IpsDisplayControl(props) {
 
         // 1) Mostrar el contenedor antes de iniciar
         setVhlScanActive(true);
-        // Espera a que el DOM actualice (importante para que no esté display:none)
-        await new Promise((r) => setTimeout(r, 60));
-
         try {
-            const {Html5Qrcode} = await import("html5-qrcode");
+            const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+
             const id = "vhl-qr-region";
-            const el = document.getElementById(id);
-            if (!el) {
-                setVhlScanError("No se encontró el contenedor del escáner.");
-                setVhlScanActive(false);
-                return;
+            await waitRegionReady(id); // <-- asegura tamaño
+
+            // Evita arrancar dos veces
+            if (scannerRef.current) {
+                await stopVhlScan();
             }
 
-            const scanner = new Html5Qrcode(id);
+            const scanner = new Html5Qrcode(id, {
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                verbose: false
+            });
             scannerRef.current = scanner;
 
+            // 2) Selecciona cámara estable con getCameras()
+            const cams = await Html5Qrcode.getCameras();
+            if (!Array.isArray(cams) || cams.length === 0) {
+                throw new Error("No se encontraron cámaras disponibles");
+            }
+
+            // Preferir trasera si existe
+            const back = cams.find(c => /back|rear|environment/i.test(c.label));
+            const deviceId = (back || cams[0]).id;
+
+            let consecutiveErrors = 0;
             await scanner.start(
-                {facingMode: "environment"},
-                {fps: 10, qrbox: 250},
+                { deviceId: { exact: deviceId } },
+                { fps: 12, qrbox: { width: 260, height: 260 } },
                 async (decodedText) => {
+                    // Éxito: pegar HC1 y parar
                     setVhlInput(decodedText || "");
                     await stopVhlScan();
                 },
-                () => {
-                } // ignorar frames fallidos
+                (errMsg) => {
+                    consecutiveErrors++;
+                    if (consecutiveErrors % 40 === 0) {
+                        console.debug("[QR] intentando leer…", errMsg);
+                    }
+                }
             );
         } catch (e) {
-            console.error("[VHL] Error iniciando cámara:", e);
-            setVhlScanError("No se pudo iniciar la cámara. Revisa permisos y que 'html5-qrcode' esté instalado.");
+            console.error("[VHL] Error iniciando escáner:", e);
+            setVhlScanError(
+                e?.message ||
+                "No se pudo iniciar la cámara. Revisa permisos y que 'html5-qrcode' esté instalado."
+            );
             await stopVhlScan();
         }
     };
@@ -350,10 +367,28 @@ export function IpsDisplayControl(props) {
         }
     };
 
+    // === Helpers para fecha del DocumentReference ===
+    const getDocDateISO = (doc) =>
+        doc?.date ||
+        doc?.indexed ||
+        doc?.content?.[0]?.attachment?.creation ||
+        doc?.meta?.lastUpdated ||
+        null;
+
+    const getDocTimestamp = (doc) => {
+        const iso = getDocDateISO(doc);
+        const t = iso ? Date.parse(iso) : NaN;
+        return Number.isFinite(t) ? t : 0; // sin fecha -> 0 para que vaya al final
+    };
+
+    const formatDocDate = (doc) => {
+        const iso = getDocDateISO(doc);
+        return iso ? new Date(iso).toLocaleString() : "—";
+    };
+
     const openResolvedFile = async (file) => {
         const location = file?.location;
         if (!location) return;
-        // Cerramos el modal de lectura y abrimos el visor
         await stopVhlScan();
         setVhlModalOpen(false);
 
@@ -450,7 +485,7 @@ export function IpsDisplayControl(props) {
                     viewerBundle, // enviamos el Bundle FHIR puro
                     {
                         headers: {
-                            ...buildAuthHeaders("application/json"), // Accept + Authorization (Basic)
+                            ...buildAuthHeaders("application/json"),
                             "Content-Type": "application/json",
                         },
                         responseType: "json",
@@ -527,7 +562,6 @@ export function IpsDisplayControl(props) {
                     </div>
                 )}
 
-                {/* Resultado de compartir VHL */}
                 {(shareLoading || shareError || shareText) && (
                     <div className="vhl-share-block" style={{marginBottom: "1rem"}}>
                         {shareLoading && (
@@ -603,7 +637,7 @@ export function IpsDisplayControl(props) {
                 </div>
 
                 {/* Sections */}
-                {sections.map((sec, i) => (
+                {(composition?.section || []).map((sec, i) => (
                     <div key={i} className="bundle-block">
                         <h4>{sec.title || sec.code?.coding?.[0]?.display || `Section ${i + 1}`}</h4>
                         {sec.text?.div ? (
@@ -698,7 +732,7 @@ export function IpsDisplayControl(props) {
                                                     doc.type?.coding?.[0]?.display ||
                                                     doc.type?.coding?.[0]?.code ||
                                                     "—",
-                                                date: doc.date ? new Date(doc.date).toLocaleString() : "—",
+                                                date: formatDocDate(doc),
                                                 status: doc.status || "—",
                                                 actions: "view",
                                             }))}
@@ -730,8 +764,7 @@ export function IpsDisplayControl(props) {
                                                                     <TableRow {...getRowProps({row})}>
                                                                         {row.cells.map((cell) => {
                                                                             if (cell.info.header !== "actions") {
-                                                                                return <TableCell
-                                                                                    key={cell.id}>{cell.value}</TableCell>;
+                                                                                return <TableCell key={cell.id}>{cell.value}</TableCell>;
                                                                             }
                                                                             return (
                                                                                 <TableCell key={cell.id}>
@@ -813,10 +846,11 @@ export function IpsDisplayControl(props) {
                                 <div
                                     id="vhl-qr-region"
                                     style={{
-                                        width: 300,
-                                        height: 300,
+                                        width: 320,
+                                        height: 320,
                                         marginTop: "0.5rem",
                                         background: "#00000010",
+                                        position: "relative",
                                         display: vhlScanActive ? "block" : "none",
                                     }}
                                 />
@@ -868,8 +902,9 @@ export function IpsDisplayControl(props) {
                                                     >
                                                         {f.location}
                                                     </div>
-                                                    <small
-                                                        style={{opacity: 0.7}}>{f.contentType || "application/fhir+json"}</small>
+                                                    <small style={{opacity: 0.7}}>
+                                                        {f.contentType || "application/fhir+json"}
+                                                    </small>
                                                 </div>
                                                 <div style={{flexShrink: 0}}>
                                                     <Button kind="ghost" size="sm" onClick={() => openResolvedFile(f)}>
@@ -948,8 +983,7 @@ IpsDisplayControl.defaultProps = {
     },
     hostApi: {
         ipsService: {
-            generateDocument: () => {
-            },
+            generateDocument: () => {},
         },
     },
     tx: (key) => key,
