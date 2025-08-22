@@ -527,7 +527,7 @@ export function IpsDisplayControl(props) {
             try {
                 await navigator.clipboard.writeText(shareText || "");
             } catch {
-                /* noop */
+                /* noop  */
             }
         };
 
