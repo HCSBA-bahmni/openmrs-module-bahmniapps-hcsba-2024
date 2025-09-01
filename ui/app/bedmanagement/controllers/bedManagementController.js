@@ -1,11 +1,14 @@
 'use strict';
 
 angular.module('bahmni.ipd')
-    .controller('BedManagementController', ['$scope', '$rootScope', '$stateParams', '$state', 'spinner', 'wardService', 'bedManagementService', 'visitService', 'messagingService', 'appService', 'ngDialog', '$translate',
-        function ($scope, $rootScope, $stateParams, $state, spinner, wardService, bedManagementService, visitService, messagingService, appService, ngDialog, $translate) {
+    .controller('BedManagementController', ['$scope', '$rootScope', '$stateParams', '$state', 'spinner', 'wardService', 'bedManagementService',
+        'visitService', 'messagingService', 'appService', 'ngDialog', '$translate', '$http',
+        function ($scope, $rootScope, $stateParams, $state, spinner, wardService, bedManagementService,
+                  visitService, messagingService, appService, ngDialog, $translate, $http) {
             $scope.wards = null;
             $scope.ward = {};
             $scope.editTagsPrivilege = Bahmni.IPD.Constants.editTagsPrivilege;
+            $scope.parentescos = []; // [{ id, description, estado, created_at }]
             var links = {
                 "dashboard": {
                     "name": "inpatient",
@@ -13,6 +16,8 @@ angular.module('bahmni.ipd')
                     "url": "../bedmanagement/#/patient/{{patientUuid}}/visit/{{visitUuid}}/dashboard"
                 }
             };
+            var PARENTESCO_URL = 'https://api.hcsba.cl/oirs_ped/1.0/parentesco/';
+
             var patientForwardUrl = appService.getAppDescriptor().getConfigValue("patientForwardUrl") || links.dashboard.url;
 
             var isDepartmentPresent = function (department) {
@@ -22,6 +27,8 @@ angular.module('bahmni.ipd')
 
             var init = function () {
                 $rootScope.selectedBedInfo = $rootScope.selectedBedInfo || {};
+                // Cargar catálogo de parentescos apenas inicia
+                loadParentescos();
                 loadAllWards().then(function () {
                     var context = $stateParams.context || {};
                     if (context && isDepartmentPresent(context.department)) {
@@ -53,30 +60,61 @@ angular.module('bahmni.ipd')
                 return mappedRooms;
             };
 
+            function loadParentescos () {
+                return spinner.forPromise(
+                    $http.get(PARENTESCO_URL).then(function (resp) {
+                        var rows = angular.isArray(resp.data) ? resp.data : [];
+                        // Solo activos y ordenados alfabéticamente (ES)
+                        $scope.parentescos = rows
+                            .filter(function (x) {
+                                return x && x.estado !== false;
+                            })
+                            .sort(function (a, b) {
+                                return (a.description || '').localeCompare((b.description || ''), 'es', {sensitivity: 'base'});
+                            });
+                    }).catch(function (err) {
+                        console.error('[Parentescos] Error cargando catálogo:', err);
+                        $scope.parentescos = [];
+                        // (Opcional) muestra un toast si tienes messagingService
+                        // messagingService.showMessage('error', $translate.instant('ERROR_CARGAR_PARENTESCO_KEY'));
+                    })
+                );
+            }
+
             // ADD: estado inicial (máx. 3)
             $scope.visitas = [];
 
-// ADD: helpers
+            // ADD: helpers
             $scope.addVisita = function () {
                 if ($scope.visitas.length >= 3) return;
-                $scope.visitas.push({ doc: '', nombre: '', contacto: '' });
+                $scope.visitas.push({
+                    doc: '',
+                    nombre: '',
+                    contacto: '',
+                    parentescoId: null,        // <-- ADD
+                    puebloOriginario: false    // <-- ADD
+                });
             };
 
             $scope.removeVisita = function (idx) {
                 $scope.visitas.splice(idx, 1);
             };
-            $scope.form = $scope.form || { customComment: '' };
+            $scope.form = $scope.form || {customComment: ''};
 
             // ADD: función para abrir diálogo validando paciente
             $scope.openCustomDialog = function () {
                 if (!$scope.patient || !$scope.patient.uuid) return;
-                $scope.visitas = ($scope.visitas && $scope.visitas.length) ? $scope.visitas : [{ doc: '', nombre: '', contacto: '' }];
+                $scope.visitas = ($scope.visitas && $scope.visitas.length) ? $scope.visitas : [{
+                    doc: '',
+                    nombre: '',
+                    contacto: ''
+                }];
                 $scope.form.customComment = $scope.form.customComment || ''; // init seguro
                 ngDialog.open({
                     template: 'views/custom-action-dialog.html',
                     className: 'ngdialog-theme-default modern-modal-wide',
                     scope: $scope,
-                    data: { patient: $scope.patient },
+                    data: {patient: $scope.patient},
                     showClose: false,          // usamos el "ngdialog-close clearfix" del template
                     closeByEscape: true,
                     closeByDocument: true
@@ -162,9 +200,8 @@ angular.module('bahmni.ipd')
 
                 for (var i = 0; i < $scope.visitas.length; i++) {
                     var v = $scope.visitas[i] || {};
-                    if (!v.doc || !v.nombre || !v.contacto) {
-                        return true;
-                    }
+                    if (!v.doc || !v.nombre || !v.contacto /* campos base */) return true;
+                    if (!v.parentescoId) return true; // <-- exige parentesco
                 }
                 return false;
             };

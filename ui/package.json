@@ -55,7 +55,9 @@
     "html2pdf.js": "0.10.1",
     "lib-jitsi-meet-dist": "^2.1.5",
     "marked": "2.1.3",
-    "pdfmake": "0.1.41"
+    "pdfmake": "0.1.41",
+    "primeflex": "3",
+    "primeicons": "6"
   },
   "devDependencies": {
     "@bower_components/Cortana": "Yago31/Cortana#~1.2.6",
@@ -114,7 +116,7 @@
     "test:watch": "grunt karma:watch",
     "watch": "grunt watch",
     "preinstall": "node -e \"if (process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Use yarn for installing: https://yarnpkg.com/en/docs/install')\"",
-    "postinstall": "node -e \"try { require('fs').symlinkSync('../node_modules/@bower_components', 'app/components', 'junction') } catch (e){ console.info(e.message) } \"",
+    "postinstall": "node -e \"const fs=require('fs'),p=require('path');function log(){console.log('[postinstall]',...arguments)}function rm(dst){try{if(fs.existsSync(dst)){fs.rmSync(dst,{recursive:true,force:true});log('removed',dst)}}catch(e){log('rm err',e.message)}}function linkComponents(){const target=p.resolve('node_modules','@bower_components');const link=p.resolve('app','components');if(!fs.existsSync(target)){log('missing',target);return;}rm(link);fs.symlinkSync(target,link,'junction');log('symlink ok',link,'->',target)}function copyToBower(name){const src=p.resolve('node_modules',name);const dst=p.resolve('node_modules','@bower_components',name);if(!fs.existsSync(src)){return log('pkg missing',name)}fs.mkdirSync(p.dirname(dst),{recursive:true});if(fs.existsSync(dst)){return log('exists',dst)}fs.cpSync(src,dst,{recursive:true});log('copied',name,'to @bower_components')}linkComponents();copyToBower('primeflex');copyToBower('primeicons');\"",
     "default": "grunt",
     "build": "grunt build",
     "dev": "grunt dev",

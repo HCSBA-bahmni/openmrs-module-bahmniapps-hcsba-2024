@@ -96,5 +96,9 @@
   "CONTACTO_KEY": "Contacto",
   "PLACEHOLDER_DOC_KEY": "12345678-9",
   "PLACEHOLDER_NOMBRE_KEY": "Nombre y apellido",
-  "PLACEHOLDER_CONTACTO_KEY": "Teléfono o email"
+  "PLACEHOLDER_CONTACTO_KEY": "Teléfono o email",
+  "COMENTARIO_KEY": "Observaciones",
+  "SELECCIONE_PARENTESCO_KEY": "Seleccione parentesco",
+  "PUEBLO_ORIGINARIO_KEY": "Pertenece a un pueblo originario",
+  "PARENTEZCO_KEY": "Parentesco"
 }

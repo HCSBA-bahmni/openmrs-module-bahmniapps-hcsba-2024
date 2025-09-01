@@ -23,7 +23,9 @@ module.exports = function (grunt) {
         'components/jquery-ui/themes/smoothness/jquery-ui.min.css',
         'micro-frontends-dist/shared.min.css',
         'micro-frontends-dist/ipd.min.css',
-        'micro-frontends-dist/next-ui.min.css'
+        'micro-frontends-dist/next-ui.min.css',
+        'components/primeflex/primeflex.css',
+        'components/primeicons/primeicons.css'
     ];
 
     var libraryJSFiles = [
@@ -195,7 +197,9 @@ module.exports = function (grunt) {
                     '!<%= yeoman.dist %>/**/registrationPrint.css',
                     '!<%= yeoman.dist %>/initWorker.js',
                     '!<%= yeoman.dist %>/components/sw-toolbox/sw-toolbox.js',
-                    '!<%= yeoman.dist %>/worker.js'
+                    '!<%= yeoman.dist %>/worker.js',
+                    '!<%= yeoman.dist %>/components/primeflex/**/*.css',
+                    '!<%= yeoman.dist %>/components/primeicons/**/*.css'
                 ]
             }
         },
@@ -316,6 +320,18 @@ module.exports = function (grunt) {
                             'lib/**/*',
                             "micro-frontends-dist/i18n/**/*.json"
                         ]
+                    },
+                    {
+                        expand: true,
+                        cwd: '<%= yeoman.app %>/components/primeicons',
+                        src: ['**/*'],
+                        dest: '<%= yeoman.dist %>/components/primeicons'
+                    },
+                    {
+                        expand: true,
+                        cwd: '<%= yeoman.app %>/components/primeflex',
+                        src: ['**/*'],
+                        dest: '<%= yeoman.dist %>/components/primeflex'
                     }
                 ]
             },
