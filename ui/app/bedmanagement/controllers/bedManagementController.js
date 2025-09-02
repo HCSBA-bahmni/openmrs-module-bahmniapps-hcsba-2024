@@ -83,6 +83,12 @@ angular.module('bahmni.ipd')
 
             // ADD: estado inicial (máx. 3)
             $scope.visitas = [];
+            // Opciones Select2 para parentesco (Select2 v3.x)
+            $scope.select2ParentescoOpts = {
+                allowClear: true,
+                width: 'resolve',
+                minimumResultsForSearch: 0 // siempre mostrar caja de búsqueda
+            };
 
             // ADD: helpers
             $scope.addVisita = function () {

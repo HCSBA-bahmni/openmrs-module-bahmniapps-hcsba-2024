@@ -1107,9 +1107,12 @@ $btn-modern-secondary-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   width: 420px;
-  max-width: 90%;
+  max-height: 90vh;
   padding: 24px;
   animation: modern-fadeIn 0.25s ease-in-out;
+  display: flex;
+  flex-direction: column;
+
 }
 
 .modern-modal-header {
@@ -1127,7 +1130,9 @@ $btn-modern-secondary-color: #ffffff;
 }
 
 .modern-modal-body {
-  margin-bottom: 24px;
+  flex: 1 1 auto;        /* ocupa el espacio disponible */
+  min-height: 0;         /* permite que el hijo haga overflow */
+  overflow: auto;        /* <--- scroll aquí */
 }
 
 .modern-modal-section {
@@ -1139,11 +1144,10 @@ $btn-modern-secondary-color: #ffffff;
 }
 
 .modern-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  flex: 0 0 auto;
 }
-
+.modern-modal .select2-container { width: 100% !important; }
+.select2-drop { z-index: 10050; }
 .modern-select {
   width: 100%;
   padding: 8px 12px;
@@ -1751,7 +1755,31 @@ $btn-modern-department-color: #374151;
   color: #b91c1c; /* rojo más oscuro en hover */
 }
 
+.opd-header-wrapper { z-index: 10000 !important; }
 
-
+/* Estilos mínimos, solo dentro del modal */
+.modern-modal label { display:block; font-weight:600; margin-bottom:.25rem; }
+.modern-modal .field { margin-bottom:.75rem; }
+.modern-modal input[type="text"],
+.modern-modal input[type="tel"],
+.modern-modal select,
+.modern-modal textarea {
+  width:100%;
+  padding:.5rem .6rem;
+  border:1px solid #d1d5db;
+  border-radius:.5rem;
+  background:#fff;
+  box-sizing:border-box;
+}
+.modern-modal input:focus,
+.modern-modal select:focus,
+.modern-modal textarea:focus {
+  outline:0;
+  border-color:#3b82f6;
+  box-shadow:0 0 0 2px rgba(59,130,246,.15);
+}
+.modern-modal small.help { opacity:.7; display:block; margin-top:.25rem; }
+.modern-modal .visit-item { border-radius:.5rem; padding:.75rem; }
+.modern-modal .btn-icon { display:inline-flex; align-items:center; gap:.5rem; }
 
 

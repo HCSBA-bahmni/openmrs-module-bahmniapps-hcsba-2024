@@ -1,17 +1,9 @@
-<!-- Reutilizando estilo existente -->
 <div class="modern-modal-wrapper" aria-labelledby="dialog-label">
     <div class="modern-modal">
-
-        <!-- Mantener fix de z-index -->
-        <style type="text/css">
-            .opd-header-wrapper { z-index: 10000 !important; }
-        </style>
-
         <div class="ngdialog-close clearfix"></div>
 
-        <!-- Contenido principal -->
-        <div class="modern-modal-body">
-            <div class="modern-modal-section">
+        <div class="modern-modal-body p-2">
+            <div class="modern-modal-section p-fluid">
 
                 <p class="mb-3">
                     {{ 'PATIENT_ID_KEY' | translate }}:
@@ -20,24 +12,23 @@
 
                 <div class="visit-dynamic-group">
                     <!-- Header visitas -->
-                    <div class="flex align-items-center justify-content-between mb-2">
-                        <h4 class="m-0">{{ 'VISITAS_KEY' | translate }}</h4>
-                        <button
-                                type="button"
-                                class="modern-button modern-button-secondary"
+                    <div class="flex align-items-center justify-content-between mb-3">
+                        <h4 id="dialog-label" class="m-0">{{ 'VISITAS_KEY' | translate }}</h4>
+                        <button type="button"
+                                class="modern-button modern-button-secondary btn-icon"
                                 ng-click="addVisita()"
                                 ng-disabled="visitas.length >= 3">
-                            {{ 'AGREGAR_VISITA_KEY' | translate }} ({{visitas.length}}/3)
+                            <i class="pi pi-plus"></i>
+                            <span>{{ 'AGREGAR_VISITA_KEY' | translate }} ({{visitas.length}}/3)</span>
                         </button>
                     </div>
 
                     <!-- Item de visita -->
-                    <div class="visit-item modern-card p-2 mb-2" ng-repeat="v in visitas track by $index">
+                    <div class="visit-item modern-card mb-3" ng-repeat="v in visitas track by $index">
                         <!-- Encabezado item -->
                         <div class="flex align-items-center justify-content-between mb-2">
                             <strong>{{ 'VISITA_N_KEY' | translate:{n: ($index + 1)} }}</strong>
-                            <button
-                                    type="button"
+                            <button type="button"
                                     class="modern-button modern-button-secondary"
                                     ng-click="removeVisita($index)"
                                     ng-if="visitas.length > 1"
@@ -47,69 +38,76 @@
                         </div>
 
                         <!-- Fila 1: Doc / Nombre / Contacto -->
-                        <div class="grid formgrid p-fluid gap-2">
+                        <div class="grid formgrid">
                             <div class="col-12 md:col-4">
-                                <label class="block mb-1">{{ 'NRO_DOC_VISITA_KEY' | translate }}</label>
-                                <input class="w-full" type="text" ng-model="v.doc" required
-                                       placeholder="{{ 'PLACEHOLDER_DOC_KEY' | translate }}" />
+                                <div class="field">
+                                    <label for="doc-{{$index}}">{{ 'NRO_DOC_VISITA_KEY' | translate }}</label>
+                                    <input id="doc-{{$index}}" type="text" ng-model="v.doc" required
+                                           placeholder="{{ 'PLACEHOLDER_DOC_KEY' | translate }}"/>
+                                </div>
                             </div>
 
-                            <div class="col-12 md:col-5">
-                                <label class="block mb-1">{{ 'NOMBRE_COMPLETO_KEY' | translate }}</label>
-                                <input class="w-full" type="text" ng-model="v.nombre" required
-                                       placeholder="{{ 'PLACEHOLDER_NOMBRE_KEY' | translate }}" />
+                            <div class="col-12 md:col-4">
+                                <div class="field">
+                                    <label for="nombre-{{$index}}">{{ 'NOMBRE_COMPLETO_KEY' | translate }}</label>
+                                    <input id="nombre-{{$index}}" type="text" ng-model="v.nombre" required
+                                           placeholder="{{ 'PLACEHOLDER_NOMBRE_KEY' | translate }}"/>
+                                </div>
                             </div>
 
-                            <div class="col-12 md:col-3">
-                                <label class="block mb-1">{{ 'CONTACTO_KEY' | translate }}</label>
-                                <input class="w-full" type="tel" ng-model="v.contacto" required
-                                       placeholder="{{ 'PLACEHOLDER_CONTACTO_KEY' | translate }}" />
+                            <div class="col-12 md:col-4">
+                                <div class="field">
+                                    <label for="contacto-{{$index}}">{{ 'CONTACTO_KEY' | translate }}</label>
+                                    <input id="contacto-{{$index}}" type="tel" ng-model="v.contacto" required
+                                           placeholder="{{ 'PLACEHOLDER_CONTACTO_KEY' | translate }}"/>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Fila 2: Pueblo originario / Parentesco -->
-                        <div class="grid align-items-center gap-2 mt-2">
+                        <div class="grid align-items-center">
+                            <div class="col-12 md:col-8">
+                                <div class="field">
+                                    <label for="parentesco-{{$index}}">{{ 'PARENTEZCO_KEY' | translate }}</label>
+                                    <select id="parentesco-{{$index}}"
+                                            ng-model="v.parentescoId"
+                                            ng-options="p.id as p.description for p in parentescos track by p.id"
+                                            ng-disabled="!parentescos.length" required>
+                                        <option value="">{{ 'SELECCIONE_PARENTESCO_KEY' | translate }}</option>
+                                    </select>
+                                    <small class="help" ng-if="!parentescos.length">
+                                        {{ 'CARGANDO_KEY' | translate }}...
+                                    </small>
+                                </div>
+                            </div>
                             <div class="col-12 md:col-4">
-                                <label class="inline-flex align-items-center gap-2">
-                                    <input type="checkbox" id="pueblo-{{$index}}" ng-model="v.puebloOriginario" />
+                                <label class="inline-flex align-items-center gap-2" for="pueblo-{{$index}}">
+                                    <input id="pueblo-{{$index}}" type="checkbox" ng-model="v.puebloOriginario"/>
                                     <span>{{ 'PUEBLO_ORIGINARIO_KEY' | translate }}</span>
                                 </label>
                             </div>
-
-                            <div class="col-12 md:col-8">
-                                <label class="block mb-1" for="parentesco-{{$index}}">{{ 'PARENTEZCO_KEY' | translate }}</label>
-                                <select id="parentesco-{{$index}}"
-                                        class="w-full"
-                                        ng-model="v.parentescoId"
-                                        ng-options="p.id as p.description for p in parentescos track by p.id"
-                                        ng-disabled="!parentescos.length">
-                                    <option value="">{{ 'SELECCIONE_PARENTESCO_KEY' | translate }}</option>
-                                </select>
-                                <small ng-if="!parentescos.length" class="block mt-1">
-                                    {{ 'CARGANDO_KEY' | translate }}...
-                                </small>
-                            </div>
                         </div>
-                        <!-- /Fila 2 -->
                     </div>
                 </div>
 
-                <!-- Comentario -->
+                <!-- Comentarios -->
                 <div class="mt-3">
-                    <label class="block mb-1">{{ 'COMENTARIO_KEY' | translate }}</label>
-                    <textarea class="w-full" ng-model="form.customComment" rows="4"></textarea>
+                    <label class="block mb-1" for="obs">{{ 'COMENTARIO_KEY' | translate }}</label>
+                    <textarea id="obs" rows="4" ng-model="form.customComment"></textarea>
                 </div>
 
             </div>
 
-            <!-- Botones de acción -->
+            <!-- Footer -->
             <div class="modern-modal-footer flex justify-content-end gap-2 mt-3">
-                <button id="modal-revise-button1" class="modern-button modern-button-primary"
+                <button id="modal-revise-button1"
+                        class="modern-button modern-button-primary"
                         ng-click="confirmCustomAction()"
                         ng-disabled="isVisitasInvalid()">
                     {{ 'SAVE_KEY' | translate }}
                 </button>
-                <button id="modal-revise-button3" class="modern-button modern-button-secondary"
+                <button id="modal-revise-button3"
+                        class="modern-button modern-button-secondary"
                         ng-click="closeThisDialog()">
                     {{ 'CANCEL_KEY' | translate }}
                 </button>
