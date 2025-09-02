@@ -1,13 +1,17 @@
 <div class="modern-room-list">
     <!-- Sala general -->
-    <div class="modern-room-box">
-        <div class="clearfix total-details room-details">
-            <div class="floor-header">{{'TOTAL_BEDS_KEY' | translate}} ( {{ ward.totalBeds }} )</div>
+    <div class="modern-summary-box">
+        <div class="clearfix summary-details">
+            <div class="floor-header">
+                <i class="pi pi-chart-bar" aria-hidden="true"></i>
+                {{ 'TOTAL_BEDS_KEY' | translate }} ({{ ward.totalBeds }})
+                <span class="summary-chip">Resumen</span>
+            </div>
             <div class="bed-status">
-                <span class="bed-available">({{ ward.totalBeds - ward.occupiedBeds }}) {{'AVAILABLE_SHORT' | translate}}</span>
-                <span class="bed-occupied">({{ ward.occupiedBeds }}) {{'OCCUPIED_SHORT' | translate}}</span>
-                <span class="bed-reserved">({{ ward.reservedBeds }}) {{'KEY_RESERVED_SHORT' | translate}}</span>
-                <span class="bed-blocked">({{ ward.blockedBeds }}) {{'KEY_BLOCKED_SHORT' | translate}}</span>
+                <span class="bed-available">({{ ward.totalBeds - ward.occupiedBeds - ward.reservedBeds - ward.blockedBeds }}) {{ 'AVAILABLE_SHORT' | translate }}</span>
+                <span class="bed-occupied">({{ ward.occupiedBeds }}) {{ 'OCCUPIED_SHORT' | translate }}</span>
+                <span class="bed-reserved">({{ ward.reservedBeds }}) {{ 'KEY_RESERVED_SHORT' | translate }}</span>
+                <span class="bed-blocked">({{ ward.blockedBeds }}) {{ 'KEY_BLOCKED_SHORT' | translate }}</span>
             </div>
         </div>
     </div>

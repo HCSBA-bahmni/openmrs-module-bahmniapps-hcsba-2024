@@ -1460,6 +1460,24 @@ $btn-modern-department-color: #374151;
     cursor: pointer;
   }
 }
+/* Resumen: tarjeta distinta y NO clickeable */
+.modern-summary-box {
+  background: #f8fafc;                /* gris muy claro */
+  border: 1px dashed #cbd5e1;         /* borde punteado */
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: none;
+  margin-bottom: 12px;
+}
+.modern-summary-box .summary-details { cursor: default; }
+.summary-chip {
+  margin-left: .5rem; font-size: 12px; line-height: 1;
+  background: #e2e8f0; color: #334155; border-radius: 9999px; padding: 2px 8px;
+}
+
+/* Salas: aspecto clickeable consistente */
+.modern-room-box .room-details { cursor: pointer; transition: box-shadow .15s ease; }
+.modern-room-box .room-details:hover { box-shadow: 0 0 0 2px rgba(59,130,246,.15); } /* leve hover */
 
 .bed-chip {
   display: inline-flex;
