@@ -70,8 +70,8 @@
                                 <div class="field">
                                     <label for="parentesco-{{$index}}">{{ 'PARENTEZCO_KEY' | translate }}</label>
                                     <select id="parentesco-{{$index}}"
-                                            ng-model="v.parentescoId"
-                                            ng-options="p.id as p.description for p in parentescos track by p.id"
+                                            ng-model="v.parentesco"
+                                            ng-options="p as p.description for p in parentescos track by p.id"
                                             ng-disabled="!parentescos.length" required>
                                         <option value="">{{ 'SELECCIONE_PARENTESCO_KEY' | translate }}</option>
                                     </select>
@@ -103,7 +103,7 @@
                 <button id="modal-revise-button1"
                         class="modern-button modern-button-primary"
                         ng-click="confirmCustomAction()"
-                        ng-disabled="isVisitasInvalid()">
+                        ng-disabled="isVisitasInvalid() || saving">
                     {{ 'SAVE_KEY' | translate }}
                 </button>
                 <button id="modal-revise-button3"
