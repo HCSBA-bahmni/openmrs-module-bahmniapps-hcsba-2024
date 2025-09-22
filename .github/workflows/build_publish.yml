@@ -80,14 +80,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
-    # Todo esto es nuevo
-      - name: UI | install deps
-        working-directory: ui
-        run: yarn install --frozen-lock-file
-      - name: UI | build
-        working-directory: ui
-        run: yarn build
-    # Aqui termina lo nuevo
       - name: Docker Build and push
         uses: docker/build-push-action@v3
         with:
