@@ -418,7 +418,22 @@ module.exports = function (grunt) {
                         src: [
                             'external_api.min.js'
                         ]
+                    },
+                    {
+                        expand: true,
+                        dot: true,
+                        cwd: '<%= yeoman.nodeModules %>/primeflex/',
+                        dest: '<%= yeoman.app %>/components/primeflex/',
+                        src: ['**/*']        // incluye primeflex.css
+                    },
+                    {
+                        expand: true,
+                        dot: true,
+                        cwd: '<%= yeoman.nodeModules %>/primeicons/',
+                        dest: '<%= yeoman.app %>/components/primeicons/',
+                        src: ['**/*']        // incluye primeicons.css y fuentes
                     }
+
                 ]
             }
         },
