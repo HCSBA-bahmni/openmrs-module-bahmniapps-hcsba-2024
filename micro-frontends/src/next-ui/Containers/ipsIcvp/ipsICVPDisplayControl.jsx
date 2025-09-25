@@ -5,7 +5,10 @@ import "../../../styles/carbon-conflict-fixes.scss";
 import "../../../styles/carbon-theme.scss";
 import "../../../styles/common.scss";
 import "../formDisplayControl/formDisplayControl.scss";
-import "./ipsDisplayControl.scss";
+// Reutiliza estilos base del componente IPS original
+import "../ips/ipsDisplayControl.scss";
+// Estilos específicos para el dashboard ICVP
+import "./ipsICVPDisplayControl.scss";
 
 import {I18nProvider} from "../../Components/i18n/I18nProvider";
 import {FormattedMessage} from "react-intl";
@@ -162,7 +165,7 @@ const safeDiv = (html) => ({__html: html || ""});
 /* ===========================
    COMPONENTE
    =========================== */
-export function IpsDisplayControl(props) {
+export function IpsIcvpDisplayControl(props) {
     const {hostData, tx} = props;
     const {identifier} = hostData || {};
 
@@ -657,7 +660,7 @@ export function IpsDisplayControl(props) {
 
     /* -------- UI principal -------- */
     const formsHeading = (
-        <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard"/>
+        <FormattedMessage id="DASHBOARD_TITLE_IPS_ICVP_KEY" defaultMessage="ICVP Dashboard"/>
     );
 
     if (isLoading) {
@@ -963,7 +966,7 @@ export function IpsDisplayControl(props) {
     );
 }
 
-IpsDisplayControl.propTypes = {
+IpsIcvpDisplayControl.propTypes = {
     hostData: PropTypes.shape({
         patientUuid: PropTypes.string.isRequired,
         identifier: PropTypes.string.isRequired,
@@ -976,7 +979,7 @@ IpsDisplayControl.propTypes = {
     tx: PropTypes.func,
 };
 
-IpsDisplayControl.defaultProps = {
+IpsIcvpDisplayControl.defaultProps = {
     hostData: {
         patientUuid: "",
         identifier: "",
