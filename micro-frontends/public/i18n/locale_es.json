@@ -62,27 +62,27 @@
   "DATE": "Fecha",
   "RESULT": "Resultado",
   "PROVIDER": "Proveedor",
-  "IPS_ERROR_MESSAGE": "Error cargando datos IPS: {error}"
-  ,"GENERATE_ICVP":"Generar ICVP"
-  ,"GENERATING_ICVP":"Generando ICVP..."
-  ,"DOWNLOAD_PNG":"Descargar PNG"
-  ,"COPY_HC1":"Copiar HC1"
-  ,"SHARE_VHL":"Compartir VHL"
-  ,"EMITTING_VHL":"Emitiendo VHL..."
-  ,"COPY_VHL":"Copiar código"
-  ,"DOC_DATE":"Fecha del documento"
-  ,"RESOLVE_VHL":"Resolver VHL"
-  ,"PASTE_VHL_HC1":"Pega el código VHL (HC1)"
-  ,"STOP_SCANNING":"Detener escáner"
-  ,"SCAN_QR":"Escanear QR"
-  ,"MANIFEST_FILES":"Archivos disponibles"
-  ,"OPEN":"Abrir"
-  ,"DOC_VIEWER":"Visor de Documento"
-  ,"READ_ICVP_DOCUMENT":"Leer ICVP/DVC"
-  ,"PASTE_ICVP_HC1":"Pega el código ICVP/DVC (HC1)"
-  ,"RESOLVE_ICVP":"Resolver ICVP/DVC"
-  ,"RESOLVING_ICVP":"Resolviendo ICVP/DVC..."
-  ,"SHARE_ICVP":"Compartir ICVP"
-  ,"EMITTING_ICVP":"Emitiendo ICVP..."
-  ,"COPY_ICVP":"Copiar código"
+  "IPS_ERROR_MESSAGE": "Error cargando datos IPS: {error}",
+  "GENERATE_ICVP":"Generar ICVP",
+  "GENERATING_ICVP":"Generando ICVP...",
+  "DOWNLOAD_PNG":"Descargar PNG",
+  "COPY_HC1":"Copiar HC1",
+  "SHARE_VHL":"Compartir VHL",
+  "EMITTING_VHL":"Emitiendo VHL...",
+  "COPY_VHL":"Copiar código",
+  "DOC_DATE":"Fecha del documento",
+  "RESOLVE_VHL":"Resolver VHL",
+  "PASTE_VHL_HC1":"Pega el código VHL (HC1)",
+  "STOP_SCANNING":"Detener escáner",
+  "SCAN_QR":"Escanear QR",
+  "MANIFEST_FILES":"Archivos disponibles",
+  "OPEN":"Abrir",
+  "DOC_VIEWER":"Visor de Documento",
+  "READ_ICVP_DOCUMENT":"Leer ICVP/DVC",
+  "PASTE_ICVP_HC1":"Pega el código ICVP/DVC (HC1)",
+  "RESOLVE_ICVP":"Resolver ICVP/DVC",
+  "RESOLVING_ICVP":"Resolviendo ICVP/DVC...",
+  "SHARE_ICVP":"Compartir ICVP",
+  "EMITTING_ICVP":"Emitiendo ICVP...",
+  "COPY_ICVP":"Copiar código"
 }
