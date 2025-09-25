@@ -2,6 +2,7 @@
   "NO_FORM": "No se ha encontrado formulario para este paciente...",
   "DASHBOARD_TITLE_FORMS_2_DISPLAY_CONTROL_KEY": "Formularios de Observaciones",
   "DASHBOARD_TITLE_IPS_LAC_KEY": "Panel IPS LAC",
+  "DASHBOARD_TITLE_IPS_ICVP_KEY": "Panel ICVP",
   "DASHBOARD_TITLE_VACUNAS_KEY": "Vacunas",
   "LOADING_MESSAGE": "Cargando... Por favor espere",
   "NO_ALLERGIES": "Este paciente no tiene Alergias registradas",
@@ -39,7 +40,7 @@
   "ADD_BUTTON_TEXT": "Añadir +",
   "SEARCH_ALLERGEN_PLACEHOLDER": "Escriba para buscar alérgeno",
   "GENERATE_IPS_DOCUMENT": "Generar Documento IPS",
-  "READ_VHL_DOCUMENT": "Leer Documento VHL",
+  "READ_VHL_DOCUMENT": "Leer VHL",
   "PATIENT_INFORMATION": "Información del Paciente",
   "PATIENT_NAME": "Nombre",
   "PATIENT_ID": "ID",
@@ -62,4 +63,26 @@
   "RESULT": "Resultado",
   "PROVIDER": "Proveedor",
   "IPS_ERROR_MESSAGE": "Error cargando datos IPS: {error}"
+  ,"GENERATE_ICVP":"Generar ICVP"
+  ,"GENERATING_ICVP":"Generando ICVP..."
+  ,"DOWNLOAD_PNG":"Descargar PNG"
+  ,"COPY_HC1":"Copiar HC1"
+  ,"SHARE_VHL":"Compartir VHL"
+  ,"EMITTING_VHL":"Emitiendo VHL..."
+  ,"COPY_VHL":"Copiar código"
+  ,"DOC_DATE":"Fecha del documento"
+  ,"RESOLVE_VHL":"Resolver VHL"
+  ,"PASTE_VHL_HC1":"Pega el código VHL (HC1)"
+  ,"STOP_SCANNING":"Detener escáner"
+  ,"SCAN_QR":"Escanear QR"
+  ,"MANIFEST_FILES":"Archivos disponibles"
+  ,"OPEN":"Abrir"
+  ,"DOC_VIEWER":"Visor de Documento"
+  ,"READ_ICVP_DOCUMENT":"Leer ICVP/DVC"
+  ,"PASTE_ICVP_HC1":"Pega el código ICVP/DVC (HC1)"
+  ,"RESOLVE_ICVP":"Resolver ICVP/DVC"
+  ,"RESOLVING_ICVP":"Resolviendo ICVP/DVC..."
+  ,"SHARE_ICVP":"Compartir ICVP"
+  ,"EMITTING_ICVP":"Emitiendo ICVP..."
+  ,"COPY_ICVP":"Copiar código"
 }

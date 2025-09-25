@@ -2,6 +2,7 @@
   "NO_FORM": "No Form found for this patient....",
   "DASHBOARD_TITLE_FORMS_2_DISPLAY_CONTROL_KEY": "Observation Forms",
   "DASHBOARD_TITLE_IPS_LAC_KEY": "IPS LAC Dashboard",
+  "DASHBOARD_TITLE_IPS_ICVP_KEY": "ICVP Dashboard",
   "DASHBOARD_TITLE_VACUNAS_KEY": "Vacunas",
   "LOADING_MESSAGE": "Loading... Please Wait",
   "NO_ALLERGIES": "No Allergies recorded for this patient.",
@@ -59,4 +60,27 @@
   "RESULT": "Result",
   "PROVIDER": "Provider",
   "IPS_ERROR_MESSAGE": "Error loading IPS data: {error}"
+  ,"GENERATE_ICVP":"Generate ICVP"
+  ,"GENERATING_ICVP":"Generating ICVP..."
+  ,"DOWNLOAD_PNG":"Download PNG"
+  ,"COPY_HC1":"Copy HC1"
+  ,"SHARE_VHL":"Share VHL"
+  ,"EMITTING_VHL":"Issuing VHL..."
+  ,"COPY_VHL":"Copy code"
+  ,"DOC_DATE":"Document date"
+  ,"READ_VHL_DOCUMENT":"Read VHL"
+  ,"RESOLVE_VHL":"Resolve VHL"
+  ,"PASTE_VHL_HC1":"Paste VHL code (HC1)"
+  ,"STOP_SCANNING":"Stop scanner"
+  ,"SCAN_QR":"Scan QR"
+  ,"MANIFEST_FILES":"Available files"
+  ,"OPEN":"Open"
+  ,"DOC_VIEWER":"Document Viewer"
+  ,"READ_ICVP_DOCUMENT":"Read ICVP/DVC"
+  ,"PASTE_ICVP_HC1":"Paste ICVP/DVC code (HC1)"
+  ,"RESOLVE_ICVP":"Resolve ICVP/DVC"
+  ,"RESOLVING_ICVP":"Resolving ICVP/DVC..."
+  ,"SHARE_ICVP":"Share ICVP"
+  ,"EMITTING_ICVP":"Issuing ICVP..."
+  ,"COPY_ICVP":"Copy code"
 }

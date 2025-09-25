@@ -1,0 +1,31 @@
+.ips-icvp-display-control {
+  --icvp-accent: #0f62fe;
+  --icvp-accent-soft: rgba(15,98,254,0.08);
+  padding: 0.5rem 0.75rem 1.25rem;
+
+  .forms-display-control-section-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 600;
+    background: linear-gradient(90deg,var(--icvp-accent-soft),transparent);
+    padding: .4rem .75rem;
+    border-left: 4px solid var(--icvp-accent);
+    border-radius: 4px;
+  }
+
+  .ips-section h3 {
+    color: var(--icvp-accent);
+    font-weight: 600;
+  }
+
+  .vhl-share-block, .icvp-share-block {
+    background: var(--icvp-accent-soft);
+    border: 1px solid var(--icvp-accent-soft);
+    border-radius: 4px;
+    padding: .75rem;
+  }
+
+  .bundle-title { color: var(--icvp-accent); }
+  .bundle-block h4 { color: #0043ce; }
+}

@@ -5,6 +5,7 @@ import {ProviderNotifications} from "./Containers/providerNotifications/Provider
 import {OtNotesSavePopup, OtNotesDeletePopup} from "./Containers/otNotes/OtNotes";
 import {VacunasDisplayControl} from "./Containers/vacunasDisplayControl/VacunasDisplayControl";
 import {IpsDisplayControl} from "./Containers/ips/ipsDisplayControl";
+import {IpsIcvpDisplayControl} from "./Containers/ipsIcvp/ipsICVPDisplayControl";
 
 const MODULE_NAME = "bahmni.mfe.nextUi";
 
@@ -48,4 +49,9 @@ builder.createComponentWithTranslationForwarding(
 builder.createComponentWithTranslationForwarding(
     "IpsDisplayControl",
     IpsDisplayControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "IpsIcvpDisplayControl",
+    IpsIcvpDisplayControl
 );
