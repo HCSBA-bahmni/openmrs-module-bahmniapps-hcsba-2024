@@ -25,7 +25,9 @@
         "allergies",
         "formsV2React",
         "vacunasReact",
-        "ipsReact"
+    "ipsReact",
+    // Nuevo dashboard ICVP basado en clon de IPS
+    "ipsIcvpReact"
     ];
 
     var getViewUrl = function (section) {
