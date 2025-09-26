@@ -5,7 +5,7 @@ import "../../../styles/carbon-conflict-fixes.scss";
 import "../../../styles/carbon-theme.scss";
 import "../../../styles/common.scss";
 import "../formDisplayControl/formDisplayControl.scss";
-import "./ipsDisplayControl.scss";
+import "./ipsICVPDisplayControl.scss";
 
 import {I18nProvider} from "../../Components/i18n/I18nProvider";
 import {FormattedMessage} from "react-intl";
@@ -183,7 +183,7 @@ const hasProfile = (bundle, profileUri) =>
 /* ===========================
    COMPONENTE
    =========================== */
-export function IpsDisplayControl(props) {
+export function IpsIcvpDisplayControl(props) {
     const {hostData, tx} = props;
     const {identifier} = hostData || {};
 
@@ -1157,7 +1157,7 @@ export function IpsDisplayControl(props) {
     );
 }
 
-IpsDisplayControl.propTypes = {
+IpsIcvpDisplayControl.propTypes = {
     hostData: PropTypes.shape({
         patientUuid: PropTypes.string.isRequired,
         identifier: PropTypes.string.isRequired,
@@ -1170,7 +1170,7 @@ IpsDisplayControl.propTypes = {
     tx: PropTypes.func,
 };
 
-IpsDisplayControl.defaultProps = {
+IpsIcvpDisplayControl.defaultProps = {
     hostData: {
         patientUuid: "",
         identifier: "",
@@ -1182,3 +1182,4 @@ IpsDisplayControl.defaultProps = {
     },
     tx: (key) => key,
 };
+export default IpsIcvpDisplayControl;
