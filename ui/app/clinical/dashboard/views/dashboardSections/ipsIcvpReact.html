@@ -1,0 +1,12 @@
+<!-- Fallback template for ICVP React dashboard section.
+     NOTE: If reactDisplayControls in dashboardSection.js already contains 'ipsIcvpReact',
+     the system should actually use ../common/displaycontrols/dashboard/views/sections/nextUISection.html
+     and this file is not strictly necessary. Its presence prevents a 404 when the
+     server is still running an older compiled JS (without the updated array) or cached bundle. -->
+<div class="ips-icvp-dashboard-section">
+    <mfe-next-ui-ips-icvp-display-control
+            host-data="ipsData"
+            host-api="ipsApi"
+            app-service="appService">
+    </mfe-next-ui-ips-icvp-display-control>
+</div>
