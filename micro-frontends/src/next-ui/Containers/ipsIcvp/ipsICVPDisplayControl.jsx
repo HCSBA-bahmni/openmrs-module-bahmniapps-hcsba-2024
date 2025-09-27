@@ -851,7 +851,7 @@ export function IpsIcvpDisplayControl(props) {
 
     /* -------- UI principal -------- */
     const formsHeading = (
-        <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard"/>
+        <FormattedMessage id="DASHBOARD_TITLE_IPS_ICVP_KEY" defaultMessage="IPS LAC Dashboard"/>
     );
 
     if (isLoading) {
@@ -896,7 +896,7 @@ export function IpsIcvpDisplayControl(props) {
 
                     {/* Leer VHL: abre modal para pegar/escanner y resolver */}
                     <Button kind="primary" renderIcon={QrCode32} onClick={handleOpenVhlReader}>
-                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer VHL"/>
+                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer QR"/>
                     </Button>
                 </div>
 
