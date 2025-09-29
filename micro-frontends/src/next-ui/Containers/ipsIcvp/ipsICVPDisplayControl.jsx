@@ -5,9 +5,6 @@ import "../../../styles/carbon-conflict-fixes.scss";
 import "../../../styles/carbon-theme.scss";
 import "../../../styles/common.scss";
 import "../formDisplayControl/formDisplayControl.scss";
-// Reutiliza estilos base del componente IPS original
-import "../ips/ipsDisplayControl.scss";
-// Estilos específicos para el dashboard ICVP
 import "./ipsICVPDisplayControl.scss";
 
 import {I18nProvider} from "../../Components/i18n/I18nProvider";
@@ -49,10 +46,24 @@ const BASIC_AUTH =
     "Basic " + (typeof btoa === "function" ? btoa(`${BASIC_USER}:${BASIC_PASS}`) : "");
 
 /* ===========================
+   CONFIG VHL (Mediator)
+   =========================== */
+const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
+const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
+
+
+/* ===========================
    CONFIG ICVP (Mediator)
    =========================== */
-const ICVP_ISSUANCE_URL = "https://10.68.174.206:5000/ICVP/_generate";
-const ICVP_RESOLVE_URL = "https://10.68.174.206:5000/ICVP/_resolve";
+// Expuesto por OpenHIM (ajústalo si lo publicas en otro path)
+const ICVP_FROM_BUNDLE_URL = "https://10.68.174.206:5000/icvpcert/_from-bundle";
+
+// Perfiles para decidir el flujo
+const PROFILE_LAC_BUNDLE   = "http://lacpass.racsel.org/StructureDefinition/lac-bundle";
+const PROFILE_LAC_COMP     = "http://lacpass.racsel.org/StructureDefinition/lac-composition";
+const PROFILE_ICVP_BUNDLE  = "http://smart.who.int/icvp/StructureDefinition/Bundle-uv-ips-ICVP";
+
+
 
 // Headers con Basic Auth (por OpenHIM)
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
@@ -162,6 +173,13 @@ const getResource = (bundle, resourceType) =>
 
 const safeDiv = (html) => ({__html: html || ""});
 
+// Perfiles del Bundle
+const getBundleProfiles = (bundle) =>
+  Array.isArray(bundle?.meta?.profile) ? bundle.meta.profile.map(String) : [];
+const hasProfile = (bundle, profileUri) =>
+  getBundleProfiles(bundle).includes(profileUri);
+
+
 /* ===========================
    COMPONENTE
    =========================== */
@@ -184,17 +202,23 @@ export function IpsIcvpDisplayControl(props) {
     const [pageSize, setPageSize] = useState(10);
     const pageSizes = [10, 20, 50, 100];
 
-    // compartir ICVP (emitir HC1 desde un Bundle)
+    // compartir VHL (emitir HC1 desde un Bundle)
     const [shareLoading, setShareLoading] = useState(false);
     const [shareError, setShareError] = useState(null);
     const [shareText, setShareText] = useState("");         // el "HC1: ..."
     const [shareQrDataUrl, setShareQrDataUrl] = useState(""); // dataURL del QR
 
-    // Leer ICVP (pegar/scannear → resolver → elegir archivo → ver Bundle)
-    const [ICVPModalOpen, setICVPModalOpen] = useState(false);
-    const [ICVPInput, setICVPInput] = useState("");           // texto pegado/escaneado (HC1:...)
-    const [ICVPScanActive, setICVPScanActive] = useState(false);
-    const [ICVPScanError, setICVPScanError] = useState(null);
+    
+    // ICVP (generar QR con $icvp por cada Immunization)
+    const [icvpLoading, setIcvpLoading] = useState(false);
+    const [icvpError, setIcvpError] = useState(null);
+    const [icvpResults, setIcvpResults] = useState([]); // [{immunizationId, pngDataUrl, hc1}]
+
+    // Leer VHL (pegar/scannear → resolver → elegir archivo → ver Bundle)
+    const [vhlModalOpen, setVhlModalOpen] = useState(false);
+    const [vhlInput, setVhlInput] = useState("");           // texto pegado/escaneado (HC1:...)
+    const [vhlScanActive, setVhlScanActive] = useState(false);
+    const [vhlScanError, setVhlScanError] = useState(null);
     const [resolveLoading, setResolveLoading] = useState(false);
     const [resolveError, setResolveError] = useState(null);
     const [resolveFiles, setResolveFiles] = useState([]);   // [{location, contentType}]
@@ -235,17 +259,17 @@ export function IpsIcvpDisplayControl(props) {
     }, [documents, pageSize]);
 
     /* -------- Acciones -------- */
-    const handleOpenICVPReader = () => {
-        setICVPModalOpen(true);
-        setICVPInput("");
-        setICVPScanActive(false);
-        setICVPScanError(null);
+    const handleOpenVhlReader = () => {
+        setVhlModalOpen(true);
+        setVhlInput("");
+        setVhlScanActive(false);
+        setVhlScanError(null);
         setResolveFiles([]);
         setResolveError(null);
         setShareError(null);
     };
 
-    const stopICVPScan = async () => {
+    const stopVhlScan = async () => {
         try {
             if (scannerRef.current) {
                 try { await scannerRef.current.stop(); } catch {}
@@ -253,7 +277,7 @@ export function IpsIcvpDisplayControl(props) {
             }
         } finally {
             scannerRef.current = null;
-            setICVPScanActive(false);
+            setVhlScanActive(false);
         }
     };
 
@@ -271,20 +295,20 @@ export function IpsIcvpDisplayControl(props) {
         }
     };
 
-    const startICVPScan = async () => {
-        setICVPScanError(null);
+    const startVhlScan = async () => {
+        setVhlScanError(null);
 
         // 1) Mostrar el contenedor antes de iniciar
-        setICVPScanActive(true);
+        setVhlScanActive(true);
         try {
             const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
 
-            const id = "ICVP-qr-region";
+            const id = "vhl-qr-region";
             await waitRegionReady(id); // <-- asegura tamaño
 
             // Evita arrancar dos veces
             if (scannerRef.current) {
-                await stopICVPScan();
+                await stopVhlScan();
             }
 
             const scanner = new Html5Qrcode(id, {
@@ -309,8 +333,8 @@ export function IpsIcvpDisplayControl(props) {
                 { fps: 12, qrbox: { width: 260, height: 260 } },
                 async (decodedText) => {
                     // Éxito: pegar HC1 y parar
-                    setICVPInput(decodedText || "");
-                    await stopICVPScan();
+                    setVhlInput(decodedText || "");
+                    await stopVhlScan();
                 },
                 (errMsg) => {
                     consecutiveErrors++;
@@ -320,33 +344,33 @@ export function IpsIcvpDisplayControl(props) {
                 }
             );
         } catch (e) {
-            console.error("[ICVP] Error iniciando escáner:", e);
-            setICVPScanError(
+            console.error("[VHL] Error iniciando escáner:", e);
+            setVhlScanError(
                 e?.message ||
                 "No se pudo iniciar la cámara. Revisa permisos y que 'html5-qrcode' esté instalado."
             );
-            await stopICVPScan();
+            await stopVhlScan();
         }
     };
 
-    const handleCloseICVPModal = async () => {
-        await stopICVPScan();
-        setICVPModalOpen(false);
+    const handleCloseVhlModal = async () => {
+        await stopVhlScan();
+        setVhlModalOpen(false);
     };
 
-    const handleResolveICVP = async () => {
+    const handleResolveVHL = async () => {
         try {
             setResolveLoading(true);
             setResolveError(null);
             setResolveFiles([]);
-            if (!ICVPInput || !/^HC1:/.test(ICVPInput.trim())) {
+            if (!vhlInput || !/^HC1:/.test(vhlInput.trim())) {
                 setResolveError("Pega o escanea un código válido que comience con 'HC1:'.");
                 return;
             }
 
             const resp = await axios.post(
-                ICVP_RESOLVE_URL,
-                {qrCodeContent: ICVPInput.trim()},
+                VHL_RESOLVE_URL,
+                {qrCodeContent: vhlInput.trim()},
                 {
                     headers: {
                         ...buildAuthHeaders("application/json"),
@@ -362,9 +386,9 @@ export function IpsIcvpDisplayControl(props) {
                 setResolveError("No se encontraron archivos en el manifiesto.");
             }
         } catch (e) {
-            console.error("[ICVP] Resolve error:", e);
+            console.error("[VHL] Resolve error:", e);
             const msg = e?.response ? `${e.response.status} ${e.response.statusText}` : e?.message || String(e);
-            setResolveError(`Error al resolver ICVP: ${msg}`);
+            setResolveError(`Error al resolver VHL: ${msg}`);
         } finally {
             setResolveLoading(false);
         }
@@ -392,22 +416,26 @@ export function IpsIcvpDisplayControl(props) {
     const openResolvedFile = async (file) => {
         const location = file?.location;
         if (!location) return;
-        await stopICVPScan();
-        setICVPModalOpen(false);
+        await stopVhlScan();
+        setVhlModalOpen(false);
 
         setViewerOpen(true);
         setViewerLoading(true);
         setViewerError(null);
         setViewerBundle(null);
+        // reset de acciones previas
+        setShareLoading(false); setShareError(null); setShareText(""); setShareQrDataUrl("");
+        setIcvpLoading(false); setIcvpError(null); setIcvpResults([]);
 
         try {
-            const res = await axios.get(location, {
-                headers: {Accept: "application/fhir+json"},
-                responseType: "json",
-            });
+            const sameOrigin = String(location).startsWith(REGIONAL_BASE);
+            const headers = sameOrigin
+              ? buildAuthHeaders("application/fhir+json")
+              : { Accept: "application/fhir+json" };
+            const res = await axios.get(location, { headers, responseType: "json" });
             setViewerBundle(res.data);
         } catch (e) {
-            console.error("[ICVP] Error cargando archivo del manifiesto:", e);
+            console.error("[VHL] Error cargando archivo del manifiesto:", e);
             const msg = e?.response ? `${e.response.status} ${e.response.statusText}` : e?.message || String(e);
             setViewerError(`No se pudo cargar el Bundle desde el archivo seleccionado: ${msg}`);
         } finally {
@@ -445,6 +473,10 @@ export function IpsIcvpDisplayControl(props) {
         setViewerLoading(true);
         setViewerError(null);
         setViewerBundle(null);
+        // reset de acciones previas
+        setShareLoading(false); setShareError(null); setShareText(""); setShareQrDataUrl("");
+        setIcvpLoading(false); setIcvpError(null); setIcvpResults([]);
+
         try {
             const jsonRes = await axios.get(url, {
                 headers: buildAuthHeaders("application/fhir+json"),
@@ -463,15 +495,17 @@ export function IpsIcvpDisplayControl(props) {
     /* -------- Render helpers del modal (visor de Bundle) -------- */
     const renderBundleViewer = (bundle) => {
         if (!bundle) return null;
+        const isLac  = [PROFILE_LAC_BUNDLE, PROFILE_LAC_COMP]
+            .some(p => hasProfile(bundle, p));
+        const isIcvp = hasProfile(bundle, PROFILE_ICVP_BUNDLE);
 
         const composition = getResource(bundle, "Composition");
         const patient = getResource(bundle, "Patient");
         const title =
             composition?.title || composition?.type?.coding?.[0]?.display || "Clinical Document";
         const timestamp = bundle?.timestamp || composition?.date || null;
-        const sections = composition?.section || [];
 
-        const handleShareICVP = async () => {
+        const handleShareVHL = async () => {
             try {
                 setShareLoading(true);
                 setShareError(null);
@@ -484,7 +518,7 @@ export function IpsIcvpDisplayControl(props) {
                 }
 
                 const resp = await axios.post(
-                    ICVP_ISSUANCE_URL,
+                    VHL_ISSUANCE_URL,
                     viewerBundle, // enviamos el Bundle FHIR puro
                     {
                         headers: {
@@ -516,11 +550,11 @@ export function IpsIcvpDisplayControl(props) {
                 });
                 setShareQrDataUrl(dataUrl);
             } catch (e) {
-                console.error("[ICVP] Error al compartir:", e);
+                console.error("[VHL] Error al compartir:", e);
                 const msg = e?.response
                     ? `${e.response.status} ${e.response.statusText}`
                     : e?.message || String(e);
-                setShareError(`Error al emitir ICVP: ${msg}`);
+                setShareError(`Error al emitir VHL: ${msg}`);
             } finally {
                 setShareLoading(false);
             }
@@ -550,9 +584,19 @@ export function IpsIcvpDisplayControl(props) {
                         {title}
                     </h3>
                     <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
-                        <Button kind="primary" size="sm" onClick={handleShareICVP} disabled={shareLoading}>
-                            <FormattedMessage id="SHARE_ICVP" defaultMessage="Compartir ICVP"/>
-                        </Button>
+                        {isLac && (
+                            <Button kind="primary" size="sm" onClick={handleShareVHL} disabled={shareLoading}>
+                              <FormattedMessage id="SHARE_VHL" defaultMessage="Compartir VHL"/>
+                            </Button>
+                          )}
+                          {isIcvp && (
+                            <Button kind="primary" size="sm" onClick={handleGenerateICVP} disabled={icvpLoading}>
+                              {icvpLoading
+                                ? <InlineLoading description={tx?.("GENERATING_ICVP") || "Generando ICVP..."}/>
+                                : <FormattedMessage id="GENERATE_ICVP" defaultMessage="Generar ICVP"/>
+                              }
+                            </Button>
+                          )}
                     </div>
                 </div>
 
@@ -565,11 +609,12 @@ export function IpsIcvpDisplayControl(props) {
                     </div>
                 )}
 
-                {(shareLoading || shareError || shareText) && (
-                    <div className="ICVP-share-block" style={{marginBottom: "1rem"}}>
+                {isLac && (shareLoading || shareError || shareText) && (
+
+                    <div className="vhl-share-block" style={{marginBottom: "1rem"}}>
                         {shareLoading && (
                             <InlineLoading
-                                description={tx?.("EMITTING_ICVP") || "Emitiendo ICVP..."}
+                                description={tx?.("EMITTING_VHL") || "Emitiendo VHL..."}
                             />
                         )}
 
@@ -581,7 +626,7 @@ export function IpsIcvpDisplayControl(props) {
 
                         {!shareLoading && !shareError && shareText && (
                             <div
-                                className="ICVP-share-result"
+                                className="vhl-share-result"
                                 style={{
                                     display: "grid",
                                     gridTemplateColumns: "auto 1fr",
@@ -590,7 +635,7 @@ export function IpsIcvpDisplayControl(props) {
                                 }}
                             >
                                 {shareQrDataUrl ? (
-                                    <img src={shareQrDataUrl} alt="QR ICVP" style={{width: 168, height: 168}}/>
+                                    <img src={shareQrDataUrl} alt="QR VHL" style={{width: 168, height: 168}}/>
                                 ) : null}
                                 <div>
                                     <div
@@ -609,13 +654,77 @@ export function IpsIcvpDisplayControl(props) {
                                         {shareText}
                                     </div>
                                     <Button kind="secondary" size="sm" onClick={handleCopyShareText}>
-                                        <FormattedMessage id="COPY_ICVP" defaultMessage="Copiar código"/>
+                                        <FormattedMessage id="COPY_VHL" defaultMessage="Copiar código"/>
                                     </Button>
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
+
+                {/* Resultados ICVP */}
+                {isIcvp && (icvpLoading || icvpError || icvpResults.length > 0) && (
+                <div className="icvp-results-block" style={{marginBottom: "1rem"}}>
+                    {icvpLoading && (
+                    <InlineLoading description={tx?.("GENERATING_ICVP") || "Generando ICVP..."}/>
+                    )}
+                    {!icvpLoading && icvpError && (
+                    <div className="bundle-error" style={{color: "#da1e28"}}>{icvpError}</div>
+                    )}
+                    {!icvpLoading && !icvpError && icvpResults.length > 0 && (
+                    <div style={{display: "grid", gap: "1rem"}}>
+                        {icvpResults.map((r, idx) => (
+                        <div key={idx} style={{
+                            border: "1px solid #e0e0e0",
+                            borderRadius: 6,
+                            padding: "0.75rem",
+                            display: "grid",
+                            gridTemplateColumns: "auto 1fr",
+                            gap: "1rem",
+                            alignItems: "center"
+                        }}>
+                            {r.pngDataUrl ? (
+                            <img src={r.pngDataUrl} alt="QR ICVP" style={{width: 168, height: 168}}/>
+                            ) : (
+                            <div style={{
+                                width: 168, height: 168, display: "grid", placeItems: "center",
+                                background: "#f4f4f4", color: "#8d8d8d", fontSize: 12
+                            }}>sin imagen</div>
+                            )}
+                            <div>
+                            <div style={{marginBottom: 6}}>
+                                <b>Immunization:</b> {r.immunizationId || "—"}
+                                {!r.ok && <span style={{color: "#da1e28"}}> (error {r.status})</span>}
+                            </div>
+                            <div style={{
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                                background: "var(--cds-layer, #f4f4f4)",
+                                padding: "0.75rem",
+                                borderRadius: "0.25rem",
+                                fontFamily: "monospace",
+                                fontSize: "0.825rem",
+                                lineHeight: 1.3,
+                                marginBottom: "0.5rem",
+                            }}>
+                                {r.hc1 || "—"}
+                            </div>
+                            <Button
+                                kind="secondary"
+                                size="sm"
+                                onClick={async () => { try { await navigator.clipboard.writeText(r.hc1 || ""); } catch {} }}
+                                disabled={!r.hc1}
+                            >
+                                <FormattedMessage id="COPY_HC1" defaultMessage="Copiar HC1"/>
+                            </Button>
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+                    )}
+                </div>
+                )}
+
 
                 {/* Patient */}
                 <div className="bundle-block">
@@ -658,9 +767,91 @@ export function IpsIcvpDisplayControl(props) {
         );
     };
 
+    async function handleGenerateICVP() {
+
+    try {
+        setIcvpLoading(true);
+        setIcvpError(null);
+        setIcvpResults([]);
+
+        if (!viewerBundle || viewerBundle.resourceType !== "Bundle" || !viewerBundle.id) {
+        setIcvpError("No hay un Bundle válido (con 'id') para generar ICVP.");
+        return;
+        }
+
+        const resp = await axios.post(
+        ICVP_FROM_BUNDLE_URL,
+        viewerBundle, // Bundle completo
+        {
+            headers: {
+            ...buildAuthHeaders("application/json"),
+            "Content-Type": "application/json",
+            },
+            responseType: "json",
+        }
+        );
+
+        const results = Array.isArray(resp?.data?.results) ? resp.data.results : [];
+        if (results.length === 0) {
+        setIcvpError("La operación ICVP no devolvió resultados.");
+        return;
+        }
+
+        // Mapear cada resultado a { immunizationId, pngDataUrl, hc1 }
+        const mapped = results.map(r => {
+        let pngDataUrl = "";
+        let hc1 = "";
+        try {
+            const docRef = r?.data?.entry?.find?.(e => e?.resource?.resourceType === "DocumentReference")?.resource;
+            const contents = Array.isArray(docRef?.content) ? docRef.content : [];
+            for (const c of contents) {
+            const ct = c?.attachment?.contentType || "";
+            const data = c?.attachment?.data || "";
+            const fmt = c?.format?.code || "";
+            if (!data) continue;
+            if (/^image\/png$/i.test(ct) || fmt === "image") {
+                pngDataUrl = `data:image/png;base64,${data}`;
+
+            } else if (/^text\/plain$/i.test(ct) || fmt === "hc1") {
+                let txt = String(data || "");
+                if (txt && !/^HC1:/.test(txt) && typeof atob === "function") {
+                    try { txt = atob(txt); } catch {}
+                }
+                hc1 = txt;
+
+
+
+            }
+            }
+        } catch {}
+        return {
+            immunizationId: r?.immunizationId || "",
+            ok: !!r?.ok,
+            status: r?.status,
+            pngDataUrl,
+            hc1,
+        };
+        });
+
+        setIcvpResults(mapped);
+    } catch (e) {
+        console.error("[ICVP] Error:", e);
+        const msg = e?.response ? `${e.response.status} ${e.response.statusText}` : e?.message || String(e);
+        setIcvpError(`Error al generar ICVP: ${msg}`);
+    } finally {
+        setIcvpLoading(false);
+    }
+    };
+
+
+
+
+
+
+
     /* -------- UI principal -------- */
     const formsHeading = (
-        <FormattedMessage id="DASHBOARD_TITLE_IPS_ICVP_KEY" defaultMessage="ICVP Dashboard"/>
+        <FormattedMessage id="DASHBOARD_TITLE_IPS_ICVP_KEY" defaultMessage="IPS LAC Dashboard"/>
     );
 
     if (isLoading) {
@@ -703,9 +894,9 @@ export function IpsIcvpDisplayControl(props) {
                 <div className="ips-header">
                     <h2 className={"forms-display-control-section-title"}>{formsHeading}</h2>
 
-                    {/* Leer ICVP: abre modal para pegar/escanner y resolver */}
-                    <Button kind="primary" renderIcon={QrCode32} onClick={handleOpenICVPReader}>
-                        <FormattedMessage id="READ_ICVP_DOCUMENT" defaultMessage="Leer ICVP"/>
+                    {/* Leer VHL: abre modal para pegar/escanner y resolver */}
+                    <Button kind="primary" renderIcon={QrCode32} onClick={handleOpenVhlReader}>
+                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer QR"/>
                     </Button>
                 </div>
 
@@ -815,59 +1006,59 @@ export function IpsIcvpDisplayControl(props) {
                     </Row>
                 </Grid>
 
-                {/* Modal: Lector ICVP (pegar / cámara) */}
-                <ComposedModal open={ICVPModalOpen} onClose={handleCloseICVPModal} size="lg">
-                    <ModalHeader label="ICVP" title={tx?.("READ_ICVP_DOCUMENT") || "Leer ICVP"}/>
+                {/* Modal: Lector VHL (pegar / cámara) */}
+                <ComposedModal open={vhlModalOpen} onClose={handleCloseVhlModal} size="lg">
+                    <ModalHeader label="VHL" title={tx?.("READ_VHL_DOCUMENT") || "Leer VHL"}/>
                     <ModalBody hasScrollingContent>
-                        <div className="ICVP-reader" style={{display: "grid", gap: "1rem"}}>
+                        <div className="vhl-reader" style={{display: "grid", gap: "1rem"}}>
                             <TextArea
-                                id="ICVP-input"
-                                labelText={tx?.("PASTE_ICVP_HC1") || "Pega el código ICVP (HC1)"}
+                                id="vhl-input"
+                                labelText={tx?.("PASTE_VHL_HC1") || "Pega el código VHL (HC1)"}
                                 placeholder="HC1:..."
                                 rows={4}
-                                value={ICVPInput}
-                                onChange={(e) => setICVPInput(e.target.value)}
+                                value={vhlInput}
+                                onChange={(e) => setVhlInput(e.target.value)}
                             />
 
                             {/* Scanner */}
                             <div>
                                 <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
                                     <Button
-                                        kind={ICVPScanActive ? "danger--tertiary" : "tertiary"}
+                                        kind={vhlScanActive ? "danger--tertiary" : "tertiary"}
                                         size="sm"
-                                        onClick={ICVPScanActive ? stopICVPScan : startICVPScan}
+                                        onClick={vhlScanActive ? stopVhlScan : startVhlScan}
                                     >
-                                        {ICVPScanActive
+                                        {vhlScanActive
                                             ? (tx?.("STOP_SCANNING") || "Detener escáner")
                                             : (tx?.("SCAN_QR") || "Escanear QR")}
                                     </Button>
-                                    {ICVPScanError && (
-                                        <span style={{color: "#da1e28", fontSize: 12}}>{ICVPScanError}</span>
+                                    {vhlScanError && (
+                                        <span style={{color: "#da1e28", fontSize: 12}}>{vhlScanError}</span>
                                     )}
                                 </div>
 
                                 <div
-                                    id="ICVP-qr-region"
+                                    id="vhl-qr-region"
                                     style={{
                                         width: 320,
                                         height: 320,
                                         marginTop: "0.5rem",
                                         background: "#00000010",
                                         position: "relative",
-                                        display: ICVPScanActive ? "block" : "none",
+                                        display: vhlScanActive ? "block" : "none",
                                     }}
                                 />
                             </div>
 
                             {/* Resolver */}
                             <div>
-                                <Button kind="primary" size="sm" onClick={handleResolveICVP} disabled={resolveLoading}>
+                                <Button kind="primary" size="sm" onClick={handleResolveVHL} disabled={resolveLoading}>
                                     {resolveLoading ? (
                                         <InlineLoading
-                                            description={tx?.("RESOLVING_ICVP") || "Resolviendo ICVP..."}
+                                            description={tx?.("RESOLVING_VHL") || "Resolviendo VHL..."}
                                         />
                                     ) : (
-                                        <FormattedMessage id="RESOLVE_ICVP" defaultMessage="Resolver ICVP"/>
+                                        <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL"/>
                                     )}
                                 </Button>
                                 {resolveError && (
@@ -922,7 +1113,7 @@ export function IpsIcvpDisplayControl(props) {
                         </div>
                     </ModalBody>
                     <ModalFooter>
-                        <Button kind="secondary" onClick={handleCloseICVPModal}>
+                        <Button kind="secondary" onClick={handleCloseVhlModal}>
                             <FormattedMessage id="CLOSE" defaultMessage="Cerrar"/>
                         </Button>
                     </ModalFooter>
@@ -991,3 +1182,4 @@ IpsIcvpDisplayControl.defaultProps = {
     },
     tx: (key) => key,
 };
+export default IpsIcvpDisplayControl;
