@@ -332,6 +332,12 @@ module.exports = function (grunt) {
                         cwd: '<%= yeoman.app %>/components/primeflex',
                         src: ['**/*'],
                         dest: '<%= yeoman.dist %>/components/primeflex'
+                    },
+                    {
+                        expand: true,
+                        cwd: '<%= yeoman.app %>/components/primeicons/fonts',
+                        src: ['**/*'],
+                        dest: '<%= yeoman.dist %>/bedmanagement/fonts'
                     }
                 ]
             },
