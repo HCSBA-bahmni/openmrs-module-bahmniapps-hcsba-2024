@@ -179,6 +179,18 @@ const getBundleProfiles = (bundle) =>
 const hasProfile = (bundle, profileUri) =>
   getBundleProfiles(bundle).includes(profileUri);
 
+// Humaniza errores HTTP/Red para mostrar pistas útiles (CORS/TLS)
+const humanizeHttpError = (e, fallbackLabel = "Error") => {
+    if (e?.response) {
+        return `${e.response.status} ${e.response.statusText}`;
+    }
+    const raw = e?.message || String(e || fallbackLabel);
+    if (/Network Error/i.test(raw) || /Failed to fetch/i.test(raw)) {
+        return `${raw} (posible CORS o certificado TLS no confiable)`;
+    }
+    return raw;
+};
+
 
 /* ===========================
    COMPONENTE
@@ -836,7 +848,7 @@ export function IpsIcvpDisplayControl(props) {
         setIcvpResults(mapped);
     } catch (e) {
         console.error("[ICVP] Error:", e);
-        const msg = e?.response ? `${e.response.status} ${e.response.statusText}` : e?.message || String(e);
+        const msg = humanizeHttpError(e, "ICVP");
         setIcvpError(`Error al generar ICVP: ${msg}`);
     } finally {
         setIcvpLoading(false);
