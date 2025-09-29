@@ -435,6 +435,22 @@ module.exports = function (grunt) {
                     }
 
                 ]
+            },
+            primeAliases: {
+                files: [
+                    {
+                        expand: true, cwd: '<%= yeoman.dist %>/components/primeflex/',
+                        src: ['primeflex.css'],
+                        dest: '<%= yeoman.dist %>/components/primeflex/',
+                        rename: (d, s) => d + 'primeflex.min.css'
+                    },
+                    {
+                        expand: true, cwd: '<%= yeoman.dist %>/components/primeicons/',
+                        src: ['primeicons.css'],
+                        dest: '<%= yeoman.dist %>/components/primeicons/',
+                        rename: (d, s) => d + 'primeicons.min.css'
+                    }
+                ]
             }
         },
         rename: {
@@ -446,14 +462,14 @@ module.exports = function (grunt) {
                         src: ['clinical.*.js'],
                         dest: '<%= yeoman.dist %>/clinical/'
                     },
-                    { expand: true, cwd: '<%= yeoman.dist %>', src: ['adt.*.js'], dest: '<%= yeoman.dist %>/adt/' },
+                    {expand: true, cwd: '<%= yeoman.dist %>', src: ['adt.*.js'], dest: '<%= yeoman.dist %>/adt/'},
                     {
                         expand: true,
                         cwd: '<%= yeoman.dist %>',
                         src: ['orders.*.js'],
                         dest: '<%= yeoman.dist %>/orders/'
                     },
-                    { expand: true, cwd: '<%= yeoman.dist %>', src: ['home.*.js'], dest: '<%= yeoman.dist %>/home/' },
+                    {expand: true, cwd: '<%= yeoman.dist %>', src: ['home.*.js'], dest: '<%= yeoman.dist %>/home/'},
                     {
                         expand: true,
                         cwd: '<%= yeoman.dist %>',
@@ -466,7 +482,7 @@ module.exports = function (grunt) {
                         src: ['admin.*.js'],
                         dest: '<%= yeoman.dist %>/admin/'
                     },
-                    { expand: true, cwd: '<%= yeoman.root %>', src: ['common.*.js'], dest: '<%= yeoman.dist %>/' },
+                    {expand: true, cwd: '<%= yeoman.root %>', src: ['common.*.js'], dest: '<%= yeoman.dist %>/'},
                     {
                         expand: true,
                         cwd: '<%= yeoman.dist %>',
@@ -497,7 +513,7 @@ module.exports = function (grunt) {
                         src: ['clinical.*.css'],
                         dest: '<%= yeoman.dist %>/clinical/'
                     },
-                    { expand: true, cwd: '<%= yeoman.dist %>', src: ['adt.*.css'], dest: '<%= yeoman.dist %>/adt/' },
+                    {expand: true, cwd: '<%= yeoman.dist %>', src: ['adt.*.css'], dest: '<%= yeoman.dist %>/adt/'},
                     {
                         expand: true,
                         cwd: '<%= yeoman.dist %>',
@@ -546,7 +562,7 @@ module.exports = function (grunt) {
                         src: ['document-upload.*.css'],
                         dest: '<%= yeoman.dist %>/document-upload/'
                     },
-                    { expand: true, cwd: '<%= yeoman.dist %>', src: ['ot.*.css'], dest: '<%= yeoman.dist %>/ot/' }
+                    {expand: true, cwd: '<%= yeoman.dist %>', src: ['ot.*.css'], dest: '<%= yeoman.dist %>/ot/'}
                 ]
             }
         },
@@ -627,6 +643,7 @@ module.exports = function (grunt) {
         'htmlmin',
         'cssmin',
         'copy:dist',
+        'copy:primeAliases',
         'filerev',
         'usemin'
     ]);
@@ -657,7 +674,7 @@ module.exports = function (grunt) {
         const done = this.async();
         const spawn = require('child_process').spawn;
 
-        const cmd = spawn('grunt', ['karma:unit', '--force'], { stdio: 'inherit' });
+        const cmd = spawn('grunt', ['karma:unit', '--force'], {stdio: 'inherit'});
 
         cmd.on('exit', function (code) {
             console.log('Karma tests exited with code', code);
