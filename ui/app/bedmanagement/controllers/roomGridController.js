@@ -20,13 +20,22 @@ angular.module('bahmni.ipd')
                     $rootScope.selectedBedInfo.bed = bed;
                     var options = {bedId: bed.bedId};
                     $state.go("bedManagement.bed", options);
-                }
-                else if ($state.current.name === "bedManagement.patient") {
+                } else if ($state.current.name === "bedManagement.patient") {
                     $rootScope.selectedBedInfo.bed = bed;
                     if (bed.patient) {
                         $scope.$emit("event:updateSelectedBedInfoForCurrentPatientVisit", bed.patient.uuid);
                     }
                 }
+            };
+            // en el controller de room-grid
+            $scope.bmxBedClass = function (cell) {
+                var cls = [];
+                if (cell && cell.bed && cell.bed.status) cls.push((cell.bed.status + '').toLowerCase());
+                var tag = $scope.getColorForTheTag(cell.bed);
+                if (tag) cls.push(tag);
+                if (cell.bed.bedId === $root.selectedBedInfo.bed.bedId) cls.push('bmx-selected');
+                if (cell.bed.bedId === $root.bedDetails.bedId) cls.push('bmx-previous');
+                return cls.join(' ');
             };
             $scope.showHover = function (cell) {
                 cell.showHover = true;

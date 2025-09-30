@@ -759,7 +759,7 @@ div[ng-app="adt"] {
 }
 
 .OCCUPIED {
-  background: #0cbc3d;
+  //background: #0cbc3d;
   color: white;
 
   .bed-space {
@@ -768,7 +768,7 @@ div[ng-app="adt"] {
 }
 
 .AVAILABLE {
-  border: 1px solid #0cbc3d;
+  //border: 1px solid #0cbc3d;
 
   .bed-space {
     border: 1px solid #0cbc3d;
@@ -776,7 +776,7 @@ div[ng-app="adt"] {
 }
 
 .RESERVED {
-  background: #f0ad4e;
+  //background: #f0ad4e;
   color: #fff;
 
   .bed-space {
@@ -786,7 +786,7 @@ div[ng-app="adt"] {
 }
 
 .BLOCKED {
-  background: #f80707;
+  //background: #f80707;
   color: #fff;
 
   .bed-space {
@@ -1609,12 +1609,12 @@ $btn-modern-department-color: #374151;
     }
 
     &.occupied {
-      background-color: #22c55e;
+      background-color: var(--bmx-amber-600);
       color: white;
     }
 
     &.reserved {
-      background-color: #f59e0b;
+      background-color: var(--bmx-sky-600);
       color: white;
     }
 
@@ -1801,3 +1801,625 @@ $btn-modern-department-color: #374151;
 .modern-modal .btn-icon { display:inline-flex; align-items:center; gap:.5rem; }
 
 
+
+// Nuevo estilo para los wards y el resumen de las salas
+/* ====== Modern Bed Management (compacto, legible) ====== */
+:root {
+  --bg-card: #ffffff;
+  --bd-card: #e6e9ef;
+  --txt-600: #6b7280;
+
+  --c-avail: #22c55e;   /* verde */
+  --c-occup: #f59e0b;   /* ámbar */
+  --c-reser: #0ea5e9;   /* celeste */
+  --c-block: #ef4444;   /* rojo */
+
+  --pill-bg: #f6f7f9;
+  --pill-txt: #111827;
+}
+
+.room-list-modern {
+  .kpi-card { border:1px solid var(--bd-card); }
+
+  .badge-muted {
+    background:#eef2ff;
+    color:#4f46e5;
+    font-size:.75rem;
+    padding:.2rem .5rem;
+    border-radius:999px;
+    font-weight:600;
+  }
+
+  .badge-total {
+    background:#111827;
+    color:#fff;
+    font-weight:700;
+    border-radius:999px;
+    padding:.15rem .55rem;
+    font-size:.85rem;
+    line-height:1;
+  }
+
+  .counters {
+    display:flex; flex-wrap:wrap; gap:.5rem;
+  }
+
+  .pill {
+    display:inline-flex; align-items:center; gap:.35rem;
+    background:var(--pill-bg);
+    color:var(--pill-txt);
+    border-radius:999px;
+    padding:.25rem .6rem;
+    font-weight:600; line-height:1;
+    border:1px solid #e5e7eb;
+
+    i { font-size:.9rem; opacity:.9; }
+    b { font-weight:700; }
+    small { font-size:.7rem; opacity:.8; margin-left:.1rem; }
+    &.available { border-color:color-mix(in srgb, var(--c-avail) 30%, #e5e7eb); }
+    &.occupied  { border-color:color-mix(in srgb, var(--c-occup) 30%, #e5e7eb); }
+    &.reserved  { border-color:color-mix(in srgb, var(--c-reser) 30%, #e5e7eb); }
+    &.blocked   { border-color:color-mix(in srgb, var(--c-block) 30%, #e5e7eb); }
+  }
+
+  .room-card {
+    border:1px solid var(--bd-card);
+    background:var(--bg-card);
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    text-align:left;
+    width:100%;
+    cursor:pointer;
+
+    .room-name { font-size:1rem; }
+    &:hover   { transform:translateY(-1px); box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    &.is-active {
+      border-color:#4f46e5;
+      box-shadow:0 0 0 2px rgba(79,70,229,.15);
+    }
+  }
+
+  /* Modo daltónico-friendly: usa iconos + letras D/O/R/B y tooltips */
+  .pill.available i { color:var(--c-avail); }
+  .pill.occupied  i { color:var(--c-occup); }
+  .pill.reserved  i { color:var(--c-reser); }
+  .pill.blocked   i { color:var(--c-block); }
+}
+
+/* Responsivo: 1 columna móvil, 2 md, 3 lg, 4 xl → lo hace PrimeFlex con col-12 md:col-6 lg:col-4 xl:col-3 */
+
+/* ========= BM NAMESPACE ========= */
+:root{
+  --bm-border:#e5e7eb;
+  --bm-text-600:#6b7280;
+  --bm-text-900:#111827;
+  --bm-brand:#111827;
+  --bm-primary:#16a34a;
+  --bm-panel-bg:#ffffff;
+}
+
+/* ===== Grid propio (sin PrimeFlex col-*) ===== */
+.bm-container{ min-height:calc(100vh - 120px); }
+.bm-grid{
+  display:grid;
+  grid-template-columns: 1fr;        /* móvil: 1 columna */
+  gap: 1rem;
+}
+
+/* breakpoint md (>=768px) -> 2 columnas 1/2 */
+@media (min-width:768px){
+  .bm-grid{ grid-template-columns: 1fr 2fr; }
+}
+
+/* breakpoint lg (>=992px) -> 2 columnas 1/3  (25%/75%) */
+@media (min-width:992px){
+  .bm-grid{ grid-template-columns: 1fr 3fr; }
+}
+
+/* Burger wrapper: visible sólo en móvil */
+.bm-burger-wrap{ display:block; }
+@media (min-width:768px){ .bm-burger-wrap{ display:none; } }
+
+/* Neutraliza cualquier layout viejo si quedó en el DOM */
+.bm-container, .bm-left, .bm-right{ float:none !important; }
+.bm-container ~ .left-pane,
+.bm-container ~ .right-pane,
+.bm-container .left-pane,
+.bm-container .right-pane{ display:none !important; }
+
+/* ===== Tipografía / fields ===== */
+.bm-section-title{ color:#374151; margin:.25rem 0 .5rem; font-weight:700; }
+.bm-only-desktop{ display:none; }
+@media (min-width:768px){ .bm-only-desktop{ display:block; } }
+
+.bm-field{ display:flex; align-items:baseline; gap:.5rem; padding:.25rem 0; }
+.bm-field>label{ min-width:9rem; color:var(--bm-text-600); font-weight:600; }
+.bm-link{ color:#2563eb; text-decoration:none; font-weight:600; cursor:pointer; }
+.bm-muted{ color:var(--bm-text-600); }
+
+/* ===== Botones ===== */
+.bm-burger{
+  display:inline-flex; align-items:center; gap:.5rem;
+  border:1px solid var(--bm-border); background:#f9fafb; color:var(--bm-text-900);
+  padding:.5rem .9rem; border-radius:999px; font-weight:700;
+}
+.bm-btn-primary{
+  display:inline-flex; align-items:center; justify-content:center;
+  border:0; border-radius:999px; padding:.6rem 1rem;
+  background:var(--bm-primary); color:#fff; font-weight:700;
+  transition:filter .12s, transform .12s;
+}
+.bm-btn-primary:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+
+/* ===== Tags ===== */
+.bm-tags{ display:flex; flex-wrap:wrap; gap:.35rem; }
+.bm-tag{
+  background:#f3f4f6; color:var(--bm-text-900);
+  border:1px solid var(--bm-border);
+  border-radius:999px; padding:.15rem .5rem; font-weight:600;
+  display:inline-flex; align-items:center;
+}
+
+/* ===== Panel derecho ===== */
+.bm-right{ min-width:0; } /* evita overflow */
+.bm-panel{ min-height:60vh; display:flex; flex-direction:column; background:var(--bm-panel-bg); }
+.bm-panel-head{ position:sticky; top:0; z-index:2; background:#fff; border-bottom:1px solid var(--bm-border); }
+.bm-panel-body{ flex:1 1 auto; overflow:auto; }
+
+/* Dept pills */
+.bm-dept{ display:flex; gap:.5rem; flex-wrap:wrap; }
+.bm-dept-pill{
+  border:1px solid var(--bm-border); background:#f9fafb; color:var(--bm-text-900);
+  border-radius:999px; padding:.35rem .8rem; font-weight:700; cursor:pointer;
+  transition:background .12s, border-color .12s, color .12s, transform .12s;
+}
+.bm-dept-pill:hover{ transform:translateY(-1px); }
+.bm-dept-pill.bm-selected{ background:var(--bm-brand); color:#fff; border-color:var(--bm-brand); box-shadow:0 0 0 2px rgba(17,24,39,.06); }
+
+/* ===== Left panel: sticky en desktop, drawer en móvil ===== */
+/* columna normal (sin sticky) */
+.bm-left{ position:static; }
+
+/* sticky adentro, sólo en desktop */
+@media (min-width:768px){
+  .bm-left-inner{ position:sticky; top:88px; }
+  .bm-left-head{ display:none; } /* header con botón cerrar sólo móvil */
+}
+
+/* header + botón cerrar (móvil) */
+.bm-left-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:.5rem; padding-bottom:.5rem; border-bottom:1px solid var(--bm-border);
+}
+.bm-icon-btn{
+  width:2.25rem; height:2.25rem; border-radius:999px; border:1px solid var(--bm-border);
+  background:#fff; display:inline-flex; align-items:center; justify-content:center;
+}
+
+/* Backdrop */
+.bm-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.35);
+  opacity:0; pointer-events:none; transition:opacity .18s; z-index:999;
+}
+.bm-backdrop.bm-open{ opacity:1; pointer-events:auto; }
+
+/* Drawer móvil */
+@media (max-width:767px){
+  .bm-left{
+    position:fixed; top:0; left:-100%;
+    height:100vh; width:86vw; max-width:380px;
+    padding:.75rem; margin:0; border-radius:0 1rem 1rem 0;
+    box-shadow:0 10px 30px rgba(0,0,0,.2); z-index:1000;
+    overflow:auto; transition:left .18s ease;
+  }
+  .bm-left.bm-open{ left:0; }
+}
+
+/* --- FIX: ocultar botón "X" en desktop y mostrarlo sólo cuando el drawer está abierto en móvil --- */
+
+/* Por defecto: oculto */
+.bm-left-head { display: none; }
+
+/* MÓVIL: mostrar el header sólo cuando el drawer está abierto */
+@media (max-width: 767px) {
+  .bm-left.bm-open .bm-left-head { display: flex; }
+}
+
+/* DESKTOP: forzar oculto (por si el tema legacy lo pisa) */
+@media (min-width: 768px) {
+  .bm-left-head,
+  .bm-left .bm-icon-btn { display: none !important; }
+}
+
+/* === HOTFIX: backdrop y drawer en móvil no bloquean clics cuando están cerrados === */
+@media (max-width: 767px) {
+  /* por defecto: backdrop invisible y no capta eventos */
+  .bm-backdrop{
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;                /* debajo de todo */
+  }
+  /* solo cuando el drawer está abierto */
+  .bm-backdrop.bm-open{
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 2400;             /* debajo del drawer */
+  }
+
+  /* drawer cerrado: que no intercepte */
+  .bm-left{
+    left: -100%;
+    pointer-events: none;
+    visibility: hidden;        /* fuera de flujo y no clickeable */
+    z-index: 2500;             /* valor alto, pero sin eventos no molesta */
+  }
+  /* drawer abierto: visible y clickeable */
+  .bm-left.bm-open{
+    left: 0;
+    pointer-events: auto;
+    visibility: visible;
+  }
+}
+/* ===== Aside & Backdrop (aislados) ===== */
+:root{
+  --bmx-border:#e5e7eb;
+  --bmx-text-600:#6b7280;
+  --bmx-text-900:#111827;
+  --bmx-primary:#16a34a;
+}
+
+/* tipografía y campos */
+.bmx-title{ color:#374151; margin:.25rem 0 .5rem; font-weight:700; }
+.bmx-field{ display:flex; align-items:baseline; gap:.5rem; padding:.25rem 0; }
+.bmx-field>label{ min-width:9rem; color:var(--bmx-text-600); font-weight:600; }
+.bmx-link{ color:#2563eb; text-decoration:none; font-weight:600; cursor:pointer; }
+.bmx-muted{ color:var(--bmx-text-600); }
+
+.bmx-btn-primary{
+  display:inline-flex; align-items:center; justify-content:center;
+  border:0; border-radius:999px; padding:.6rem 1rem;
+  background:var(--bmx-primary); color:#fff; font-weight:700;
+  transition:filter .12s, transform .12s;
+}
+.bmx-btn-primary:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+
+.bmx-tags{ display:flex; gap:.35rem; flex-wrap:wrap; }
+.bmx-tag{
+  background:#f3f4f6; color:var(--bmx-text-900);
+  border:1px solid var(--bmx-border);
+  border-radius:999px; padding:.15rem .5rem; font-weight:600;
+  display:inline-flex; align-items:center;
+}
+
+/* Burger */
+.bmx-burger{
+  display:inline-flex; align-items:center; gap:.5rem;
+  border:1px solid var(--bmx-border); background:#f9fafb; color:var(--bmx-text-900);
+  padding:.5rem .9rem; border-radius:999px; font-weight:700;
+}
+@media (min-width:768px){ .bmx-burger{ display:none; } }
+
+/* Backdrop: inerte cerrado, activo abierto */
+.bmx-backdrop{
+  position:fixed; inset:0; background:rgba(17,24,39,.45);
+  opacity:0; pointer-events:none; transition:opacity .18s;
+  z-index: 4100;
+}
+.bmx-backdrop.is-open{ opacity:1; pointer-events:auto; }
+
+/* ASIDE: Desktop = sticky, Mobile = drawer */
+.bmx-aside{
+  background:#fff; color:var(--bmx-text-900);
+  border:1px solid var(--bmx-border);
+  border-radius:16px;
+}
+
+/* Desktop (>=768px): columna normal + sticky interno */
+@media (min-width:768px){
+  .bmx-aside{ position:static; }
+  .bmx-aside .bmx-aside-head{ display:none; }     /* el header con la X es solo móvil */
+  .bmx-aside .bmx-aside-inner{ position:sticky; top:88px; }
+}
+
+/* Móvil (<768px): drawer */
+@media (max-width:767px){
+  .bmx-aside{
+    position:fixed; top:0; left:-100%;
+    height:100vh; width:86vw; max-width:380px;
+    border-radius:0 16px 16px 0;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    z-index: 4200;                    /* por encima del backdrop y de tus modales si están en 3xxx */
+    overflow:auto;
+    transition:left .18s ease;
+    pointer-events:none; visibility:hidden;
+  }
+  .bmx-aside.is-open{ left:0; pointer-events:auto; visibility:visible; }
+
+  .bmx-aside-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.5rem .75rem; border-bottom:1px solid var(--bmx-border);
+    position:sticky; top:0; background:#fff; z-index:1;
+  }
+  .bmx-icon{
+    width:2.25rem; height:2.25rem; border-radius:999px;
+    border:1px solid var(--bmx-border); background:#fff;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+}
+/* =========================
+   Aside izquierdo (bmx-*)
+   ========================= */
+
+/* acolchado general + mejor respiración */
+.bmx-aside{ padding: .75rem; }
+.bmx-aside .surface-card{ margin-bottom: .75rem; }
+
+/* links azules legacy */
+.bmx-aside .action-link{
+  color:#2563eb;
+  font-weight:600;
+  text-decoration:none;
+}
+.bmx-aside .action-link:hover{ text-decoration:underline; }
+
+/* contenedor para centrar el botón principal */
+.bmx-actions{ display:flex; justify-content:center; }
+
+/* -------- colores y estados de botones -------- */
+/* botón principal: usar clase legacy `confirm` (verde) */
+.bmx-aside .confirm{
+  background:transparent;             /* verde */
+  border:2px solid #12803a;
+  color:#12803a;
+  border-radius:999px;
+  padding:.65rem 1.25rem;
+  min-width:240px;
+  transition:filter .12s, transform .12s;
+}
+.bmx-aside .confirm:hover,
+.bmx-aside .confirm:focus{
+  color:#fff;                      /* evita hover blanco */
+  filter:brightness(0.95);
+}
+.bmx-aside .confirm:disabled{
+  opacity:.45; cursor:not-allowed;
+}
+
+/* bloque ADT: mantener estilos nativos pero con 3 colores bien definidos */
+.bmx-aside .ADT-container .action-button{
+  float:none; display:flex; flex-wrap:wrap; justify-content:center;
+  gap:.5rem; margin-top:.5rem; text-align:center;
+}
+.bmx-aside .ADT-container .action-button > button{
+  border-radius:8px; padding:.55rem 1rem; font-weight:600;
+  color:#fff; border:1px solid transparent;
+  transition:filter .12s, transform .12s;
+}
+
+/* Admitir = verde */
+.bmx-aside .ADT-container .adt-admit{
+  background:#22c55e;
+}
+.bmx-aside .ADT-container .adt-admit:hover{ filter:brightness(0.95); color:#fff; }
+
+/* Transferir = azul */
+.bmx-aside .ADT-container .adt-transfer{
+  background:#3b82f6; border-color:#2563eb;
+}
+.bmx-aside .ADT-container .adt-transfer:hover{ filter:brightness(0.95); color:#fff; }
+
+/* Dar de Alta = rojo */
+.bmx-aside .ADT-container .adt-discharge{
+  background:#ef4444; border-color:#dc2626;
+}
+.bmx-aside .ADT-container .adt-discharge:hover{ filter:brightness(0.95); color:#fff; }
+
+/* disabled coherente para los 3 */
+.bmx-aside .ADT-container .action-button > button:disabled{
+  opacity:.45; cursor:not-allowed; color:#fff;
+}
+
+/* móvil: ancho completo para mejor toque */
+@media (max-width:767px){
+  .bmx-aside .confirm,
+  .bmx-aside .ADT-container .action-button > button{ width:100%; }
+}
+
+/* -------- pequeños retoques visuales -------- */
+.bmx-title{ color:#374151; font-weight:700; }
+.bmx-field>label{ min-width:9rem; color:#6b7280; font-weight:600; }
+.bmx-tags{ display:flex; flex-wrap:wrap; gap:.35rem; }
+.bmx-tag{
+  background:#f3f4f6; color:#111827; border:1px solid #e5e7eb;
+  border-radius:999px; padding:.15rem .5rem; font-weight:600;
+}
+
+/* =========================
+   BMx Theme (scoped)
+   ========================= */
+:root{
+  /* Paleta */
+  --bmx-green-600: #16a34a;  /* Disponible  */
+  --bmx-amber-600: #f59e0b;  /* Ocupada     */
+  --bmx-sky-600  : #0284c7;  /* Reservada   */
+  --bmx-red-600  : #ef4444;  /* Bloqueada   */
+
+  /* Fondos suaves a juego */
+  --bmx-green-50: #ecfdf5;
+  --bmx-amber-50: #fffbeb;
+  --bmx-sky-50  : #eff6ff;
+  --bmx-red-50  : #fef2f2;
+
+  --bmx-border  : #e5e7eb;
+  --bmx-text-700: #374151;
+}
+
+/* ====== Pills unificadas (resumen + cards) ====== */
+.bmx-theme .pill{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  border:1px solid var(--bmx-border);
+  border-radius:999px;
+  padding:.2rem .5rem;
+  line-height:1;
+  font-weight:600;
+}
+
+/* Disponible (verde) */
+.bmx-theme .pill.available{
+  border-color:var(--bmx-green-600);
+  background:var(--bmx-green-50);
+  color:var(--bmx-green-600);
+}
+
+/* Ocupada (ámbar/amarillo) */
+.bmx-theme .pill.occupied{
+  border-color:var(--bmx-amber-600);
+  background:var(--bmx-amber-50);
+  color:var(--bmx-amber-600);
+}
+
+/* Reservada (celeste) */
+.bmx-theme .pill.reserved{
+  border-color:var(--bmx-sky-600);
+  background:var(--bmx-sky-50);
+  color:var(--bmx-sky-600);
+}
+
+/* Bloqueada (rojo) */
+.bmx-theme .pill.blocked{
+  border-color:var(--bmx-red-600);
+  background:var(--bmx-red-50);
+  color:var(--bmx-red-600);
+}
+
+/* Los numeritos (<b>, <small>) siguen legibles */
+.bmx-theme .pill b{ font-weight:700; }
+.bmx-theme .pill small{ opacity:.9; }
+
+/* ====== Leyenda (sin tocar modern-*, solo cuando está dentro del tema) ====== */
+.bmx-theme .modern-bed-legend{
+  border:1px solid var(--bmx-border);
+  border-radius:12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+
+.bmx-theme .modern-bed-legend .modern-bed-tag{
+  display:inline-flex; align-items:center; gap:.45rem;
+  padding:.25rem .55rem; border-radius:999px; line-height:1;
+  border:1px solid var(--bmx-border); background:#fff;
+}
+
+/* Mapear iconos por clase existente */
+.bmx-theme .modern-bed-legend .modern-bed-tag .tag-icon.AVAILABLE{ color:var(--bmx-green-600) !important; }
+.bmx-theme .modern-bed-legend .modern-bed-tag .tag-icon.OCCUPIED { color:var(--bmx-amber-600) !important; }
+.bmx-theme .modern-bed-legend .modern-bed-tag .tag-icon.RESERVED { color:var(--bmx-sky-600)  !important; }
+.bmx-theme .modern-bed-legend .modern-bed-tag .tag-icon.BLOCKED  { color:var(--bmx-red-600)  !important; }
+
+/* Switch de vista: mejor hover, sin “blancos” */
+.bmx-theme .modern-view-switcher > button{
+  width:2.25rem; height:2.25rem; border-radius:10px;
+  border:1px solid var(--bmx-border); background:#fff; color:var(--bmx-text-700);
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:transform .12s, filter .12s, color .12s;
+}
+.bmx-theme .modern-view-switcher > button:hover{ transform:translateY(-1px); filter:brightness(.98); }
+.bmx-theme .modern-view-switcher > button:hover .fa-print{ color:var(--bmx-sky-600); }
+.bmx-theme .modern-view-switcher > button:hover .fa-th   { color:var(--bmx-amber-600); }
+.bmx-theme .modern-view-switcher > button:hover .fa-list { color:var(--bmx-green-600); }
+
+/* ====== Detalles visuales extra ====== */
+/* borde de las tarjetas de sala coherente con el tema */
+.bmx-theme .room-card{ border:1px solid var(--bmx-border); }
+/* estado activo puede quedarse como lo tenías; si prefieres verde: */
+/* .bmx-theme .room-card.is-active{ box-shadow:0 0 0 3px rgba(22,163,74,.15); } */
+
+/* ===== ROOM GRID 100% bmx ===== */
+
+:root{
+  --bmx-green-600:#16a34a;  --bmx-green-50:#ecfdf5;
+  --bmx-amber-600:#f59e0b;  --bmx-amber-50:#fffbeb;
+  --bmx-sky-600:#0284c7;    --bmx-sky-50:#eff6ff;
+  --bmx-red-600:#ef4444;    --bmx-red-50:#fef2f2;
+  --bmx-border:#e5e7eb;
+  --bmx-ink:#111827; --bmx-muted:#6b7280;
+}
+
+.bmx-bed-layout{ margin-top:.5rem; }
+/* La UL ya tiene .grid; convertimos cada <li> en "contenedor transparente" */
+.bmx-bed-layout > li{ display: contents; }  /* permite que sus hijos .col-* se comporten como hijos directos de la grid */
+
+/* Un pelín más de respiración entre celdas */
+.bmx-bed-layout .p-2 { padding:.5rem !important; }
+
+/* celda vacía */
+.bmx-bed-empty{
+  height:64px; border:1px dashed var(--bmx-border);
+  border-radius:12px; background:#fafafa;
+}
+
+/* tarjeta cama */
+.bmx-bed{
+  --bed-color:#9ca3af; --bed-bg:#f8fafc;
+  position:relative;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  border:2px solid var(--bed-color);
+  background:#fff;
+  border-radius:14px;
+  padding:10px 12px;
+  min-height:92px;            /* altura mínima cómoda */
+  aspect-ratio: 2.4 / 1;      /* proporción de cama */
+  cursor:pointer;
+  transition:transform .12s, box-shadow .12s, border-color .12s;
+}
+
+.bmx-bed::before{
+  content:"";
+  position:absolute; inset:8px;
+  border-radius:10px;
+  background: var(--bed-bg);
+  border:1px solid color-mix(in srgb, var(--bed-color) 25%, transparent);
+}
+.bmx-bed-head{
+  position:absolute; left:10px; right:10px; top:10px;
+  height:8px; border-radius:6px;
+  background: var(--bed-color);
+  opacity:.9;
+}
+.bmx-bed::after{
+  content:"";
+  position:absolute; top:18px; right:18px;
+  width:38px; height:16px; border-radius:10px;
+  background:#fff;
+  border:1px solid color-mix(in srgb, var(--bed-color) 35%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bed-color) 18%, transparent);
+}
+/* contenido (número cama + paciente) */
+.bmx-bed-details{ position:relative; z-index:1; line-height:1.1; }
+.bmx-bed-number{ font-weight:700; color:var(--bmx-ink); }
+.bmx-patient-id{ color:var(--bmx-muted); font-size:.85rem; }
+
+/* interacción */
+.bmx-bed:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.06); }
+.bmx-bed.bmx-selected{ box-shadow:0 0 0 3px color-mix(in srgb, var(--bed-color) 25%, transparent); }
+.bmx-bed.bmx-previous{
+  outline:2px dashed color-mix(in srgb, var(--bed-color) 45%, transparent);
+  outline-offset:3px;
+}
+
+/* estados (mismo mapeo que ya tienes) */
+.bmx-bed.available{ --bed-color:var(--bmx-green-600);  --bed-bg:var(--bmx-green-50); }
+.bmx-bed.occupied { --bed-color:var(--bmx-amber-600);  --bed-bg:var(--bmx-amber-50); }
+.bmx-bed.reserved { --bed-color:var(--bmx-sky-600);    --bed-bg:var(--bmx-sky-50); }
+.bmx-bed.blocked  { --bed-color:var(--bmx-red-600);    --bed-bg:var(--bmx-red-50); }
+
+.bmx-bed-empty{
+  min-height:92px; aspect-ratio:2.4/1;
+  border:2px dashed var(--bmx-border);
+  border-radius:14px; background:#fafafa;
+}
+
+/* compacto en móviles angostos */
+@media (max-width:575px){
+  .bmx-bed, .bmx-bed-empty{ min-height:80px; }
+}

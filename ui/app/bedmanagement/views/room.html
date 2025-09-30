@@ -1,4 +1,6 @@
-<div class="modern-bed-legend">
+<div class="modern-bed-legend bmx-legend surface-card border-1 border-round-2xl p-2
+            flex flex-wrap align-items-center gap-2">
+
     <div class="modern-bed-tag" ng-repeat="tag in defaultTags">
         <i class="fa fa-bed tag-icon" ng-class="tag" style="color: {{ getTagColor(tag) }}"></i>
         <span>{{ getTagName(tag) }}</span>
@@ -9,8 +11,10 @@
         <span>{{ tag.name | translate }}</span>
     </div>
 
-    <div class="modern-view-switcher">
-        <button ng-if="currentView == 'List' && tableHeader && tableData && showPrintIcon" ng-click="printWardList()">
+    <!-- añadimos clases para alinearlo a la derecha y espaciar -->
+    <div class="modern-view-switcher bmx-legend-switch flex align-items-center gap-2 ml-auto">
+        <button ng-if="currentView == 'List' && tableHeader && tableData && showPrintIcon"
+                ng-click="printWardList()">
             <i class="fa fa-print"></i>
         </button>
         <button ng-click="toggleWardView()">
@@ -19,8 +23,7 @@
     </div>
 </div>
 
-
 <div>
-    <room-grid room="room" bedTagsColorConfig="bedTagsColorConfig" ng-if="currentView == 'Grid'"></room-grid>
-    <room-list room="room" bedTagsColorConfig="bedTagsColorConfig" ng-if="currentView == 'List'"></room-list>
+    <room-grid room="room" bed-tags-color-config="bedTagsColorConfig" ng-if="currentView == 'Grid'"></room-grid>
+    <room-list room="room" bed-tags-color-config="bedTagsColorConfig" ng-if="currentView == 'List'"></room-list>
 </div>

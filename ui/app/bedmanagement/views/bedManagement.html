@@ -1,89 +1,136 @@
-<!--<ui-view/>-->
-<div id="bedManagement" class="bed-management">
-    <div class="left-pane">
-        <h6>{{'PATIENT_DETAILS_KEY' | translate}}</h6>
-        <div class="admitted-patient-info modern-card">
-            <p class="patient-attributes">
-                <label>{{'PATIENT_ID_KEY' | translate}}</label>
-                <a class="action-link" ng-click="goToAdtPatientDashboard()">{{ patient.identifier }}</a>
-            </p>
-            <p class="patient-attributes">
-                <label>{{'PATIENT_NAME_KEY' | translate}}</label>
-                <a class="action-link" ng-click="goToAdtPatientDashboard()">{{ patient.name }}</a>
-            </p>
-            <p class="patient-attributes">
-                <label>{{'AGE_KEY' | translate}}</label>
-                <span>{{ patient.age }}</span>
-            </p>
-            <p class="patient-attributes">
-                <label>{{'GENDER_KEY' | translate}}</label>
-                <span ng-show="patient.gender == 'M'">{{'GENDER_MALE_KEY' | translate}}</span>
-                <span ng-show="patient.gender == 'F'">{{'GENDER_FEMALE_KEY' | translate}}</span>
-                <span ng-show="patient.gender == 'O'">{{'GENDER_OTHER_KEY' | translate}}</span>
-            </p>
-        </div>
-        <!-- ADD: botón para abrir diálogo (solo si hay paciente) -->
-        <div class="modern-card" style="margin-top:8px;">
-            <button
-                    class="confirm"
-                    ng-if="patient && patient.uuid"
-                    ng-click="openCustomDialog()">
-                {{ 'PATIENT_VISIT_ACTION' | translate }}
+<div id="bedManagement"
+     class="bm-container bm-grid"
+     ng-init="ui={leftOpen:false}">
+
+    <!-- Burger solo en móvil -->
+    <button type="button"
+            class="bmx-burger md:hidden"
+            ng-click="uxDrawer = true"
+            aria-expanded="{{uxDrawer === true}}">
+        <i class="pi pi-bars" aria-hidden="true"></i>
+        <span>{{ 'PATIENT_DETAILS_KEY' | translate }}</span>
+    </button>
+
+    <!-- ASIDE nuevo (no usa clases viejas) -->
+    <aside class="bmx-aside"
+           ng-class="{'is-open': uxDrawer === true}"
+           aria-label="Panel paciente">
+
+        <!-- header móvil -->
+        <div class="bmx-aside-head md:hidden">
+            <button type="button" class="bmx-icon" ng-click="uxDrawer = false" aria-label="Cerrar">
+                <i class="pi pi-times"></i>
             </button>
-            <span class="form-field" ng-if="!patient || !patient.uuid" style="opacity:.7;">
-                {{ 'SELECCIONA_PACIENTE_PARA_CONTINUAR' | translate }}
-            </span>
+            <h6 class="m-0">{{ 'PATIENT_DETAILS_KEY' | translate }}</h6>
         </div>
 
-        <adt patient="patient" encounterConfig="encounterConfig" bed="bed"></adt>
-        <h6>{{'BED_DETAILS_KEY' | translate}}</h6>
-        <div class="patient-bed-details modern-card">
-            <p class="patient-attributes">
-                <label>{{'DEPARTMENT_KEY' | translate}}</label>
-                <span>{{ward.name}}</span>
-            </p>
-            <p class="patient-attributes">
-                <label>{{'LOCATION_KEY' | translate}}</label>
-                <span>{{$root.selectedBedInfo.roomName}}</span>
-            </p>
-            <p class="patient-attributes">
-                <label>{{'ROOM_BED_KEY' | translate}}</label>
-                <span>{{$root.selectedBedInfo.bed.bedNumber}}</span>
-            </p>
-            <p class="patient-attributes">
-                <label>{{'STATUS_KEY' | translate}}</label>
-                <span>{{getStatusName($root.selectedBedInfo.bed.status)}}</span>
-                <a class="action-link" ng-click="editBedStatus()" show-if-privilege="{{editTagsPrivilege}}"
-                   ng-if="canEditTags()" style="margin-left:10px;">
-                    {{'EDIT_KEY' | translate}}
-                </a>
-            </p>
-            <div class="patient-attributes">
-                <label>{{'TAGS_KEY' | translate}}</label>
-                <span class="bed-tags-wrapper">
-                    <span class="bed-tags-preview" ng-repeat="tag in $root.selectedBedInfo.bed.bedTagMaps">
-                        {{tag.bedTag.name}}
-                    </span>
-                </span>
-                <a class="action-link" ng-click="editTagsOnTheBed()" show-if-privilege="{{editTagsPrivilege}}"
-                   ng-if="canEditTags()">{{'EDIT_KEY' | translate}}</a>
+        <!-- contenido (deja lo tuyo tal cual adentro) -->
+        <div class="bmx-aside-inner">
+            <h6 class="bmx-title hidden md:block">{{ 'PATIENT_DETAILS_KEY' | translate }}</h6>
+
+            <div class="surface-card border-round-2xl p-3 mb-3 shadow-0 border-1">
+                <div class="bmx-field">
+                    <label>{{ 'PATIENT_ID_KEY' | translate }}</label>
+                    <a class="bmx-link" ng-click="goToAdtPatientDashboard()">{{ patient.identifier }}</a>
+                </div>
+                <div class="bmx-field">
+                    <label>{{ 'PATIENT_NAME_KEY' | translate }}</label>
+                    <a class="bmx-link" ng-click="goToAdtPatientDashboard()">{{ patient.name }}</a>
+                </div>
+                <div class="bmx-field">
+                    <label>{{ 'AGE_KEY' | translate }}</label>
+                    <span>{{ patient.age }}</span>
+                </div>
+                <div class="bmx-field">
+                    <label>{{ 'GENDER_KEY' | translate }}</label>
+                    <span ng-show="patient.gender == 'M'">{{'GENDER_MALE_KEY' | translate}}</span>
+                    <span ng-show="patient.gender == 'F'">{{'GENDER_FEMALE_KEY' | translate}}</span>
+                    <span ng-show="patient.gender == 'O'">{{'GENDER_OTHER_KEY' | translate}}</span>
+                </div>
+            </div>
+
+            <div class="surface-card border-round-2xl p-3 mb-3 shadow-0 border-1">
+                <div class="flex justify-content-center flex-wrap">
+                    <!-- 100% en móvil, y centrado con ancho contenido en md/lg -->
+                    <div class="flex align-items-center justify-content-center">
+                        <button class="confirm w-full"
+                                ng-if="patient && patient.uuid"
+                                ng-click="openCustomDialog()">
+                            <i class="pi pi-users mr-2"></i>
+                            {{ 'PATIENT_VISIT_ACTION' | translate }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bmx-muted" ng-if="!patient || !patient.uuid">
+                    {{ 'SELECCIONA_PACIENTE_PARA_CONTINUAR' | translate }}
+                </div>
+            </div>
+
+            <adt patient="patient" encounterConfig="encounterConfig" bed="bed"></adt>
+
+            <h6 class="bmx-title">{{ 'BED_DETAILS_KEY' | translate }}</h6>
+            <div class="surface-card border-round-2xl p-3 border-1 shadow-0">
+                <div class="bmx-field">
+                    <label>{{ 'DEPARTMENT_KEY' | translate }}</label>
+                    <span>{{ ward.name }}</span>
+                </div>
+                <div class="bmx-field">
+                    <label>{{ 'LOCATION_KEY' | translate }}</label>
+                    <span>{{$root.selectedBedInfo.roomName}}</span>
+                </div>
+                <div class="bmx-field">
+                    <label>{{ 'ROOM_BED_KEY' | translate }}</label>
+                    <span>{{$root.selectedBedInfo.bed.bedNumber}}</span>
+                </div>
+                <div class="bmx-field align-items-center">
+                    <label>{{ 'STATUS_KEY' | translate }}</label>
+                    <span>{{ getStatusName($root.selectedBedInfo.bed.status) }}</span>
+                    <a class="bmx-link ml-2"
+                       ng-click="editBedStatus()"
+                       show-if-privilege="{{editTagsPrivilege}}"
+                       ng-if="canEditTags()">{{ 'EDIT_KEY' | translate }}</a>
+                </div>
+                <div class="bmx-field">
+                    <label>{{ 'TAGS_KEY' | translate }}</label>
+                    <span class="bmx-tags">
+          <span class="bmx-tag" ng-repeat="tag in $root.selectedBedInfo.bed.bedTagMaps">
+            <i class="pi pi-tag mr-1"></i>{{tag.bedTag.name}}
+          </span>
+        </span>
+                    <a class="bmx-link ml-2"
+                       ng-click="editTagsOnTheBed()"
+                       show-if-privilege="{{editTagsPrivilege}}"
+                       ng-if="canEditTags()">{{ 'EDIT_KEY' | translate }}</a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- BACKDROP nuevo -->
+    <div class="bmx-backdrop"
+         ng-class="{'is-open': uxDrawer === true}"
+         ng-click="uxDrawer = false"></div>
+
+    <!-- Panel derecho -->
+    <div class="bm-right">
+        <div class="bm-panel surface-card border-round-2xl shadow-1 p-0 overflow-hidden">
+            <div class="bm-panel-head flex align-items-center justify-content-between px-3 py-2">
+                <h6 class="m-0">{{ 'ADMISSION_MASTER' | translate }}</h6>
+                <div class="bm-dept">
+                    <button
+                            ng-repeat="option in wards"
+                            ng-click="onSelectDepartment(option.ward)"
+                            ng-class="{'bm-selected': option.ward.isSelected}"
+                            class="bm-dept-pill">
+                        {{ option.ward.name }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="bm-panel-body p-3 bmx-theme">
+                <ward ward="ward" ng-if="departmentSelected"></ward>
             </div>
         </div>
     </div>
-
 </div>
-<div class="right-pane modern-panel">
-    <div class="modern-panel-header">
-        <h6>{{'ADMISSION_MASTER' | translate}}</h6>
-        <div class="modern-department-selection">
-            <button
-                    ng-repeat="option in wards"
-                    ng-click="onSelectDepartment(option.ward)"
-                    ng-class="{'selected': option.ward.isSelected, 'modern-department-button': true}">
-                {{ option.ward.name }}
-            </button>
-        </div>
-    </div>
-    <ward ward="ward" ng-if="departmentSelected"></ward>
-</div>
-

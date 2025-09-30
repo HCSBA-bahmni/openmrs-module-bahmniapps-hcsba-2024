@@ -1,37 +1,77 @@
-<div class="modern-room-list">
-    <!-- Sala general -->
-    <div class="modern-summary-box">
-        <div class="clearfix summary-details">
-            <div class="floor-header">
-                <i class="pi pi-chart-bar" aria-hidden="true"></i>
-                {{ 'TOTAL_BEDS_KEY' | translate }} ({{ ward.totalBeds }})
-                <span class="summary-chip">Resumen</span>
+<div class="room-list-modern">
+
+    <!-- Resumen / KPI -->
+    <div class="kpi-card p-3 border-round-2xl surface-card shadow-1 mb-3">
+        <div class="flex align-items-center justify-content-between">
+            <div class="flex align-items-center">
+                <i class="pi pi-chart-bar mr-2 text-600" aria-hidden="true"></i>
+                <span class="font-medium">{{ 'TOTAL_BEDS_KEY' | translate }}</span>
+                <span class="text-600 ml-2">({{ ward.totalBeds }})</span>
+                <span class="badge-muted ml-2">Resumen</span>
             </div>
-            <div class="bed-status">
-                <span class="bed-available">({{ ward.totalBeds - ward.occupiedBeds - ward.reservedBeds - ward.blockedBeds }}) {{ 'AVAILABLE_SHORT' | translate }}</span>
-                <span class="bed-occupied">({{ ward.occupiedBeds }}) {{ 'OCCUPIED_SHORT' | translate }}</span>
-                <span class="bed-reserved">({{ ward.reservedBeds }}) {{ 'KEY_RESERVED_SHORT' | translate }}</span>
-                <span class="bed-blocked">({{ ward.blockedBeds }}) {{ 'KEY_BLOCKED_SHORT' | translate }}</span>
+
+            <div class="counters">
+        <span class="pill available" title="{{ 'AVAILABLE_SHORT' | translate }}">
+          <i class="pi pi-check-circle" aria-hidden="true"></i>
+          <b>{{ ward.totalBeds - ward.occupiedBeds - ward.reservedBeds - ward.blockedBeds }}</b>
+          <small>D</small>
+        </span>
+                <span class="pill occupied" title="{{ 'OCCUPIED_SHORT' | translate }}">
+          <i class="pi pi-bed" aria-hidden="true"></i>
+          <b>{{ ward.occupiedBeds }}</b>
+          <small>O</small>
+        </span>
+                <span class="pill reserved" title="{{ 'KEY_RESERVED_SHORT' | translate }}">
+          <i class="pi pi-bookmark" aria-hidden="true"></i>
+          <b>{{ ward.reservedBeds }}</b>
+          <small>R</small>
+        </span>
+                <span class="pill blocked" title="{{ 'KEY_BLOCKED_SHORT' | translate }}">
+          <i class="pi pi-lock" aria-hidden="true"></i>
+          <b>{{ ward.blockedBeds }}</b>
+          <small>B</small>
+        </span>
             </div>
         </div>
     </div>
 
-    <!-- Todas las salas -->
-    <div class="modern-room-box" ng-repeat="room in ward.rooms" ng-class="{'room-selected': activeRoom == room.name}">
-        <div class="clearfix room-details" ng-click="onSelectRoom(room.name)">
-            <div class="floor-header">{{ room.name }} ( {{ room.totalBeds }} )</div>
-            <div class="bed-status">
-                <span class="bed-available">({{ room.availableBeds }}) {{ 'AVAILABLE_SHORT' | translate }}</span>
-                <span class="bed-occupied">({{ room.occupiedBeds }}) {{ 'OCCUPIED_SHORT' | translate }}</span>
-                <span class="bed-reserved">({{ room.reservedBeds }}) {{ 'KEY_RESERVED_SHORT' | translate }}</span>
-                <span class="bed-blocked">({{ room.blockedBeds }}) {{ 'KEY_BLOCKED_SHORT' | translate }}</span>
-
-            </div>
+    <!-- Salas en grilla -->
+    <div class="grid">
+        <div class="col-12 md:col-6 lg:col-4 xl:col-3"
+             ng-repeat="room in ward.rooms track by room.name">
+            <button type="button"
+                    class="room-card surface-card border-round-2xl shadow-1 p-3 w-full"
+                    ng-class="{'is-active': activeRoom == room.name}"
+                    ng-click="onSelectRoom(room.name)"
+                    aria-pressed="{{ activeRoom == room.name }}">
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="room-name font-semibold">{{ room.name }}</span>
+                    <span class="badge-total" title="{{ 'TOTAL_BEDS_KEY' | translate }}">{{ room.totalBeds }}</span>
+                </div>
+                <div class="counters">
+          <span class="pill available" title="{{ 'AVAILABLE_SHORT' | translate }}">
+            <i class="pi pi-check-circle" aria-hidden="true"></i>
+            <b>{{ room.availableBeds }}</b><small>D</small>
+          </span>
+                    <span class="pill occupied" title="{{ 'OCCUPIED_SHORT' | translate }}">
+            <i class="pi pi-bed" aria-hidden="true"></i>
+            <b>{{ room.occupiedBeds }}</b><small>O</small>
+          </span>
+                    <span class="pill reserved" title="{{ 'KEY_RESERVED_SHORT' | translate }}">
+            <i class="pi pi-bookmark" aria-hidden="true"></i>
+            <b>{{ room.reservedBeds }}</b><small>R</small>
+          </span>
+                    <span class="pill blocked" title="{{ 'KEY_BLOCKED_SHORT' | translate }}">
+            <i class="pi pi-lock" aria-hidden="true"></i>
+            <b>{{ room.blockedBeds }}</b><small>B</small>
+          </span>
+                </div>
+            </button>
         </div>
     </div>
 </div>
 
-<!-- 🔽 Módulo de camas -->
+<!-- Módulo de camas (sin cambios) -->
 <div id="bedLayout" ng-if="roomSelected">
     <room room="room"></room>
 </div>
