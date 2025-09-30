@@ -1,48 +1,60 @@
-<div class="dashboard">
-    <header class="reg-header">
-        <div class="reg-header-right fr">
+<div class="dashboard bmx-home">
+    <header class="reg-header bmx-homebar">
+        <div class="reg-header-right fr bmx-homebar-right flex align-items-center gap-2">
             <form class="change-location fl">
-                <select  ng-model="selectedLocationUuid" ng-change="onLocationChange()">
-                    <option ng-repeat="location in locations | orderBy:'display'" ng-selected="isCurrentLocation(location)" value="{{location.uuid}}">
+                <select ng-model="selectedLocationUuid"
+                        ng-change="onLocationChange()"
+                        class="bmx-select">
+                    <option ng-repeat="location in locations | orderBy:'display'"
+                            ng-selected="isCurrentLocation(location)"
+                            value="{{location.uuid}}">
                         {{location.display | translate}}
                     </option>
                 </select>
             </form>
-            <!-- Mujir/Vikash - to be introduced when we do retrospective entry for registration and other modules -->
-            <!--<input class="retro-date-widget fr" type="date"/>-->
 
-            <button class="btn-user-info fr">
-                <i class="fa fa-user-md fa-white small"></i>
-                <i class="fa fa-caret-down fa-white mini"></i>
+            <button class="btn-user-info bmx-user-btn fr">
+                <i class="fa fa-user-md small"></i>
+                <i class="fa fa-caret-down mini"></i>
             </button>
-            <ul>
+            <ul class="bmx-user-menu">
                 <li ng-show=currentUser.username>
                     <a class="disabled">
-                        <i class="fa fa-user-md fa-white small"></i>
+                        <i class="fa fa-user-md small"></i>
                         <span ng-bind="currentUser.username"></span>
                     </a>
                 </li>
                 <li>
-                    <i class="fa fa-key fa-white small"></i>
+                    <i class="fa fa-key small"></i>
                     <a ng-click="changePassword()"><span>{{'CHANGE_PASSWORD' | translate}}</span></a>
                 </li>
                 <li ng-show=currentUser.currentLocation>
                     <a class="disabled">
-                        <i class="fa fa-map-marker fa-white small"></i>
+                        <i class="fa fa-map-marker small"></i>
                         <span ng-bind="currentUser.currentLocation | translate"></span>
                     </a>
                 </li>
                 <li>
-                    <a log-out><i class="fa fa-power-off fa-white small"></i><span class="nav-link">{{'HEADER_LABEL_LOGOUT_KEY' | translate}}</span></a>
+                    <a log-out><i class="fa fa-power-off small"></i><span class="nav-link">{{'HEADER_LABEL_LOGOUT_KEY' | translate}}</span></a>
                 </li>
             </ul>
         </div>
     </header>
-    <div class="apps">
-        <ul>
-            <li ng-repeat="extn in appExtensions">
-                <a id="{{extn.id}}" ng-href="{{extn.url}}" class="button app big" target="{{extn.target?extn.target:'_self'}}" ng-if="isVisibleExtension(extn)"><i class="{{extn.icon}}"></i>{{extn | titleTranslate}}</a>
+
+    <div class="apps px-3">
+        <!-- agrega justify-content-center -->
+        <ul class="grid justify-content-center gap-3 list-none p-0 m-0">
+            <li class="col-12 sm:col-3 md:col-3 lg:col-3 xl:col-3"
+                ng-repeat="extn in appExtensions">
+                <a id="{{extn.id}}"
+                   ng-href="{{extn.url}}"
+                   class="button app big bmx-tile"
+                   target="{{extn.target?extn.target:'_self'}}"
+                   ng-if="isVisibleExtension(extn)">
+                    <i class="{{extn.icon}}"></i>{{extn | titleTranslate}}
+                </a>
             </li>
         </ul>
     </div>
+
 </div>
