@@ -35,6 +35,9 @@ import {View16, QrCode32} from "@carbon/icons-react";
 import axios from "axios";
 import QRCode from "qrcode";
 
+// Timeout global (ms) para todas las requests axios
+axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
+
 /* ===========================
    CONFIG ITI-67/68
    =========================== */
