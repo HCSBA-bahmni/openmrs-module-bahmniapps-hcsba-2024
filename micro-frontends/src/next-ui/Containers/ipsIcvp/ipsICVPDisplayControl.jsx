@@ -104,7 +104,8 @@ const fetchDocumentReferences = async (patientIdentifier) => {
 
         let res;
         try {
-            res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+            //res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+            res = await http.get(url, {headers: buildAuthHeaders("application/fhir+json")});
         } catch (err) {
             // Si falla al principio, propaga el error; si falla en iteraciones posteriores, corta con lo mejor que tengas
             if (count === STEP) {
@@ -447,7 +448,8 @@ export function IpsIcvpDisplayControl(props) {
             const headers = sameOrigin
               ? buildAuthHeaders("application/fhir+json")
               : { Accept: "application/fhir+json" };
-            const res = await axios.get(location, { headers, responseType: "json" });
+            //const res = await axios.get(location, { headers, responseType: "json" });
+            const res = await http.get(location, { headers, responseType: "json" });
             setViewerBundle(res.data);
         } catch (e) {
             console.error("[VHL] Error cargando archivo del manifiesto:", e);
@@ -471,7 +473,8 @@ export function IpsIcvpDisplayControl(props) {
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {
             try {
-                const binRes = await axios.get(url, {
+                //const binRes = await axios.get(url, {
+                const binRes = await http.get(url, {
                     headers: buildAuthHeaders("*/*"),
                     responseType: "blob",
                 });
@@ -493,7 +496,8 @@ export function IpsIcvpDisplayControl(props) {
         setIcvpLoading(false); setIcvpError(null); setIcvpResults([]);
 
         try {
-            const jsonRes = await axios.get(url, {
+          //const jsonRes = await axios.get(url, {
+            const jsonRes = await http.get(url, {    
                 headers: buildAuthHeaders("application/fhir+json"),
             });
             setViewerBundle(jsonRes.data);

@@ -36,7 +36,11 @@ import axios from "axios";
 import QRCode from "qrcode";
 
 // Timeout global (ms) para todas las requests axios
-axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
+const HTTP = axios.create({
+  timeout: 60000,                 // 60s
+  maxBodyLength: Infinity,
+  maxContentLength: Infinity,
+});
 
 /* ===========================
    CONFIG ITI-67/68
@@ -90,7 +94,8 @@ const fetchDocumentReferences = async (patientIdentifier) => {
 
         let res;
         try {
-            res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+            //res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+            res = await HTTP.get(url, {headers: buildAuthHeaders("application/fhir+json")});
         } catch (err) {
             // Si falla al principio, propaga el error; si falla en iteraciones posteriores, corta con lo mejor que tengas
             if (count === STEP) {
@@ -401,7 +406,11 @@ export function IpsDisplayControl(props) {
         setViewerBundle(null);
 
         try {
-            const res = await axios.get(location, {
+            //const res = await axios.get(location, {
+            //    headers: {Accept: "application/fhir+json"},
+            //    responseType: "json",
+            //});
+            const res = await http.get(location, {
                 headers: {Accept: "application/fhir+json"},
                 responseType: "json",
             });
@@ -428,7 +437,11 @@ export function IpsDisplayControl(props) {
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {
             try {
-                const binRes = await axios.get(url, {
+                //const binRes = await axios.get(url, {
+                //    headers: buildAuthHeaders("*/*"),
+                //    responseType: "blob",
+                //});
+                const binRes = await http.get(url, {
                     headers: buildAuthHeaders("*/*"),
                     responseType: "blob",
                 });
@@ -446,7 +459,10 @@ export function IpsDisplayControl(props) {
         setViewerError(null);
         setViewerBundle(null);
         try {
-            const jsonRes = await axios.get(url, {
+            //const jsonRes = await axios.get(url, {
+            //    headers: buildAuthHeaders("application/fhir+json"),
+            //});
+            const jsonRes = await http.get(url, {
                 headers: buildAuthHeaders("application/fhir+json"),
             });
             setViewerBundle(jsonRes.data);
