@@ -42,7 +42,7 @@ axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
    CONFIG ITI-67/68
    =========================== */
 // En producción, usa variables de entorno
-const REGIONAL_BASE = "http://10.68.174.206:5000/regional";
+const REGIONAL_BASE = "https://10.68.174.206:5000/regional";
 const BASIC_USER = "mediator-proxy@openhim.org";
 const BASIC_PASS = "Lopior.123";
 const BASIC_AUTH =
@@ -51,8 +51,8 @@ const BASIC_AUTH =
 /* ===========================
    CONFIG VHL (Mediator)
    =========================== */
-const VHL_ISSUANCE_URL = "http://10.68.174.206:5000/vhl/_generate";
-const VHL_RESOLVE_URL = "http://10.68.174.206:5000/vhl/_resolve";
+const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
+const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
 
 // Headers con Basic Auth (por OpenHIM)
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
@@ -76,7 +76,7 @@ const getFhirBaseFromDocFullUrl = (fullUrl) => {
 const resolveAttachmentUrl = (doc, attachmentUrl) => {
     const url = String(attachmentUrl || "");
     if (!url) return null;
-
+    
     // Si ya es una URL absoluta, devuélvela tal cual
     if (/^https?:\/\//i.test(url)) {
         console.log("[resolveAttachmentUrl] URL absoluta:", url);
@@ -106,14 +106,10 @@ const resolveAttachmentUrl = (doc, attachmentUrl) => {
             console.log("[resolveAttachmentUrl] Path absoluto resuelto:", resolved);
             return resolved;
         }
-    } catch (err) {
-        console.warn("[resolveAttachmentUrl] Error parseando base URL:", err);
         /* fallback al joinUrl */
     }
 
-    const resolved = joinUrl(base, url);
-    console.log("[resolveAttachmentUrl] joinUrl resuelto:", resolved);
-    return resolved;
+    return joinUrl(base, url);
 };
 
 // ITI-67 vía mediador con _count escalonado (50→100→150→…).
@@ -205,7 +201,6 @@ const parseDocRefsFromBundle = (bundle) => {
             if (resource?.resourceType !== "DocumentReference") return null;
             const fullUrl = entry?.fullUrl || "";
             const base = getFhirBaseFromDocFullUrl(fullUrl) || REGIONAL_BASE;
-            console.log("[parseDocRefsFromBundle] DocumentReference id:", resource?.id, "fullUrl:", fullUrl, "base detectada:", base);
             return {...resource, __docRefBase: base, __fullUrl: fullUrl};
         })
         .filter(Boolean);
