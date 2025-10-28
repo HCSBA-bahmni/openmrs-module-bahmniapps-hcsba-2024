@@ -74,7 +74,9 @@ const resolveRegionalUrl = (maybeRelative) =>
 const fetchDocumentReferences = async (patientIdentifier) => {
     const raw = String(patientIdentifier || "").trim();
     // Si no viene con RUN*, lo agregamos (tu backend lo espera así).
-    const ensured = /^RUN\*/i.test(raw) ? raw : `RUN*${raw}`;
+    //const ensured = /^RUN\*/i.test(raw) ? raw : `RUN*${raw}`;
+    // El backend ya no requiere prefijo RUN*, así que lo removemos si llega desde la fuente
+    const ensured = raw.replace(/^RUN\*/i, "");
 
     const STEP = 50;        // incremento por iteración
     const MAX_COUNT = 2000; // hard-stop de seguridad
