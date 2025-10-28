@@ -42,7 +42,7 @@ axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
    CONFIG ITI-67/68
    =========================== */
 // En producción, usa variables de entorno
-const REGIONAL_BASE = "http://10.68.174.206:5000/regional";
+const REGIONAL_BASE = "https://10.68.174.206:5000/regional";
 const BASIC_USER = "mediator-proxy@openhim.org";
 const BASIC_PASS = "Lopior.123";
 const BASIC_AUTH =
@@ -51,8 +51,8 @@ const BASIC_AUTH =
 /* ===========================
    CONFIG VHL (Mediator)
    =========================== */
-const VHL_ISSUANCE_URL = "http://10.68.174.206:5000/vhl/_generate";
-const VHL_RESOLVE_URL = "http://10.68.174.206:5000/vhl/_resolve";
+const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
+const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
 
 // Headers con Basic Auth (por OpenHIM)
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
