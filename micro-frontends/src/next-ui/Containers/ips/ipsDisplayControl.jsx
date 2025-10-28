@@ -1025,6 +1025,9 @@ export function IpsDisplayControl(props) {
     );
 }
 
+
+
+
 IpsDisplayControl.propTypes = {
     hostData: PropTypes.shape({
         patientUuid: PropTypes.string.isRequired,
