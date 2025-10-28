@@ -503,9 +503,11 @@ export function IpsDisplayControl(props) {
         setViewerError(null);
         setViewerBundle(null);
         try {
+            console.log('axios IPS ITI-68 GET', url);
             const jsonRes = await axios.get(url, {
                 headers: buildAuthHeaders("application/fhir+json"),
             });
+            console.log('axios IPS ITI-68 response', jsonRes);
             setViewerBundle(jsonRes.data);
         } catch (err) {
             console.error("[ITI-68] Error cargando Bundle:", err);
