@@ -95,6 +95,16 @@ const resolveAttachmentUrl = (doc, attachmentUrl) => {
     if (!url) return null;
     if (/^https?:\/\//i.test(url)) return url;
     const base = doc?.__docRefBase || REGIONAL_BASE;
+
+    if (url.startsWith("//")) {
+        try {
+            const u = new URL(base);
+            return `${u.protocol}${url}`;
+        } catch {
+            return `http:${url}`;
+        }
+    }
+
     try {
         const u = new URL(base);
         if (url.startsWith("/")) {
