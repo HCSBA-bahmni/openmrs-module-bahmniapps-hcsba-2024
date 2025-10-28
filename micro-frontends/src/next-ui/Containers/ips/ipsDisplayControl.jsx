@@ -72,33 +72,6 @@ const getFhirBaseFromDocFullUrl = (fullUrl) => {
     return String(fullUrl).replace(/\/DocumentReference\/.*$/, "");
 };
 
-// Dominios externos que requieren proxy debido a Mixed Content (HTTP desde HTTPS)
-const PROXY_REQUIRED_DOMAINS = ["conn23.msal.gov.ar"];
-
-// Función para reescribir URLs HTTP de dominios externos usando el mediador como proxy
-// Esto evita el bloqueo de Mixed Content del navegador
-const rewriteHttpUrlThroughProxy = (url) => {
-    try {
-        const urlObj = new URL(url);
-
-        // Si es HTTP y es un dominio que requiere proxy, reescribir a través del mediador
-        if (urlObj.protocol === "http:" && PROXY_REQUIRED_DOMAINS.includes(urlObj.hostname)) {
-            // Construir URL del proxy: el mediador hará la petición HTTP y responderá por HTTPS
-            // Asumiendo que el mediador puede proxificar: /regional/<resto-del-path>
-            // Si el mediador no soporta esto, necesitamos configurarlo o usar otro enfoque
-            const pathAndQuery = urlObj.pathname + urlObj.search + urlObj.hash;
-            const proxiedUrl = `${REGIONAL_BASE}${pathAndQuery}`;
-            console.log("[rewriteHttpUrlThroughProxy] URL HTTP reescrita:", url, "->", proxiedUrl);
-            return proxiedUrl;
-        }
-
-        return url;
-    } catch (err) {
-        console.warn("[rewriteHttpUrlThroughProxy] Error parseando URL:", err);
-        return url;
-    }
-};
-
 // Resuelve attachment.url relativo contra la base detectada en el DocumentReference
 const resolveAttachmentUrl = (doc, attachmentUrl) => {
     const url = String(attachmentUrl || "");
@@ -507,12 +480,7 @@ export function IpsDisplayControl(props) {
             console.warn("[ITI-68] Sin attachment.url en DocumentReference:", doc?.id);
             return;
         }
-        let url = resolveAttachmentUrl(doc, attachmentUrl);
-        console.log("[handleViewDocument] URL resuelta:", url);
-
-        // Reescribir URLs HTTP de dominios externos a través del proxy para evitar Mixed Content
-        url = rewriteHttpUrlThroughProxy(url);
-        console.log("[handleViewDocument] URL final (post-proxy):", url);
+        const url = resolveAttachmentUrl(doc, attachmentUrl);
 
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {
