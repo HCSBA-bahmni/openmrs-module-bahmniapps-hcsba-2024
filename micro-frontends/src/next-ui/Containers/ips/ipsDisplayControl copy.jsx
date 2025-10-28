@@ -64,32 +64,9 @@ const buildAuthHeaders = (accept = "application/fhir+json") => ({
 const joinUrl = (base, path) =>
     `${base.replace(/\/+$/, "")}/${String(path || "").replace(/^\/+/, "")}`;
 
-// Dada la fullUrl de un DocumentReference, obtén la base FHIR sin el recurso final
-const getFhirBaseFromDocFullUrl = (fullUrl) => {
-    if (!fullUrl) return null;
-    const match = String(fullUrl).match(/^(https?:\/\/[^]+?)\/DocumentReference(?:\/|$)/i);
-    if (match) return match[1];
-    return String(fullUrl).replace(/\/DocumentReference\/.*$/, "");
-};
-
-// Resuelve attachment.url relativo contra la base detectada en el DocumentReference
-const resolveAttachmentUrl = (doc, attachmentUrl) => {
-    const url = String(attachmentUrl || "");
-    if (!url) return null;
-    if (/^https?:\/\//i.test(url)) return url;
-
-    const base = doc?.__docRefBase || REGIONAL_BASE;
-    try {
-        const baseUrl = new URL(base);
-        if (url.startsWith("/")) {
-            return `${baseUrl.origin}${url}`;
-        }
-    } catch {
-        /* fallback al joinUrl */
-    }
-
-    return joinUrl(base, url);
-};
+// Si attachment.url viene relativo (p.ej. "Bundle/18"), resolver contra REGIONAL_BASE
+const resolveRegionalUrl = (maybeRelative) =>
+    /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
 
 // ITI-67 vía mediador con _count escalonado (50→100→150→…).
 // Repite la misma búsqueda aumentando _count hasta que desaparece el link "next"
@@ -175,14 +152,8 @@ const fetchDocumentReferences = async (patientIdentifier) => {
 const parseDocRefsFromBundle = (bundle) => {
     if (!bundle || !Array.isArray(bundle.entry) || bundle.entry.length === 0) return [];
     return (bundle.entry || [])
-        .map((entry) => {
-            const resource = entry?.resource;
-            if (resource?.resourceType !== "DocumentReference") return null;
-            const fullUrl = entry?.fullUrl || "";
-            const base = getFhirBaseFromDocFullUrl(fullUrl) || REGIONAL_BASE;
-            return {...resource, __docRefBase: base, __fullUrl: fullUrl};
-        })
-        .filter(Boolean);
+        .map((e) => e.resource)
+        .filter((r) => r?.resourceType === "DocumentReference");
 };
 
 /* ===========================
@@ -454,7 +425,7 @@ export function IpsDisplayControl(props) {
             console.warn("[ITI-68] Sin attachment.url en DocumentReference:", doc?.id);
             return;
         }
-        const url = resolveAttachmentUrl(doc, attachmentUrl);
+        const url = resolveRegionalUrl(attachmentUrl);
 
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {

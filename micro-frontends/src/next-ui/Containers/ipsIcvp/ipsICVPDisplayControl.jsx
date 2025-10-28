@@ -79,9 +79,32 @@ const buildAuthHeaders = (accept = "application/fhir+json") => ({
 const joinUrl = (base, path) =>
     `${base.replace(/\/+$/, "")}/${String(path || "").replace(/^\/+/, "")}`;
 
-// Si attachment.url viene relativo (p.ej. "Bundle/18"), resolver contra REGIONAL_BASE
-const resolveRegionalUrl = (maybeRelative) =>
-    /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
+// Dada la fullUrl de un DocumentReference, obtén la "FHIR base"
+// p.ej. "http://host:8080/fhir/DocumentReference/173" -> "http://host:8080/fhir"
+const getFhirBaseFromDocFullUrl = (fullUrl) => {
+    if (!fullUrl) return null;
+    const m = String(fullUrl).match(/^(https?:\/\/[^]+?)\/DocumentReference(?:\/|$)/i);
+    if (m) return m[1];
+    return String(fullUrl).replace(/\/DocumentReference\/.*$/, "");
+};
+
+// Resuelve attachment.url relativo contra la base del propio DocumentReference
+// doc.__docRefBase la agregamos al parseo (ver más abajo)
+const resolveAttachmentUrl = (doc, attachmentUrl) => {
+    const url = String(attachmentUrl || "");
+    if (!url) return null;
+    if (/^https?:\/\//i.test(url)) return url;
+    const base = doc?.__docRefBase || REGIONAL_BASE;
+    try {
+        const u = new URL(base);
+        if (url.startsWith("/")) {
+            return `${u.origin}${url}`;
+        }
+    } catch {
+        /* noop */
+    }
+    return joinUrl(base, url);
+};
 
 // ITI-67 vía mediador con _count escalonado (50→100→150→…).
 // Repite la misma búsqueda aumentando _count hasta que desaparece el link "next"
@@ -163,12 +186,18 @@ const fetchDocumentReferences = async (patientIdentifier) => {
     };
 };
 
-// Normaliza Bundle -> DocumentReference[]
+// Normaliza Bundle -> DocumentReference[] y anota __docRefBase desde entry.fullUrl
 const parseDocRefsFromBundle = (bundle) => {
     if (!bundle || !Array.isArray(bundle.entry) || bundle.entry.length === 0) return [];
     return (bundle.entry || [])
-        .map((e) => e.resource)
-        .filter((r) => r?.resourceType === "DocumentReference");
+        .map((e) => {
+            const r = e?.resource;
+            if (r?.resourceType !== "DocumentReference") return null;
+            const fullUrl = e?.fullUrl || "";
+            const base = getFhirBaseFromDocFullUrl(fullUrl) || REGIONAL_BASE;
+            return {...r, __docRefBase: base, __fullUrl: fullUrl};
+        })
+        .filter(Boolean);
 };
 
 /* ===========================
@@ -469,7 +498,7 @@ export function IpsIcvpDisplayControl(props) {
             console.warn("[ITI-68] Sin attachment.url en DocumentReference:", doc?.id);
             return;
         }
-        const url = resolveRegionalUrl(attachmentUrl);
+        const url = resolveAttachmentUrl(doc, attachmentUrl);
 
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {

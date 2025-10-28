@@ -5,7 +5,7 @@ import "../../../styles/carbon-conflict-fixes.scss";
 import "../../../styles/carbon-theme.scss";
 import "../../../styles/common.scss";
 import "../formDisplayControl/formDisplayControl.scss";
-import "./ipsDisplayControl.scss";
+import "./ipsICVPDisplayControl.scss";
 
 import {I18nProvider} from "../../Components/i18n/I18nProvider";
 import {FormattedMessage} from "react-intl";
@@ -38,6 +38,7 @@ import QRCode from "qrcode";
 // Timeout global (ms) para todas las requests axios
 axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
 
+
 /* ===========================
    CONFIG ITI-67/68
    =========================== */
@@ -54,6 +55,20 @@ const BASIC_AUTH =
 const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
 const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
 
+
+/* ===========================
+   CONFIG ICVP (Mediator)
+   =========================== */
+// Expuesto por OpenHIM (ajústalo si lo publicas en otro path)
+const ICVP_FROM_BUNDLE_URL = "https://10.68.174.206:5000/icvpcert/_from-bundle";
+
+// Perfiles para decidir el flujo
+const PROFILE_LAC_BUNDLE   = "http://lacpass.racsel.org/StructureDefinition/lac-bundle";
+const PROFILE_LAC_COMP     = "http://lacpass.racsel.org/StructureDefinition/lac-composition";
+const PROFILE_ICVP_BUNDLE  = "http://smart.who.int/icvp/StructureDefinition/Bundle-uv-ips-ICVP";
+
+
+
 // Headers con Basic Auth (por OpenHIM)
 const buildAuthHeaders = (accept = "application/fhir+json") => ({
     Accept: accept,
@@ -64,32 +79,9 @@ const buildAuthHeaders = (accept = "application/fhir+json") => ({
 const joinUrl = (base, path) =>
     `${base.replace(/\/+$/, "")}/${String(path || "").replace(/^\/+/, "")}`;
 
-// Dada la fullUrl de un DocumentReference, obtén la base FHIR sin el recurso final
-const getFhirBaseFromDocFullUrl = (fullUrl) => {
-    if (!fullUrl) return null;
-    const match = String(fullUrl).match(/^(https?:\/\/[^]+?)\/DocumentReference(?:\/|$)/i);
-    if (match) return match[1];
-    return String(fullUrl).replace(/\/DocumentReference\/.*$/, "");
-};
-
-// Resuelve attachment.url relativo contra la base detectada en el DocumentReference
-const resolveAttachmentUrl = (doc, attachmentUrl) => {
-    const url = String(attachmentUrl || "");
-    if (!url) return null;
-    if (/^https?:\/\//i.test(url)) return url;
-
-    const base = doc?.__docRefBase || REGIONAL_BASE;
-    try {
-        const baseUrl = new URL(base);
-        if (url.startsWith("/")) {
-            return `${baseUrl.origin}${url}`;
-        }
-    } catch {
-        /* fallback al joinUrl */
-    }
-
-    return joinUrl(base, url);
-};
+// Si attachment.url viene relativo (p.ej. "Bundle/18"), resolver contra REGIONAL_BASE
+const resolveRegionalUrl = (maybeRelative) =>
+    /^https?:\/\//i.test(String(maybeRelative)) ? maybeRelative : joinUrl(REGIONAL_BASE, maybeRelative);
 
 // ITI-67 vía mediador con _count escalonado (50→100→150→…).
 // Repite la misma búsqueda aumentando _count hasta que desaparece el link "next"
@@ -175,14 +167,8 @@ const fetchDocumentReferences = async (patientIdentifier) => {
 const parseDocRefsFromBundle = (bundle) => {
     if (!bundle || !Array.isArray(bundle.entry) || bundle.entry.length === 0) return [];
     return (bundle.entry || [])
-        .map((entry) => {
-            const resource = entry?.resource;
-            if (resource?.resourceType !== "DocumentReference") return null;
-            const fullUrl = entry?.fullUrl || "";
-            const base = getFhirBaseFromDocFullUrl(fullUrl) || REGIONAL_BASE;
-            return {...resource, __docRefBase: base, __fullUrl: fullUrl};
-        })
-        .filter(Boolean);
+        .map((e) => e.resource)
+        .filter((r) => r?.resourceType === "DocumentReference");
 };
 
 /* ===========================
@@ -193,10 +179,29 @@ const getResource = (bundle, resourceType) =>
 
 const safeDiv = (html) => ({__html: html || ""});
 
+// Perfiles del Bundle
+const getBundleProfiles = (bundle) =>
+  Array.isArray(bundle?.meta?.profile) ? bundle.meta.profile.map(String) : [];
+const hasProfile = (bundle, profileUri) =>
+  getBundleProfiles(bundle).includes(profileUri);
+
+// Humaniza errores HTTP/Red para mostrar pistas útiles (CORS/TLS)
+const humanizeHttpError = (e, fallbackLabel = "Error") => {
+    if (e?.response) {
+        return `${e.response.status} ${e.response.statusText}`;
+    }
+    const raw = e?.message || String(e || fallbackLabel);
+    if (/Network Error/i.test(raw) || /Failed to fetch/i.test(raw)) {
+        return `${raw} (posible CORS o certificado TLS no confiable)`;
+    }
+    return raw;
+};
+
+
 /* ===========================
    COMPONENTE
    =========================== */
-export function IpsDisplayControl(props) {
+export function IpsIcvpDisplayControl(props) {
     const {hostData, tx} = props;
     const {identifier} = hostData || {};
 
@@ -220,6 +225,12 @@ export function IpsDisplayControl(props) {
     const [shareError, setShareError] = useState(null);
     const [shareText, setShareText] = useState("");         // el "HC1: ..."
     const [shareQrDataUrl, setShareQrDataUrl] = useState(""); // dataURL del QR
+
+    
+    // ICVP (generar QR con $icvp por cada Immunization)
+    const [icvpLoading, setIcvpLoading] = useState(false);
+    const [icvpError, setIcvpError] = useState(null);
+    const [icvpResults, setIcvpResults] = useState([]); // [{immunizationId, pngDataUrl, hc1}]
 
     // Leer VHL (pegar/scannear → resolver → elegir archivo → ver Bundle)
     const [vhlModalOpen, setVhlModalOpen] = useState(false);
@@ -430,12 +441,16 @@ export function IpsDisplayControl(props) {
         setViewerLoading(true);
         setViewerError(null);
         setViewerBundle(null);
+        // reset de acciones previas
+        setShareLoading(false); setShareError(null); setShareText(""); setShareQrDataUrl("");
+        setIcvpLoading(false); setIcvpError(null); setIcvpResults([]);
 
         try {
-            const res = await axios.get(location, {
-                headers: {Accept: "application/fhir+json"},
-                responseType: "json",
-            });
+            const sameOrigin = String(location).startsWith(REGIONAL_BASE);
+            const headers = sameOrigin
+              ? buildAuthHeaders("application/fhir+json")
+              : { Accept: "application/fhir+json" };
+            const res = await axios.get(location, { headers, responseType: "json" });
             setViewerBundle(res.data);
         } catch (e) {
             console.error("[VHL] Error cargando archivo del manifiesto:", e);
@@ -454,7 +469,7 @@ export function IpsDisplayControl(props) {
             console.warn("[ITI-68] Sin attachment.url en DocumentReference:", doc?.id);
             return;
         }
-        const url = resolveAttachmentUrl(doc, attachmentUrl);
+        const url = resolveRegionalUrl(attachmentUrl);
 
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {
@@ -476,6 +491,10 @@ export function IpsDisplayControl(props) {
         setViewerLoading(true);
         setViewerError(null);
         setViewerBundle(null);
+        // reset de acciones previas
+        setShareLoading(false); setShareError(null); setShareText(""); setShareQrDataUrl("");
+        setIcvpLoading(false); setIcvpError(null); setIcvpResults([]);
+
         try {
             const jsonRes = await axios.get(url, {
                 headers: buildAuthHeaders("application/fhir+json"),
@@ -494,13 +513,15 @@ export function IpsDisplayControl(props) {
     /* -------- Render helpers del modal (visor de Bundle) -------- */
     const renderBundleViewer = (bundle) => {
         if (!bundle) return null;
+        const isLac  = [PROFILE_LAC_BUNDLE, PROFILE_LAC_COMP]
+            .some(p => hasProfile(bundle, p));
+        const isIcvp = hasProfile(bundle, PROFILE_ICVP_BUNDLE);
 
         const composition = getResource(bundle, "Composition");
         const patient = getResource(bundle, "Patient");
         const title =
             composition?.title || composition?.type?.coding?.[0]?.display || "Clinical Document";
         const timestamp = bundle?.timestamp || composition?.date || null;
-        const sections = composition?.section || [];
 
         const handleShareVHL = async () => {
             try {
@@ -581,9 +602,19 @@ export function IpsDisplayControl(props) {
                         {title}
                     </h3>
                     <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
-                        <Button kind="primary" size="sm" onClick={handleShareVHL} disabled={shareLoading}>
-                            <FormattedMessage id="SHARE_VHL" defaultMessage="Compartir VHL"/>
-                        </Button>
+                        {isLac && (
+                            <Button kind="primary" size="sm" onClick={handleShareVHL} disabled={shareLoading}>
+                              <FormattedMessage id="SHARE_VHL" defaultMessage="Compartir VHL"/>
+                            </Button>
+                          )}
+                          {isIcvp && (
+                            <Button kind="primary" size="sm" onClick={handleGenerateICVP} disabled={icvpLoading}>
+                              {icvpLoading
+                                ? <InlineLoading description={tx?.("GENERATING_ICVP") || "Generando ICVP..."}/>
+                                : <FormattedMessage id="GENERATE_ICVP" defaultMessage="Generar ICVP"/>
+                              }
+                            </Button>
+                          )}
                     </div>
                 </div>
 
@@ -596,7 +627,8 @@ export function IpsDisplayControl(props) {
                     </div>
                 )}
 
-                {(shareLoading || shareError || shareText) && (
+                {isLac && (shareLoading || shareError || shareText) && (
+
                     <div className="vhl-share-block" style={{marginBottom: "1rem"}}>
                         {shareLoading && (
                             <InlineLoading
@@ -648,6 +680,70 @@ export function IpsDisplayControl(props) {
                     </div>
                 )}
 
+                {/* Resultados ICVP */}
+                {isIcvp && (icvpLoading || icvpError || icvpResults.length > 0) && (
+                <div className="icvp-results-block" style={{marginBottom: "1rem"}}>
+                    {icvpLoading && (
+                    <InlineLoading description={tx?.("GENERATING_ICVP") || "Generando ICVP..."}/>
+                    )}
+                    {!icvpLoading && icvpError && (
+                    <div className="bundle-error" style={{color: "#da1e28"}}>{icvpError}</div>
+                    )}
+                    {!icvpLoading && !icvpError && icvpResults.length > 0 && (
+                    <div style={{display: "grid", gap: "1rem"}}>
+                        {icvpResults.map((r, idx) => (
+                        <div key={idx} style={{
+                            border: "1px solid #e0e0e0",
+                            borderRadius: 6,
+                            padding: "0.75rem",
+                            display: "grid",
+                            gridTemplateColumns: "auto 1fr",
+                            gap: "1rem",
+                            alignItems: "center"
+                        }}>
+                            {r.pngDataUrl ? (
+                            <img src={r.pngDataUrl} alt="QR ICVP" style={{width: 168, height: 168}}/>
+                            ) : (
+                            <div style={{
+                                width: 168, height: 168, display: "grid", placeItems: "center",
+                                background: "#f4f4f4", color: "#8d8d8d", fontSize: 12
+                            }}>sin imagen</div>
+                            )}
+                            <div>
+                            <div style={{marginBottom: 6}}>
+                                <b>Immunization:</b> {r.immunizationId || "—"}
+                                {!r.ok && <span style={{color: "#da1e28"}}> (error {r.status})</span>}
+                            </div>
+                            <div style={{
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                                background: "var(--cds-layer, #f4f4f4)",
+                                padding: "0.75rem",
+                                borderRadius: "0.25rem",
+                                fontFamily: "monospace",
+                                fontSize: "0.825rem",
+                                lineHeight: 1.3,
+                                marginBottom: "0.5rem",
+                            }}>
+                                {r.hc1 || "—"}
+                            </div>
+                            <Button
+                                kind="secondary"
+                                size="sm"
+                                onClick={async () => { try { await navigator.clipboard.writeText(r.hc1 || ""); } catch {} }}
+                                disabled={!r.hc1}
+                            >
+                                <FormattedMessage id="COPY_HC1" defaultMessage="Copiar HC1"/>
+                            </Button>
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+                    )}
+                </div>
+                )}
+
+
                 {/* Patient */}
                 <div className="bundle-block">
                     <h4>
@@ -689,9 +785,91 @@ export function IpsDisplayControl(props) {
         );
     };
 
+    async function handleGenerateICVP() {
+
+    try {
+        setIcvpLoading(true);
+        setIcvpError(null);
+        setIcvpResults([]);
+
+        if (!viewerBundle || viewerBundle.resourceType !== "Bundle" || !viewerBundle.id) {
+        setIcvpError("No hay un Bundle válido (con 'id') para generar ICVP.");
+        return;
+        }
+
+        const resp = await axios.post(
+        ICVP_FROM_BUNDLE_URL,
+        viewerBundle, // Bundle completo
+        {
+            headers: {
+            ...buildAuthHeaders("application/json"),
+            "Content-Type": "application/json",
+            },
+            responseType: "json",
+        }
+        );
+
+        const results = Array.isArray(resp?.data?.results) ? resp.data.results : [];
+        if (results.length === 0) {
+        setIcvpError("La operación ICVP no devolvió resultados.");
+        return;
+        }
+
+        // Mapear cada resultado a { immunizationId, pngDataUrl, hc1 }
+        const mapped = results.map(r => {
+        let pngDataUrl = "";
+        let hc1 = "";
+        try {
+            const docRef = r?.data?.entry?.find?.(e => e?.resource?.resourceType === "DocumentReference")?.resource;
+            const contents = Array.isArray(docRef?.content) ? docRef.content : [];
+            for (const c of contents) {
+            const ct = c?.attachment?.contentType || "";
+            const data = c?.attachment?.data || "";
+            const fmt = c?.format?.code || "";
+            if (!data) continue;
+            if (/^image\/png$/i.test(ct) || fmt === "image") {
+                pngDataUrl = `data:image/png;base64,${data}`;
+
+            } else if (/^text\/plain$/i.test(ct) || fmt === "hc1") {
+                let txt = String(data || "");
+                if (txt && !/^HC1:/.test(txt) && typeof atob === "function") {
+                    try { txt = atob(txt); } catch {}
+                }
+                hc1 = txt;
+
+
+
+            }
+            }
+        } catch {}
+        return {
+            immunizationId: r?.immunizationId || "",
+            ok: !!r?.ok,
+            status: r?.status,
+            pngDataUrl,
+            hc1,
+        };
+        });
+
+        setIcvpResults(mapped);
+    } catch (e) {
+        console.error("[ICVP] Error:", e);
+        const msg = humanizeHttpError(e, "ICVP");
+        setIcvpError(`Error al generar ICVP: ${msg}`);
+    } finally {
+        setIcvpLoading(false);
+    }
+    };
+
+
+
+
+
+
+
     /* -------- UI principal -------- */
     const formsHeading = (
-        <FormattedMessage id="DASHBOARD_TITLE_IPS_LAC_KEY" defaultMessage="IPS LAC Dashboard"/>
+        <FormattedMessage id="DASHBOARD_TITLE_IPS_ICVP_KEY" defaultMessage="IPS LAC Dashboard"/>
     );
 
     if (isLoading) {
@@ -736,7 +914,7 @@ export function IpsDisplayControl(props) {
 
                     {/* Leer VHL: abre modal para pegar/escanner y resolver */}
                     <Button kind="primary" renderIcon={QrCode32} onClick={handleOpenVhlReader}>
-                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer VHL"/>
+                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer QR"/>
                     </Button>
                 </div>
 
@@ -997,7 +1175,7 @@ export function IpsDisplayControl(props) {
     );
 }
 
-IpsDisplayControl.propTypes = {
+IpsIcvpDisplayControl.propTypes = {
     hostData: PropTypes.shape({
         patientUuid: PropTypes.string.isRequired,
         identifier: PropTypes.string.isRequired,
@@ -1010,7 +1188,7 @@ IpsDisplayControl.propTypes = {
     tx: PropTypes.func,
 };
 
-IpsDisplayControl.defaultProps = {
+IpsIcvpDisplayControl.defaultProps = {
     hostData: {
         patientUuid: "",
         identifier: "",
@@ -1022,3 +1200,4 @@ IpsDisplayControl.defaultProps = {
     },
     tx: (key) => key,
 };
+export default IpsIcvpDisplayControl;
