@@ -6,6 +6,12 @@ import {OtNotesSavePopup, OtNotesDeletePopup} from "./Containers/otNotes/OtNotes
 import {VacunasDisplayControl} from "./Containers/vacunasDisplayControl/VacunasDisplayControl";
 import {IpsDisplayControl} from "./Containers/ips/ipsDisplayControl";
 import {IpsIcvpDisplayControl} from "./Containers/ipsIcvp/ipsICVPDisplayControl";
+import {LaboratoryOrdersControl} from "./Containers/LaboratoryOrders/LaboratoryOrdersControl";
+import {MedicationOrdersControl} from "./Containers/MedicationOrders/MedicationOrdersControl";
+import {ImagingOrdersControl} from "./Containers/ImagingOrders/ImagingOrdersControl";
+import {ProcedureOrdersControl} from "./Containers/ProcedureOrders/ProcedureOrdersControl";
+import {ReferralOrdersControl} from "./Containers/ReferralOrders/ReferralOrdersControl";
+import {CertificatesControl} from "./Containers/Certificates/CertificatesControl";
 
 const MODULE_NAME = "bahmni.mfe.nextUi";
 
@@ -54,4 +60,34 @@ builder.createComponentWithTranslationForwarding(
 builder.createComponentWithTranslationForwarding(
     "IpsIcvpDisplayControl",
     IpsIcvpDisplayControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "LaboratoryOrdersControl",
+    LaboratoryOrdersControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "MedicationOrdersControl",
+    MedicationOrdersControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "ImagingOrdersControl",
+    ImagingOrdersControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "ProcedureOrdersControl",
+    ProcedureOrdersControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "ReferralOrdersControl",
+    ReferralOrdersControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "CertificatesControl",
+    CertificatesControl
 );

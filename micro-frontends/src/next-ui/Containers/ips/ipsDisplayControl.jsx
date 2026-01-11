@@ -34,6 +34,7 @@ import {
 import {View16, QrCode32} from "@carbon/icons-react";
 import axios from "axios";
 import QRCode from "qrcode";
+import {Html5Qrcode, Html5QrcodeSupportedFormats} from "html5-qrcode";
 
 // Timeout global (ms) para todas las requests axios
 axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
@@ -334,8 +335,6 @@ export function IpsDisplayControl(props) {
         // 1) Mostrar el contenedor antes de iniciar
         setVhlScanActive(true);
         try {
-            const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-
             const id = "vhl-qr-region";
             await waitRegionReady(id); // <-- asegura tamaño
 
@@ -386,6 +385,27 @@ export function IpsDisplayControl(props) {
         }
     };
 
+    const normalizeHc1Input = (rawInput) => {
+        const raw = String(rawInput || "").trim();
+        if (!raw) return "";
+
+        // Ojo: Base45 (EU DCC/HC1) permite el caracter espacio.
+        // Quitamos solo saltos de línea/tabulaciones que suelen aparecer al pegar.
+        const withoutLineBreaks = raw.replace(/[\r\n\t]+/g, "").trim();
+
+        if (/^HC1:/i.test(withoutLineBreaks)) {
+            const rest = withoutLineBreaks.replace(/^HC1:/i, "").trim();
+            return `HC1:${rest}`;
+        }
+
+        const base45ish = /^[0-9A-Z $%*+\-./:]+$/i.test(withoutLineBreaks);
+        if (base45ish && withoutLineBreaks.length > 25) {
+            return `HC1:${withoutLineBreaks}`;
+        }
+
+        return withoutLineBreaks;
+    };
+
     const handleCloseVhlModal = async () => {
         await stopVhlScan();
         setVhlModalOpen(false);
@@ -396,14 +416,17 @@ export function IpsDisplayControl(props) {
             setResolveLoading(true);
             setResolveError(null);
             setResolveFiles([]);
-            if (!vhlInput || !/^HC1:/.test(vhlInput.trim())) {
+            const normalized = normalizeHc1Input(vhlInput);
+            setVhlInput(normalized);
+
+            if (!normalized || !/^HC1:/.test(normalized)) {
                 setResolveError("Pega o escanea un código válido que comience con 'HC1:'.");
                 return;
             }
 
             const resp = await axios.post(
                 VHL_RESOLVE_URL,
-                {qrCodeContent: vhlInput.trim()},
+                {qrCodeContent: normalized},
                 {
                     headers: {
                         ...buildAuthHeaders("application/json"),
@@ -458,10 +481,12 @@ export function IpsDisplayControl(props) {
         setViewerBundle(null);
 
         try {
-            const res = await axios.get(location, {
-                headers: {Accept: "application/fhir+json"},
-                responseType: "json",
-            });
+            // Algunos servidores (p.ej. /v2/ips-json) responden 406 si el Accept es demasiado estricto.
+            // Para evitarlo, pedimos FHIR+JSON pero aceptamos también application/json y */*.
+            const accept = "application/fhir+json, application/json;q=0.9, */*;q=0.8";
+            const sameOrigin = String(location).startsWith(REGIONAL_BASE);
+            const headers = sameOrigin ? buildAuthHeaders(accept) : { Accept: accept };
+            const res = await axios.get(location, { headers, responseType: "json" });
             setViewerBundle(res.data);
         } catch (e) {
             console.error("[VHL] Error cargando archivo del manifiesto:", e);
@@ -887,6 +912,25 @@ export function IpsDisplayControl(props) {
                                 value={vhlInput}
                                 onChange={(e) => setVhlInput(e.target.value)}
                             />
+
+                            <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
+                                <Button
+                                    kind="tertiary"
+                                    size="sm"
+                                    onClick={async () => {
+                                        try {
+                                            const normalized = normalizeHc1Input(vhlInput);
+                                            setVhlInput(normalized);
+                                            await navigator.clipboard.writeText(normalized || "");
+                                        } catch {
+                                            /* noop */
+                                        }
+                                    }}
+                                    disabled={!String(vhlInput || "").trim()}
+                                >
+                                    <FormattedMessage id="COPY_HC1" defaultMessage="Copiar código"/>
+                                </Button>
+                            </div>
 
                             {/* Scanner */}
                             <div>

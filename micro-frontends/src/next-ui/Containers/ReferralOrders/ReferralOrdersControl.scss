@@ -1,0 +1,30 @@
+.referral-orders-container {
+  padding: 1rem;
+  background-color: #f4f4f4;
+  height: 100%;
+
+  .bx--data-table-container {
+    width: 100%;
+  }
+
+  .print-view {
+    display: none;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .referral-orders-container .print-view,
+  .referral-orders-container .print-view * {
+    visibility: visible;
+    display: block;
+  }
+  .referral-orders-container .print-view {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

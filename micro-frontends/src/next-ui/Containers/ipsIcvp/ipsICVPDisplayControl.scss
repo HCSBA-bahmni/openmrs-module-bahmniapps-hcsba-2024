@@ -1,6 +1,106 @@
 .ips-display-control {
   background-color: #ffffff;
 
+  .icvp-preview {
+    display: grid;
+    gap: 0.5rem;
+
+    &__hint {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    &__card {
+      border: 1px solid #e0e0e0;
+      background-color: #ffffff;
+      border-radius: 4px;
+      padding: 0.75rem;
+    }
+
+    &__title {
+      color: #161616;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    &__section {
+      margin-top: 0.75rem;
+    }
+
+    &__sectionTitle {
+      color: #161616;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    &__dl {
+      margin: 0;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    &__row {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 0.5rem;
+      align-items: start;
+
+      dt {
+        margin: 0;
+        color: #525252;
+        font-size: 0.875rem;
+      }
+
+      dd {
+        margin: 0;
+        color: #161616;
+        font-size: 0.875rem;
+        word-break: break-word;
+      }
+    }
+
+    &__vaccines {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    &__vaccine {
+      border: 1px solid #e0e0e0;
+      background-color: #f4f4f4;
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+    }
+
+    &__vaccineTitle {
+      color: #161616;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    &__empty {
+      color: #6f6f6f;
+      font-style: italic;
+    }
+
+    &__json {
+      margin-top: 0.5rem;
+
+      summary {
+        cursor: pointer;
+      }
+    }
+
+    &__pre {
+      max-height: 220px;
+      overflow: auto;
+      background-color: #f4f4f4;
+      padding: 0.5rem;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+  }
+
   .ips-header {
     display: flex;
     justify-content: space-between;

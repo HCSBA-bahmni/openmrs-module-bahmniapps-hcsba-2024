@@ -33,7 +33,10 @@ import {
 } from "carbon-components-react";
 import {View16, QrCode32} from "@carbon/icons-react";
 import axios from "axios";
+import { decode as cborDecode } from "cbor-x";
+import pako from "pako";
 import QRCode from "qrcode";
+import {Html5Qrcode, Html5QrcodeSupportedFormats} from "html5-qrcode";
 
 // Timeout global (ms) para todas las requests axios
 axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
@@ -54,6 +57,365 @@ const BASIC_AUTH =
    =========================== */
 const VHL_ISSUANCE_URL = "https://10.68.174.206:5000/vhl/_generate";
 const VHL_RESOLVE_URL = "https://10.68.174.206:5000/vhl/_resolve";
+
+/* ===========================
+   DECODIFICACIÓN ICVP (HC1 Base45)
+   - Preview local: no verifica firma.
+   - Pasos: HC1 -> Base45 -> zlib inflate -> COSE_Sign1 (CBOR) -> payload (CWT/CBOR)
+   =========================== */
+const BASE45_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+const BASE45_MAP = (() => {
+    const m = new Map();
+    for (let i = 0; i < BASE45_ALPHABET.length; i++) m.set(BASE45_ALPHABET[i], i);
+    return m;
+})();
+
+const base45Decode = (input) => {
+    const s = String(input || "");
+    const out = [];
+    for (let i = 0; i < s.length; ) {
+        const c1 = s[i++];
+        const c2 = s[i++];
+        if (c2 === undefined) throw new Error("Base45 inválido: longitud impar");
+
+        const v1 = BASE45_MAP.get(c1);
+        const v2 = BASE45_MAP.get(c2);
+        if (v1 === undefined || v2 === undefined) throw new Error("Base45 inválido: caracter no permitido");
+
+        if (i < s.length) {
+            const c3 = s[i];
+            const v3 = BASE45_MAP.get(c3);
+            // Si el tercer caracter es inválido, tratamos como bloque de 2 (1 byte)
+            if (v3 !== undefined) {
+                i++;
+                const x = v1 + v2 * 45 + v3 * 45 * 45;
+                if (x > 0xffff) throw new Error("Base45 inválido: overflow");
+                out.push((x >> 8) & 0xff, x & 0xff);
+                continue;
+            }
+        }
+
+        const x = v1 + v2 * 45;
+        if (x > 0xff) throw new Error("Base45 inválido: overflow");
+        out.push(x);
+    }
+    return new Uint8Array(out);
+};
+
+const toJsonFriendly = (value) => {
+    if (value instanceof Map) {
+        const obj = {};
+        for (const [k, v] of value.entries()) {
+            obj[String(k)] = toJsonFriendly(v);
+        }
+        return obj;
+    }
+    if (value instanceof Uint8Array) {
+        // Representación compacta para binarios (no inundar la UI)
+        const max = 32;
+        const hex = Array.from(value.slice(0, max)).map((b) => b.toString(16).padStart(2, "0")).join("");
+        return value.length > max ? `0x${hex}… (${value.length} bytes)` : `0x${hex}`;
+    }
+    if (Array.isArray(value)) return value.map(toJsonFriendly);
+    if (value && typeof value === "object") {
+        const obj = {};
+        for (const [k, v] of Object.entries(value)) obj[k] = toJsonFriendly(v);
+        return obj;
+    }
+    return value;
+};
+
+const unwrapCborTagged = (value) => {
+    if (!value || typeof value !== "object") return value;
+    // cbor-x puede devolver Tagged { tag, value }
+    if (Object.prototype.hasOwnProperty.call(value, "tag") && Object.prototype.hasOwnProperty.call(value, "value")) {
+        return value.value;
+    }
+    return value;
+};
+
+const getCwtClaim = (cwt, key) => {
+    if (!cwt) return null;
+    if (cwt instanceof Map) return cwt.get(key);
+    // Cuando cbor-x decodifica mapas como objetos, las llaves numéricas terminan como strings.
+    const asStringKey = String(key);
+    return cwt[key] ?? cwt[asStringKey] ?? null;
+};
+
+const decodeHc1Preview = (hc1) => {
+    const raw = String(hc1 || "").trim();
+    if (!raw) return null;
+
+    // Normalización mínima: quitar saltos de línea/tab y eliminar espacios justo después de HC1:
+    const cleaned = raw.replace(/[\r\n\t]+/g, "").replace(/^(HC1:)\s+/i, "$1");
+    if (!/^HC1:/i.test(cleaned)) throw new Error("El texto no comienza con HC1:");
+
+    const b45 = cleaned.replace(/^HC1:/i, "");
+    const compressed = base45Decode(b45);
+    const coseBytes = pako.inflate(compressed);
+
+    // COSE_Sign1 es un CBOR array de 4 elementos
+    let cose = cborDecode(coseBytes);
+    cose = unwrapCborTagged(cose);
+    if (!Array.isArray(cose) || cose.length < 4) throw new Error("COSE inválido");
+
+    const payloadBytes = cose[2];
+    if (!(payloadBytes instanceof Uint8Array)) throw new Error("COSE payload inválido");
+
+    const cwt = unwrapCborTagged(cborDecode(payloadBytes));
+    const cwtJson = toJsonFriendly(cwt);
+
+    // HCERT: típicamente está bajo claim -260.
+    // En nuestros QR (ICVP) el mapa principal viene en -260/-6 (observado en práctica).
+    const hcertContainer = unwrapCborTagged(getCwtClaim(cwt, -260));
+    const hcertMain = unwrapCborTagged(
+        getCwtClaim(hcertContainer, 1) ??
+        getCwtClaim(hcertContainer, -6)
+    );
+
+    return {
+        kind: "HC1",
+        cwt: cwtJson,
+        hcert: hcertMain ? toJsonFriendly(hcertMain) : null,
+    };
+};
+
+const renderIcvpMinPreview = (decoded) => {
+    const hcert = decoded?.hcert;
+    if (!hcert) {
+        return (
+            <div className="icvp-preview">
+                <div className="icvp-preview__card" aria-label="QR Decodificado">
+                    <div className="icvp-preview__title">QR decodificado</div>
+                    <div className="icvp-preview__empty">
+                        Este QR no contiene un certificado ICVP (HCERT) interpretable.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const vRaw = hcert?.v;
+    const vaccines = Array.isArray(vRaw) ? vRaw : (vRaw && typeof vRaw === 'object' ? [vRaw] : []);
+    const field = (v) => {
+        if (v === null || v === undefined || v === "") return "—";
+        if (Array.isArray(v)) return v.filter(Boolean).join(", ") || "—";
+        if (typeof v === "object") return JSON.stringify(v);
+        return String(v);
+    };
+
+    const PRODUCT_ID_EQUIV = {
+        YellowFeverProductd2c75a15ed309658b3968519ddb31690: {
+            vaccineType: 'YellowFever',
+            description:
+                'Yellow Fever - 2 dose - Federal State Autonomous Scientific Institution «Chumakov Federal Scientific Center for Research & Development of Immune-And Biological Products»'
+        },
+        YellowFeverProduct771d1a5c0acaee3e2dc9d56af1aba49d: {
+            vaccineType: 'YellowFever',
+            description:
+                'Yellow Fever - 5 dose - Federal State Autonomous Scientific Institution «Chumakov Federal Scientific Center for Research & Development of Immune-And Biological Products»'
+        },
+        YellowFeverProducte929626497bdbb71adbe925f0c09c79f: {
+            vaccineType: 'YellowFever',
+            description:
+                'Yellow Fever - 10 dose - Federal State Autonomous Scientific Institution «Chumakov Federal Scientific Center for Research & Development of Immune-And Biological Products»'
+        },
+        YellowFeverProduct01a3b83cf13e87948437db11cf5c34eb: {
+            vaccineType: 'YellowFever',
+            description: 'SinSaVac™ - 10 dose'
+        },
+        YellowFeverProductf82b015dfb3b1feeacd4c44d95b3b3ec: {
+            vaccineType: 'YellowFever',
+            description: 'Stabilized Yellow Fever Vaccine - 5 dose - Institut Pasteur de Dakar'
+        },
+        YellowFeverProduct223330a7c15da86b21cc363f591de002: {
+            vaccineType: 'YellowFever',
+            description: 'Stabilized Yellow Fever Vaccine - 10 dose - Institut Pasteur de Dakar'
+        },
+        YellowFeverProductffea8448252ee58b7a92add05f0c3431: {
+            vaccineType: 'YellowFever',
+            description: 'Stabilized Yellow Fever Vaccine - 20 dose - Institut Pasteur de Dakar'
+        },
+        YellowFeverProductd8a09f80301dc05e124f99ffe7711fc0: {
+            vaccineType: 'YellowFever',
+            description: 'STAMARIL - 10 dose - Sanofi Pasteur'
+        },
+        YellowFeverProductab01f006f8b24113f4a28cb50bfe6d9d: {
+            vaccineType: 'YellowFever',
+            description: 'Yellow Fever - 5 dose - Bio-Manguinhos/Fiocruz'
+        },
+        YellowFeverProduct5f0639d8e4d52afef089aa7148c5060c: {
+            vaccineType: 'YellowFever',
+            description: 'Yellow Fever - 10 dose - Bio-Manguinhos/Fiocruz'
+        },
+        YellowFeverProducte0534dbc71a6cc09f56dce25216c538c: {
+            vaccineType: 'YellowFever',
+            description: 'Yellow Fever - 50 dose - Bio-Manguinhos/Fiocruz'
+        },
+        PolioVaccineOralOPVTrivaProductfa4849f7532d522134f4102063af1617: {
+            vaccineType: 'PolioVaccineOralOPVTrivalent',
+            description: 'BIOPOLIO - Trivalent OPV - 10 dose - Bharat Biotech'
+        },
+        PolioVaccineOralOPVTrivaProduct4df3a93ab495d85b3583d0cd1ae3d83e: {
+            vaccineType: 'PolioVaccineOralOPVTrivalent',
+            description: 'BIOPOLIO - Trivalent OPV - 20 dose - Bharat Biotech'
+        },
+        PolioVaccineOralOPVTrivaProducte0bcdc085107751b3df34ad04620ac21: {
+            vaccineType: 'PolioVaccineOralOPVTrivalent',
+            description: 'Oral Poliomyelitis Vaccines - Trivalent - 20 dose - PT Bio Farma'
+        },
+        PolioVaccineOralOPVTrivaProductbd7faeaf3f0e633420fba396895d6cc9: {
+            vaccineType: 'PolioVaccineOralOPVTrivalent',
+            description: 'Polioviral vaccine - Trivalent - 20 dose - Haffkine Bio'
+        },
+        PolioVaccineOralOPVBivalProduct16e883911ea0108b8213bc213c9972fe: {
+            vaccineType: 'PolioVaccineOralOPVBivalentTypes1and3',
+            description: 'BIOPOLIO B1/3 - Bivalent OPV - 10 dose - Bharat Biotech'
+        },
+        PolioVaccineOralOPVBivalProduct0e59118bc5938520115bac65a45be04d: {
+            vaccineType: 'PolioVaccineOralOPVBivalentTypes1and3',
+            description: 'BIOPOLIO B1/3 - Bivalent OPV - 20 dose - Bharat Biotech'
+        },
+        PolioVaccineInactivatedIProduct532ef986c8042bbb15fee24056fdc4ed: {
+            vaccineType: 'PolioVaccineInactivatedIPV',
+            description: 'IMOVAX POLIO - IPV - 10 dose - Sanofi Pasteur'
+        },
+        PolioVaccineInactivatedIProduct087ff26057e89c006517428347dfbc3c: {
+            vaccineType: 'PolioVaccineInactivatedIPV',
+            description: 'IPV Vaccine AJV - 1 dose - AJ Vaccines'
+        },
+        PolioVaccineInactivatedSProduct0854d534a200bbeffa8be0f57dad584a: {
+            vaccineType: 'PolioVaccineInactivatedSabinsIPV',
+            description: 'Eupolio Inj. - sIPV - 1 dose - LG Chem'
+        },
+        PolioVaccineInactivatedSProduct031f63df3184acdf0cb82f90f316b6c3: {
+            vaccineType: 'PolioVaccineInactivatedSabinsIPV',
+            description: 'Eupolio Inj. - sIPV - 5 dose - LG Chem'
+        },
+        DiphtheriaTetanusPertussProductf4177b409d09d83e48630717437c5aea: {
+            vaccineType:
+                'DiphtheriaTetanusPertussiswholecellHepatitisBHaemophilusinfluenzaetypebPolioInactivated',
+            description: 'HEXASIIL - DTP-HepB-Hib-IPV - 1 dose - Serum Institute'
+        },
+        DiphtheriaTetanusPertussProductd54558e2851d29311ee7f90975827dc7: {
+            vaccineType:
+                'DiphtheriaTetanusPertussisacellularHepatitisBHaemophilusinfluenzaetypebPolioInactivated',
+            description: 'Hexaxim - DTPa-HepB-Hib-IPV - 1 dose - Sanofi Pasteur'
+        },
+        PolioVaccineNovelOralnOPProduct65b137f0201901bc43fc8759e4f35f35: {
+            vaccineType: 'PolioVaccineNovelOralnOPVType2',
+            description: 'Poliomyelitis Vaccine - nOPV Type 2 - 20 dose - Biological E.'
+        },
+        PolioVaccineNovelOralnOPProduct278e9af5dc50904dd144a7ceb4d42dd7: {
+            vaccineType: 'PolioVaccineNovelOralnOPVType2',
+            description: 'Polio Vaccine - nOPV Type 2 - 50 dose - PT Bio Farma'
+        },
+    };
+
+    const getProductInfo = (vp) => {
+        const code = String(vp || '');
+        return PRODUCT_ID_EQUIV[code] || null;
+    };
+
+    return (
+        <div className="icvp-preview">
+            <div className="icvp-preview__card" aria-label="ICVPMin">
+                <div className="icvp-preview__title">Certificado de vacunación (ICVP)</div>
+
+                <div className="icvp-preview__section">
+                    <div className="icvp-preview__sectionTitle">Datos del titular</div>
+                    <dl className="icvp-preview__dl">
+                        <div className="icvp-preview__row">
+                            <dt>Nombre (n)</dt>
+                            <dd>{field(hcert?.n)}</dd>
+                        </div>
+                        <div className="icvp-preview__row">
+                            <dt>Nombres (gn)</dt>
+                            <dd>{field(hcert?.gn)}</dd>
+                        </div>
+                        <div className="icvp-preview__row">
+                            <dt>Fecha de nacimiento (dob)</dt>
+                            <dd>{field(hcert?.dob)}</dd>
+                        </div>
+                        <div className="icvp-preview__row">
+                            <dt>Sexo (s)</dt>
+                            <dd>{field(hcert?.s)}</dd>
+                        </div>
+                        <div className="icvp-preview__row">
+                            <dt>Nacionalidad (ntl)</dt>
+                            <dd>{field(hcert?.ntl)}</dd>
+                        </div>
+                        <div className="icvp-preview__row">
+                            <dt>Tipo de documento (ndt)</dt>
+                            <dd>{field(hcert?.ndt)}</dd>
+                        </div>
+                        <div className="icvp-preview__row">
+                            <dt>Número de documento (nid)</dt>
+                            <dd>{field(hcert?.nid)}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div className="icvp-preview__section">
+                    <div className="icvp-preview__sectionTitle">Vacunas</div>
+                    {vaccines.length === 0 ? (
+                        <div className="icvp-preview__empty">—</div>
+                    ) : (
+                        <div className="icvp-preview__vaccines">
+                            {vaccines.map((v, idx) => {
+                                const info = getProductInfo(v?.vp);
+                                const vpDisplay = info?.description
+                                    ? `${field(v?.vp)} — ${info.description}`
+                                    : field(v?.vp);
+                                const vtDisplay = info?.vaccineType ? info.vaccineType : "—";
+
+                                return (
+                                    <div key={idx} className="icvp-preview__vaccine">
+                                        <div className="icvp-preview__vaccineTitle">Registro #{idx + 1}</div>
+                                        <dl className="icvp-preview__dl">
+                                            <div className="icvp-preview__row">
+                                                <dt>Producto (vp)</dt>
+                                                <dd>{vpDisplay}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>Tipo equivalente</dt>
+                                                <dd>{vtDisplay}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>Fecha (dt)</dt>
+                                                <dd>{field(v?.dt)}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>Lote / Identificador (bo)</dt>
+                                                <dd>{field(v?.bo)}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>País (cn)</dt>
+                                                <dd>{field(v?.cn)}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>Emisor (is)</dt>
+                                                <dd>{field(v?.is)}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>Válido desde (vls)</dt>
+                                                <dd>{field(v?.vls)}</dd>
+                                            </div>
+                                            <div className="icvp-preview__row">
+                                                <dt>Válido hasta (vle)</dt>
+                                                <dd>{field(v?.vle)}</dd>
+                                            </div>
+                                        </dl>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 /* ===========================
@@ -276,6 +638,10 @@ export function IpsIcvpDisplayControl(props) {
     const [vhlInput, setVhlInput] = useState("");           // texto pegado/escaneado (HC1:...)
     const [vhlScanActive, setVhlScanActive] = useState(false);
     const [vhlScanError, setVhlScanError] = useState(null);
+    // Preview/decodificación ICVP (Base45)
+    const [hc1DecodeLoading, setHc1DecodeLoading] = useState(false);
+    const [hc1DecodeError, setHc1DecodeError] = useState(null);
+    const [hc1Decoded, setHc1Decoded] = useState(null);
     const [resolveLoading, setResolveLoading] = useState(false);
     const [resolveError, setResolveError] = useState(null);
     const [resolveFiles, setResolveFiles] = useState([]);   // [{location, contentType}]
@@ -321,10 +687,49 @@ export function IpsIcvpDisplayControl(props) {
         setVhlInput("");
         setVhlScanActive(false);
         setVhlScanError(null);
+        setHc1DecodeLoading(false);
+        setHc1DecodeError(null);
+        setHc1Decoded(null);
         setResolveFiles([]);
         setResolveError(null);
         setShareError(null);
     };
+
+    // Al pegar o escanear un HC1, mostrar (en el modal) una previsualización decodificada (Base45).
+    useEffect(() => {
+        if (!vhlModalOpen) return;
+
+        const normalized = normalizeHc1Input(vhlInput);
+        if (!normalized || !/^HC1:/i.test(normalized)) {
+            setHc1DecodeLoading(false);
+            setHc1DecodeError(null);
+            setHc1Decoded(null);
+            return;
+        }
+
+        let cancelled = false;
+        const timer = setTimeout(() => {
+            try {
+                setHc1DecodeLoading(true);
+                setHc1DecodeError(null);
+                setHc1Decoded(null);
+
+                const decoded = decodeHc1Preview(normalized);
+                if (!cancelled) setHc1Decoded(decoded);
+            } catch (e) {
+                if (cancelled) return;
+                setHc1DecodeError(e?.message || String(e));
+            } finally {
+                if (!cancelled) setHc1DecodeLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vhlInput, vhlModalOpen]);
 
     const stopVhlScan = async () => {
         try {
@@ -358,8 +763,6 @@ export function IpsIcvpDisplayControl(props) {
         // 1) Mostrar el contenedor antes de iniciar
         setVhlScanActive(true);
         try {
-            const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-
             const id = "vhl-qr-region";
             await waitRegionReady(id); // <-- asegura tamaño
 
@@ -410,6 +813,27 @@ export function IpsIcvpDisplayControl(props) {
         }
     };
 
+    const normalizeHc1Input = (rawInput) => {
+        const raw = String(rawInput || "").trim();
+        if (!raw) return "";
+
+        // Ojo: Base45 (EU DCC/HC1) permite el caracter espacio.
+        // Quitamos solo saltos de línea/tabulaciones que suelen aparecer al pegar.
+        const withoutLineBreaks = raw.replace(/[\r\n\t]+/g, "").trim();
+
+        if (/^HC1:/i.test(withoutLineBreaks)) {
+            const rest = withoutLineBreaks.replace(/^HC1:/i, "").trim();
+            return `HC1:${rest}`;
+        }
+
+        const base45ish = /^[0-9A-Z $%*+\-./:]+$/i.test(withoutLineBreaks);
+        if (base45ish && withoutLineBreaks.length > 25) {
+            return `HC1:${withoutLineBreaks}`;
+        }
+
+        return withoutLineBreaks;
+    };
+
     const handleCloseVhlModal = async () => {
         await stopVhlScan();
         setVhlModalOpen(false);
@@ -420,14 +844,17 @@ export function IpsIcvpDisplayControl(props) {
             setResolveLoading(true);
             setResolveError(null);
             setResolveFiles([]);
-            if (!vhlInput || !/^HC1:/.test(vhlInput.trim())) {
+            const normalized = normalizeHc1Input(vhlInput);
+            setVhlInput(normalized);
+
+            if (!normalized || !/^HC1:/.test(normalized)) {
                 setResolveError("Pega o escanea un código válido que comience con 'HC1:'.");
                 return;
             }
 
             const resp = await axios.post(
                 VHL_RESOLVE_URL,
-                {qrCodeContent: vhlInput.trim()},
+                {qrCodeContent: normalized},
                 {
                     headers: {
                         ...buildAuthHeaders("application/json"),
@@ -485,10 +912,9 @@ export function IpsIcvpDisplayControl(props) {
         setIcvpLoading(false); setIcvpError(null); setIcvpResults([]);
 
         try {
+            const accept = "application/fhir+json, application/json;q=0.9, */*;q=0.8";
             const sameOrigin = String(location).startsWith(REGIONAL_BASE);
-            const headers = sameOrigin
-              ? buildAuthHeaders("application/fhir+json")
-              : { Accept: "application/fhir+json" };
+            const headers = sameOrigin ? buildAuthHeaders(accept) : { Accept: accept };
             const res = await axios.get(location, { headers, responseType: "json" });
             setViewerBundle(res.data);
         } catch (e) {
@@ -674,21 +1100,20 @@ export function IpsIcvpDisplayControl(props) {
                                 description={tx?.("EMITTING_VHL") || "Emitiendo VHL..."}
                             />
                         )}
-
                         {!shareLoading && shareError && (
-                            <div className="bundle-error" style={{color: "#da1e28"}}>
+                            <div className="bundle-error" style={{color: "#da1e28", marginTop: "0.25rem"}}>
                                 {shareError}
                             </div>
                         )}
 
                         {!shareLoading && !shareError && shareText && (
                             <div
-                                className="vhl-share-result"
                                 style={{
                                     display: "grid",
                                     gridTemplateColumns: "auto 1fr",
                                     gap: "1rem",
                                     alignItems: "center",
+                                    marginTop: "0.5rem",
                                 }}
                             >
                                 {shareQrDataUrl ? (
@@ -943,6 +1368,9 @@ export function IpsIcvpDisplayControl(props) {
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     const docsPage = documents.slice(start, end);
+    // En esta pantalla, el QR puede ser ICVP (decodificación local) o VHL (resolver/manifiesto).
+    // Si el QR decodifica como ICVP (hcert presente), ocultamos el bloque "Resolver VHL" para evitar confusión.
+    const enableVhlResolveUi = !(hc1Decoded?.hcert);
 
     return (
         <I18nProvider>
@@ -1065,17 +1493,45 @@ export function IpsIcvpDisplayControl(props) {
 
                 {/* Modal: Lector VHL (pegar / cámara) */}
                 <ComposedModal open={vhlModalOpen} onClose={handleCloseVhlModal} size="lg">
-                    <ModalHeader label="VHL" title={tx?.("READ_VHL_DOCUMENT") || "Leer VHL"}/>
+                    <ModalHeader label="QR" title={tx?.("READ_VHL_DOCUMENT") || "Leer QR"}/>
                     <ModalBody hasScrollingContent>
                         <div className="vhl-reader" style={{display: "grid", gap: "1rem"}}>
                             <TextArea
                                 id="vhl-input"
-                                labelText={tx?.("PASTE_VHL_HC1") || "Pega el código VHL (HC1)"}
+                                labelText={tx?.("PASTE_VHL_HC1") || "Pega el código (HC1)"}
                                 placeholder="HC1:..."
                                 rows={4}
                                 value={vhlInput}
                                 onChange={(e) => setVhlInput(e.target.value)}
                             />
+
+                            {/* Preview / decodificación */}
+                            {hc1DecodeLoading && (
+                                <InlineLoading description={tx?.("DECODING_QR") || "Decodificando QR (Base45)..."} />
+                            )}
+                            {/* Si no se puede decodificar como ICVP (COSE), no lo tratamos como error fatal: puede ser VHL. */}
+                            {!hc1DecodeLoading && !hc1DecodeError && hc1Decoded && (
+                                renderIcvpMinPreview(hc1Decoded)
+                            )}
+
+                            <div style={{display: "flex", gap: "0.5rem", alignItems: "center"}}>
+                                <Button
+                                    kind="tertiary"
+                                    size="sm"
+                                    onClick={async () => {
+                                        try {
+                                            const normalized = normalizeHc1Input(vhlInput);
+                                            setVhlInput(normalized);
+                                            await navigator.clipboard.writeText(normalized || "");
+                                        } catch {
+                                            /* noop */
+                                        }
+                                    }}
+                                    disabled={!String(vhlInput || "").trim()}
+                                >
+                                    <FormattedMessage id="COPY_HC1" defaultMessage="Copiar código"/>
+                                </Button>
+                            </div>
 
                             {/* Scanner */}
                             <div>
@@ -1107,65 +1563,69 @@ export function IpsIcvpDisplayControl(props) {
                                 />
                             </div>
 
-                            {/* Resolver */}
-                            <div>
-                                <Button kind="primary" size="sm" onClick={handleResolveVHL} disabled={resolveLoading}>
-                                    {resolveLoading ? (
-                                        <InlineLoading
-                                            description={tx?.("RESOLVING_VHL") || "Resolviendo VHL..."}
-                                        />
-                                    ) : (
-                                        <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL"/>
-                                    )}
-                                </Button>
-                                {resolveError && (
-                                    <div style={{color: "#da1e28", marginTop: "0.5rem"}}>{resolveError}</div>
-                                )}
-                            </div>
+                            {enableVhlResolveUi && (
+                                <>
+                                    {/* Resolver */}
+                                    <div>
+                                        <Button kind="primary" size="sm" onClick={handleResolveVHL} disabled={resolveLoading}>
+                                            {resolveLoading ? (
+                                                <InlineLoading
+                                                    description={tx?.("RESOLVING_VHL") || "Resolviendo VHL..."}
+                                                />
+                                            ) : (
+                                                <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL"/>
+                                            )}
+                                        </Button>
+                                        {resolveError && (
+                                            <div style={{color: "#da1e28", marginTop: "0.5rem"}}>{resolveError}</div>
+                                        )}
+                                    </div>
 
-                            {/* Archivos del manifiesto */}
-                            {resolveFiles.length > 0 && (
-                                <div className="manifest-files">
-                                    <h4 style={{marginBottom: "0.5rem"}}>
-                                        <FormattedMessage id="MANIFEST_FILES" defaultMessage="Archivos disponibles"/>
-                                    </h4>
-                                    <ul style={{listStyle: "none", padding: 0, margin: 0}}>
-                                        {resolveFiles.map((f, idx) => (
-                                            <li
-                                                key={idx}
-                                                style={{
-                                                    display: "flex",
-                                                    justifyContent: "space-between",
-                                                    alignItems: "center",
-                                                    gap: "0.5rem",
-                                                    padding: "0.5rem 0",
-                                                    borderTop: idx === 0 ? "none" : "1px solid #e0e0e0",
-                                                }}
-                                            >
-                                                <div style={{minWidth: 0}}>
-                                                    <div
+                                    {/* Archivos del manifiesto */}
+                                    {resolveFiles.length > 0 && (
+                                        <div className="manifest-files">
+                                            <h4 style={{marginBottom: "0.5rem"}}>
+                                                <FormattedMessage id="MANIFEST_FILES" defaultMessage="Archivos disponibles"/>
+                                            </h4>
+                                            <ul style={{listStyle: "none", padding: 0, margin: 0}}>
+                                                {resolveFiles.map((f, idx) => (
+                                                    <li
+                                                        key={idx}
                                                         style={{
-                                                            fontFamily: "monospace",
-                                                            fontSize: 12,
-                                                            wordBreak: "break-all",
+                                                            display: "flex",
+                                                            justifyContent: "space-between",
+                                                            alignItems: "center",
+                                                            gap: "0.5rem",
+                                                            padding: "0.5rem 0",
+                                                            borderTop: idx === 0 ? "none" : "1px solid #e0e0e0",
                                                         }}
-                                                        title={f.location}
                                                     >
-                                                        {f.location}
-                                                    </div>
-                                                    <small style={{opacity: 0.7}}>
-                                                        {f.contentType || "application/fhir+json"}
-                                                    </small>
-                                                </div>
-                                                <div style={{flexShrink: 0}}>
-                                                    <Button kind="ghost" size="sm" onClick={() => openResolvedFile(f)}>
-                                                        <FormattedMessage id="OPEN" defaultMessage="Abrir"/>
-                                                    </Button>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+                                                        <div style={{minWidth: 0}}>
+                                                            <div
+                                                                style={{
+                                                                    fontFamily: "monospace",
+                                                                    fontSize: 12,
+                                                                    wordBreak: "break-all",
+                                                                }}
+                                                                title={f.location}
+                                                            >
+                                                                {f.location}
+                                                            </div>
+                                                            <small style={{opacity: 0.7}}>
+                                                                {f.contentType || "application/fhir+json"}
+                                                            </small>
+                                                        </div>
+                                                        <div style={{flexShrink: 0}}>
+                                                            <Button kind="ghost" size="sm" onClick={() => openResolvedFile(f)}>
+                                                                <FormattedMessage id="OPEN" defaultMessage="Abrir"/>
+                                                            </Button>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </ModalBody>
