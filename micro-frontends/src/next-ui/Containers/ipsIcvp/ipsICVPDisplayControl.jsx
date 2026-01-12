@@ -606,6 +606,15 @@ export function IpsIcvpDisplayControl(props) {
     const {hostData, tx} = props;
     const {identifier} = hostData || {};
 
+    const t = (key, fallback) => {
+        const value = tx?.(key);
+        return !value || value === key ? fallback : value;
+    };
+
+    // IDs únicos para evitar colisión si IPS + ICVP están renderizados en la misma pantalla.
+    const qrRegionId = "vhl-qr-region-icvp";
+    const vhlInputId = "vhl-input-icvp";
+
     const [isLoading, setIsLoading] = useState(true);
     const [documents, setDocuments] = useState([]);
     const [error, setError] = useState(null);
@@ -638,6 +647,7 @@ export function IpsIcvpDisplayControl(props) {
     const [vhlInput, setVhlInput] = useState("");           // texto pegado/escaneado (HC1:...)
     const [vhlScanActive, setVhlScanActive] = useState(false);
     const [vhlScanError, setVhlScanError] = useState(null);
+    const [vhlScanStatus, setVhlScanStatus] = useState("");
     // Preview/decodificación ICVP (Base45)
     const [hc1DecodeLoading, setHc1DecodeLoading] = useState(false);
     const [hc1DecodeError, setHc1DecodeError] = useState(null);
@@ -687,6 +697,7 @@ export function IpsIcvpDisplayControl(props) {
         setVhlInput("");
         setVhlScanActive(false);
         setVhlScanError(null);
+        setVhlScanStatus("");
         setHc1DecodeLoading(false);
         setHc1DecodeError(null);
         setHc1Decoded(null);
@@ -740,30 +751,48 @@ export function IpsIcvpDisplayControl(props) {
         } finally {
             scannerRef.current = null;
             setVhlScanActive(false);
+            setVhlScanStatus("");
         }
     };
 
+    const nextFrame = () =>
+        new Promise((resolve) => {
+            if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+                window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+                return;
+            }
+            setTimeout(resolve, 0);
+        });
+
     // Espera a que el contenedor exista y tenga tamaño real (>0)
-    const waitRegionReady = async (id, timeoutMs = 4000) => {
+    const waitRegionReady = async (id, timeoutMs = 10000) => {
         const start = Date.now();
         for (;;) {
             const el = document.getElementById(id);
             if (el) {
                 const r = el.getBoundingClientRect();
-                if (r.width > 10 && r.height > 10) return el;
+                const isVisibleInLayout = el.offsetParent !== null;
+                if (isVisibleInLayout && r.width > 10 && r.height > 10) return el;
             }
-            if (Date.now() - start > timeoutMs) throw new Error("QR region no está listo");
-            await new Promise(r => setTimeout(r, 60));
+            if (Date.now() - start > timeoutMs) {
+                throw new Error(
+                    "QR region no está listo (el modal aún no termina de renderizar). Cierra el lector y reintenta."
+                );
+            }
+            await nextFrame();
         }
     };
 
     const startVhlScan = async () => {
         setVhlScanError(null);
+        setVhlScanStatus("Activando cámara…");
 
         // 1) Mostrar el contenedor antes de iniciar
         setVhlScanActive(true);
         try {
-            const id = "vhl-qr-region";
+            const id = qrRegionId;
+            // Deja que el modal/DOM/layout se estabilicen (Carbon hace animación)
+            await nextFrame();
             await waitRegionReady(id); // <-- asegura tamaño
 
             // Evita arrancar dos veces
@@ -788,18 +817,39 @@ export function IpsIcvpDisplayControl(props) {
             const deviceId = (back || cams[0]).id;
 
             let consecutiveErrors = 0;
+            const startedAt = Date.now();
+            let lastNoticeAt = 0;
             await scanner.start(
                 { deviceId: { exact: deviceId } },
-                { fps: 12, qrbox: { width: 260, height: 260 } },
+                {
+                    fps: 12,
+                    qrbox: (vw, vh) => {
+                        const min = Math.min(vw, vh);
+                        const size = Math.floor(Math.min(280, min * 0.8));
+                        return { width: size, height: size };
+                    },
+                    aspectRatio: 1.0,
+                },
                 async (decodedText) => {
                     // Éxito: pegar HC1 y parar
                     setVhlInput(decodedText || "");
+                    setVhlScanStatus("QR detectado.");
                     await stopVhlScan();
                 },
                 (errMsg) => {
                     consecutiveErrors++;
                     if (consecutiveErrors % 40 === 0) {
                         console.debug("[QR] intentando leer…", errMsg);
+                    }
+
+                    const now = Date.now();
+                    if (now - startedAt > 6000 && now - lastNoticeAt > 2500) {
+                        lastNoticeAt = now;
+                        setVhlScanStatus(
+                            "No se detecta QR aún. Acerca/aleja el código, mejora la luz y espera 2–3s."
+                        );
+                    } else if (now - startedAt <= 6000) {
+                        setVhlScanStatus("Cámara activa. Apunta al QR dentro del recuadro.");
                     }
                 }
             );
@@ -809,6 +859,7 @@ export function IpsIcvpDisplayControl(props) {
                 e?.message ||
                 "No se pudo iniciar la cámara. Revisa permisos y que 'html5-qrcode' esté instalado."
             );
+            setVhlScanStatus("");
             await stopVhlScan();
         }
     };
@@ -1075,7 +1126,7 @@ export function IpsIcvpDisplayControl(props) {
                           {isIcvp && (
                             <Button kind="primary" size="sm" onClick={handleGenerateICVP} disabled={icvpLoading}>
                               {icvpLoading
-                                ? <InlineLoading description={tx?.("GENERATING_ICVP") || "Generando ICVP..."}/>
+                                                                ? <InlineLoading description={t("GENERATING_ICVP", "Generando ICVP...")}/>
                                 : <FormattedMessage id="GENERATE_ICVP" defaultMessage="Generar ICVP"/>
                               }
                             </Button>
@@ -1097,7 +1148,7 @@ export function IpsIcvpDisplayControl(props) {
                     <div className="vhl-share-block" style={{marginBottom: "1rem"}}>
                         {shareLoading && (
                             <InlineLoading
-                                description={tx?.("EMITTING_VHL") || "Emitiendo VHL..."}
+                                description={t("EMITTING_VHL", "Emitiendo VHL...")}
                             />
                         )}
                         {!shareLoading && shareError && (
@@ -1148,7 +1199,7 @@ export function IpsIcvpDisplayControl(props) {
                 {isIcvp && (icvpLoading || icvpError || icvpResults.length > 0) && (
                 <div className="icvp-results-block" style={{marginBottom: "1rem"}}>
                     {icvpLoading && (
-                    <InlineLoading description={tx?.("GENERATING_ICVP") || "Generando ICVP..."}/>
+                    <InlineLoading description={t("GENERATING_ICVP", "Generando ICVP...")}/>
                     )}
                     {!icvpLoading && icvpError && (
                     <div className="bundle-error" style={{color: "#da1e28"}}>{icvpError}</div>
@@ -1416,10 +1467,10 @@ export function IpsIcvpDisplayControl(props) {
                                                 actions: "view",
                                             }))}
                                             headers={[
-                                                {key: "type", header: tx?.("DOC_TYPE") || "Type"},
-                                                {key: "date", header: tx?.("DATE") || "Date"},
-                                                {key: "status", header: tx?.("STATUS") || "Status"},
-                                                {key: "actions", header: tx?.("ACTIONS") || "Actions"},
+                                                {key: "type", header: t("DOC_TYPE", "Type")},
+                                                {key: "date", header: t("DATE", "Date")},
+                                                {key: "status", header: t("STATUS", "Status")},
+                                                {key: "actions", header: t("ACTIONS", "Actions")},
                                             ]}
                                         >
                                             {({rows, headers, getTableProps, getHeaderProps, getRowProps}) => (
@@ -1493,12 +1544,12 @@ export function IpsIcvpDisplayControl(props) {
 
                 {/* Modal: Lector VHL (pegar / cámara) */}
                 <ComposedModal open={vhlModalOpen} onClose={handleCloseVhlModal} size="lg">
-                    <ModalHeader label="QR" title={tx?.("READ_VHL_DOCUMENT") || "Leer QR"}/>
+                    <ModalHeader label="QR" title={t("READ_QR", "Leer QR")}/>
                     <ModalBody hasScrollingContent>
                         <div className="vhl-reader" style={{display: "grid", gap: "1rem"}}>
                             <TextArea
-                                id="vhl-input"
-                                labelText={tx?.("PASTE_VHL_HC1") || "Pega el código (HC1)"}
+                                id={vhlInputId}
+                                labelText={t("PASTE_HC1", "Pega el código (HC1)")}
                                 placeholder="HC1:..."
                                 rows={4}
                                 value={vhlInput}
@@ -1507,7 +1558,7 @@ export function IpsIcvpDisplayControl(props) {
 
                             {/* Preview / decodificación */}
                             {hc1DecodeLoading && (
-                                <InlineLoading description={tx?.("DECODING_QR") || "Decodificando QR (Base45)..."} />
+                                <InlineLoading description={t("DECODING_QR", "Decodificando QR (Base45)...")} />
                             )}
                             {/* Si no se puede decodificar como ICVP (COSE), no lo tratamos como error fatal: puede ser VHL. */}
                             {!hc1DecodeLoading && !hc1DecodeError && hc1Decoded && (
@@ -1542,16 +1593,19 @@ export function IpsIcvpDisplayControl(props) {
                                         onClick={vhlScanActive ? stopVhlScan : startVhlScan}
                                     >
                                         {vhlScanActive
-                                            ? (tx?.("STOP_SCANNING") || "Detener escáner")
-                                            : (tx?.("SCAN_QR") || "Escanear QR")}
+                                            ? t("STOP_SCANNING", "Detener escáner")
+                                            : t("SCAN_QR", "Escanear QR")}
                                     </Button>
                                     {vhlScanError && (
                                         <span style={{color: "#da1e28", fontSize: 12}}>{vhlScanError}</span>
                                     )}
+                                    {!vhlScanError && vhlScanStatus && (
+                                        <span style={{color: "#525252", fontSize: 12}}>{vhlScanStatus}</span>
+                                    )}
                                 </div>
 
                                 <div
-                                    id="vhl-qr-region"
+                                    id={qrRegionId}
                                     style={{
                                         width: 320,
                                         height: 320,
@@ -1570,7 +1624,7 @@ export function IpsIcvpDisplayControl(props) {
                                         <Button kind="primary" size="sm" onClick={handleResolveVHL} disabled={resolveLoading}>
                                             {resolveLoading ? (
                                                 <InlineLoading
-                                                    description={tx?.("RESOLVING_VHL") || "Resolviendo VHL..."}
+                                                    description={t("RESOLVING_VHL", "Resolviendo VHL...")}
                                                 />
                                             ) : (
                                                 <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL"/>
@@ -1643,12 +1697,12 @@ export function IpsIcvpDisplayControl(props) {
                     size="lg"
                     className="custom-wide-modal"
                 >
-                    <ModalHeader label="ITI-68" title={tx?.("DOC_VIEWER") || "Visor de Documento"}/>
+                    <ModalHeader label="ITI-68" title={t("DOC_VIEWER", "Visor de Documento")}/>
                     <ModalBody hasScrollingContent>
                         {viewerLoading && (
                             <div className="bundle-loading">
                                 <InlineLoading
-                                    description={tx?.("LOADING") || "Cargando documento..."}
+                                    description={t("LOADING", "Cargando documento...")}
                                 />
                             </div>
                         )}

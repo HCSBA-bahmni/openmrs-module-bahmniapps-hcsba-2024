@@ -171,6 +171,11 @@ export function IpsDisplayControl(props) {
     const {hostData, tx} = props;
     const {identifier} = hostData || {};
 
+    const t = (key, fallback) => {
+        const value = tx?.(key);
+        return !value || value === key ? fallback : value;
+    };
+
     const [isLoading, setIsLoading] = useState(true);
     const [documents, setDocuments] = useState([]);
     const [error, setError] = useState(null);
@@ -259,17 +264,26 @@ export function IpsDisplayControl(props) {
         }
     };
 
-    // Espera a que el contenedor exista y tenga tamaño real (>0)
-    const waitRegionReady = async (id, timeoutMs = 4000) => {
+    // Espera a que el contenedor exista, sea visible y tenga tamaño real (>0)
+    const waitRegionReady = async (id, timeoutMs = 10000) => {
         const start = Date.now();
+        const waitFrame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
+
         for (;;) {
             const el = document.getElementById(id);
             if (el) {
                 const r = el.getBoundingClientRect();
-                if (r.width > 10 && r.height > 10) return el;
+                const visible = el.offsetParent !== null && r.width > 10 && r.height > 10;
+                if (visible) return el;
             }
-            if (Date.now() - start > timeoutMs) throw new Error("QR region no está listo");
-            await new Promise(r => setTimeout(r, 60));
+
+            if (Date.now() - start > timeoutMs) {
+                throw new Error(
+                    "QR region no está listo (el modal aún no termina de renderizar). Cierra el lector y reintenta."
+                );
+            }
+
+            await waitFrame();
         }
     };
 
@@ -571,7 +585,7 @@ export function IpsDisplayControl(props) {
                     <div className="vhl-share-block" style={{marginBottom: "1rem"}}>
                         {shareLoading && (
                             <InlineLoading
-                                description={tx?.("EMITTING_VHL") || "Emitiendo VHL..."}
+                                description={t("EMITTING_VHL", "Emitiendo VHL...")}
                             />
                         )}
 
@@ -707,7 +721,7 @@ export function IpsDisplayControl(props) {
 
                     {/* Leer VHL: abre modal para pegar/escanner y resolver */}
                     <Button kind="primary" renderIcon={QrCode32} onClick={handleOpenVhlReader}>
-                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer VHL"/>
+                        <FormattedMessage id="READ_VHL_DOCUMENT" defaultMessage="Leer QR"/>
                     </Button>
                 </div>
 
@@ -742,10 +756,10 @@ export function IpsDisplayControl(props) {
                                                 actions: "view",
                                             }))}
                                             headers={[
-                                                {key: "type", header: tx?.("DOC_TYPE") || "Type"},
-                                                {key: "date", header: tx?.("DATE") || "Date"},
-                                                {key: "status", header: tx?.("STATUS") || "Status"},
-                                                {key: "actions", header: tx?.("ACTIONS") || "Actions"},
+                                                {key: "type", header: t("DOC_TYPE", "Type")},
+                                                {key: "date", header: t("DATE", "Date")},
+                                                {key: "status", header: t("STATUS", "Status")},
+                                                {key: "actions", header: t("ACTIONS", "Actions")},
                                             ]}
                                         >
                                             {({rows, headers, getTableProps, getHeaderProps, getRowProps}) => (
@@ -819,12 +833,12 @@ export function IpsDisplayControl(props) {
 
                 {/* Modal: Lector VHL (pegar / cámara) */}
                 <ComposedModal open={vhlModalOpen} onClose={handleCloseVhlModal} size="lg">
-                    <ModalHeader label="VHL" title={tx?.("READ_VHL_DOCUMENT") || "Leer VHL"}/>
+                    <ModalHeader label="QR" title={t("READ_VHL_DOCUMENT", "Leer QR")}/>
                     <ModalBody hasScrollingContent>
                         <div className="vhl-reader" style={{display: "grid", gap: "1rem"}}>
                             <TextArea
                                 id="vhl-input"
-                                labelText={tx?.("PASTE_VHL_HC1") || "Pega el código VHL (HC1)"}
+                                labelText={t("PASTE_VHL_HC1", "Pega el código (HC1)")}
                                 placeholder="HC1:..."
                                 rows={4}
                                 value={vhlInput}
@@ -840,8 +854,8 @@ export function IpsDisplayControl(props) {
                                         onClick={vhlScanActive ? stopVhlScan : startVhlScan}
                                     >
                                         {vhlScanActive
-                                            ? (tx?.("STOP_SCANNING") || "Detener escáner")
-                                            : (tx?.("SCAN_QR") || "Escanear QR")}
+                                            ? t("STOP_SCANNING", "Detener escáner")
+                                            : t("SCAN_QR", "Escanear QR")}
                                     </Button>
                                     {vhlScanError && (
                                         <span style={{color: "#da1e28", fontSize: 12}}>{vhlScanError}</span>
@@ -866,7 +880,7 @@ export function IpsDisplayControl(props) {
                                 <Button kind="primary" size="sm" onClick={handleResolveVHL} disabled={resolveLoading}>
                                     {resolveLoading ? (
                                         <InlineLoading
-                                            description={tx?.("RESOLVING_VHL") || "Resolviendo VHL..."}
+                                            description={t("RESOLVING_VHL", "Resolviendo VHL...")}
                                         />
                                     ) : (
                                         <FormattedMessage id="RESOLVE_VHL" defaultMessage="Resolver VHL"/>
@@ -937,12 +951,12 @@ export function IpsDisplayControl(props) {
                     size="lg"
                     className="custom-wide-modal"
                 >
-                    <ModalHeader label="ITI-68" title={tx?.("DOC_VIEWER") || "Visor de Documento"}/>
+                    <ModalHeader label="ITI-68" title={t("DOC_VIEWER", "Visor de Documento")}/>
                     <ModalBody hasScrollingContent>
                         {viewerLoading && (
                             <div className="bundle-loading">
                                 <InlineLoading
-                                    description={tx?.("LOADING") || "Cargando documento..."}
+                                    description={t("LOADING", "Cargando documento...")}
                                 />
                             </div>
                         )}
