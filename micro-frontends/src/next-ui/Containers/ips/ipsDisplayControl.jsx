@@ -36,8 +36,9 @@ import axios from "axios";
 import QRCode from "qrcode";
 import {Html5Qrcode, Html5QrcodeSupportedFormats} from "html5-qrcode";
 
-// Timeout global (ms) para todas las requests axios
-axios.defaults.timeout = 60000; // 60s (ajústalo si necesitas más)
+// Instancia AISLADA de axios para evitar que los interceptores globales de Bahmni
+// intercepten los errores y muestren diálogos de error en la UI de Bahmni.
+const axiosIps = axios.create({ timeout: 60000 });
 
 /* ===========================
    CONFIG ITI-67/68
@@ -141,16 +142,11 @@ const fetchDocumentReferences = async (patientIdentifier) => {
 
         let res;
         try {
-            res = await axios.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+            res = await axiosIps.get(url, {headers: buildAuthHeaders("application/fhir+json")});
         } catch (err) {
-            // Si falla al principio, propaga el error; si falla en iteraciones posteriores, corta con lo mejor que tengas
-            if (count === STEP) {
-                if (err.response) throw new Error(`ITI-67 ${err.response.status} ${err.response.statusText}`);
-                throw err;
-            } else {
-                console.warn("[IPS] Error con _count escalonado; se usará el mejor bundle obtenido:", err?.message || err);
-                break;
-            }
+            // Silenciar siempre: no propagar errores de red para evitar diálogos de Bahmni
+            console.warn("[IPS] Error ITI-67 (silenciado):", err?.message || err);
+            break;
         }
 
         const bundle = res?.data || {};
@@ -285,8 +281,8 @@ export function IpsDisplayControl(props) {
                 const docsSorted = [...docs].sort((a, b) => getDocTimestamp(b) - getDocTimestamp(a));
                 if (!cancelled) setDocuments(docsSorted);
             } catch (e) {
-                console.error("[IPS] ITI-67 error:", e);
-                if (!cancelled) setError(e.message || String(e));
+                console.warn("[IPS] ITI-67 error (silenciado, no se mostrará en UI):", e);
+                if (!cancelled) setDocuments([]);
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -476,7 +472,7 @@ export function IpsDisplayControl(props) {
                 return;
             }
 
-            const resp = await axios.post(
+            const resp = await axiosIps.post(
                 VHL_RESOLVE_URL,
                 {qrCodeContent: normalized},
                 {
@@ -538,7 +534,7 @@ export function IpsDisplayControl(props) {
             const accept = "application/fhir+json, application/json;q=0.9, */*;q=0.8";
             const sameOrigin = String(location).startsWith(REGIONAL_BASE);
             const headers = sameOrigin ? buildAuthHeaders(accept) : { Accept: accept };
-            const res = await axios.get(location, { headers, responseType: "json" });
+            const res = await axiosIps.get(location, { headers, responseType: "json" });
             setViewerBundle(res.data);
         } catch (e) {
             console.error("[VHL] Error cargando archivo del manifiesto:", e);
@@ -562,14 +558,14 @@ export function IpsDisplayControl(props) {
         // Si es PDF, abrir como binario en nueva pestaña
         if (att?.contentType?.toLowerCase?.().includes("pdf")) {
             try {
-                const binRes = await axios.get(url, {
+                const binRes = await axiosIps.get(url, {
                     headers: buildAuthHeaders("*/*"),
                     responseType: "blob",
                 });
                 const href = URL.createObjectURL(binRes.data);
                 window.open(href, "_blank");
             } catch (err) {
-                console.error("[ITI-68] Error abriendo PDF:", err);
+                console.warn("[ITI-68] Error abriendo PDF (silenciado):", err);
             }
             return;
         }
@@ -580,11 +576,11 @@ export function IpsDisplayControl(props) {
         setViewerError(null);
         setViewerBundle(null);
         try {
-            console.log('axios IPS ITI-68 GET', url);
-            const jsonRes = await axios.get(url, {
+            console.log('axiosIps IPS ITI-68 GET', url);
+            const jsonRes = await axiosIps.get(url, {
                 headers: buildAuthHeaders("application/fhir+json"),
             });
-            console.log('axios IPS ITI-68 response', jsonRes);
+            console.log('axiosIps IPS ITI-68 response', jsonRes);
             setViewerBundle(jsonRes.data);
         } catch (err) {
             console.error("[ITI-68] Error cargando Bundle:", err);
@@ -619,7 +615,7 @@ export function IpsDisplayControl(props) {
                     return;
                 }
 
-                const resp = await axios.post(
+                const resp = await axiosIps.post(
                     VHL_ISSUANCE_URL,
                     viewerBundle, // enviamos el Bundle FHIR puro
                     {
@@ -814,17 +810,8 @@ export function IpsDisplayControl(props) {
     }
 
     if (error) {
-        return (
-            <I18nProvider>
-                <div className="ips-display-control-error">
-                    <FormattedMessage
-                        id="IPS_ERROR_MESSAGE"
-                        defaultMessage="Error loading IPS data: {error}"
-                        values={{error}}
-                    />
-                </div>
-            </I18nProvider>
-        );
+        // Error silenciado: no mostrar nada para no interferir con la UI de Bahmni
+        return null;
     }
 
     // slice para paginación

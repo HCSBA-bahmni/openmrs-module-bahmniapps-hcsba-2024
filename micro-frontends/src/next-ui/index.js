@@ -1,4 +1,5 @@
 import {React2AngularBridgeBuilder} from "../utils/bridge-builder";
+import {AllOrdersDashboard} from "./Containers/AllOrders/AllOrdersDashboard";
 import {PatientAlergiesControl} from "./Containers/patientAlergies/PatientAlergiesControl";
 import {FormDisplayControl} from "./Containers/formDisplayControl/FormDisplayControl";
 import {ProviderNotifications} from "./Containers/providerNotifications/ProviderNotifications";
@@ -90,4 +91,9 @@ builder.createComponentWithTranslationForwarding(
 builder.createComponentWithTranslationForwarding(
     "CertificatesControl",
     CertificatesControl
+);
+
+builder.createComponentWithTranslationForwarding(
+    "AllOrdersDashboard",
+    AllOrdersDashboard
 );

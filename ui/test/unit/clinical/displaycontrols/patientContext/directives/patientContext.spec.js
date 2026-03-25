@@ -373,7 +373,7 @@ describe('patient context', function () {
                     "printing": {
                         "title": "Patient Dashboard",
                         "header": "Patient Summary",
-                        "logo": "../images/bahmniLogo.png",
+                        "logo": "../images/bahmniLogo_bk.png",
                         "showNameAndImage": false
                     }
                 }
