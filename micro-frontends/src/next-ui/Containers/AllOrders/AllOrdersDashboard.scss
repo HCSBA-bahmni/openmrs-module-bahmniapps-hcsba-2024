@@ -41,6 +41,37 @@
     font-weight: 500;
   }
 
+  // ── Selector de visita ───────────────────────────────────────────────────
+  .all-orders__visit-filter {
+    margin-bottom: 1rem;
+    max-width: 480px;
+
+    // Quitar margen inferior extra que añade Carbon Select
+    .bx--form-item {
+      margin-bottom: 0;
+    }
+  }
+
+  .all-orders__visit-hint {
+    font-size: 0.75rem;
+    color: #6f6f6f;
+    margin: 0.35rem 0 0;
+
+    .all-orders__visit-hint-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #0f62fe;
+      cursor: pointer;
+      font-size: inherit;
+      text-decoration: underline;
+
+      &:hover {
+        color: #0043ce;
+      }
+    }
+  }
+
   .all-orders__header-actions {
     display: flex;
     align-items: center;

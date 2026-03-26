@@ -1,10 +1,13 @@
+// ─── Valores de respaldo ──────────────────────────────────────────────────────
+// Estos valores se usan SOLO si la API de OpenMRS no devuelve datos de la
+// institución (systemsetting clinic.* o sessionLocation).
+// En producción la institución se carga dinámicamente en AllOrdersDashboard.
 export const dashboardConfig = {
   institution: {
-    name: "Hospital Clínico San Borja Arriarán",
-    logoUrl: "/bahmni/images/hcsba-logo.png", // Ajustar ruta según corresponda
-    address: "Santa Rosa 1234, Santiago, Chile",
-    phone: "+56 2 2574 9000",
-    email: "contacto@hcsba.cl"
+    name: "Establecimiento de Salud",   // fallback genérico
+    address: "",
+    phone: "",
+    email: ""
   },
   professional: {
     // Configuración de qué datos mostrar del profesional

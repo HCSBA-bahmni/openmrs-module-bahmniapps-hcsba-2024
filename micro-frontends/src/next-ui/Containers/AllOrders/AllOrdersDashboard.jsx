@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import {
   DataTable,
@@ -18,6 +18,8 @@ import {
   Tag,
   InlineNotification,
   Pagination,
+  Select,
+  SelectItem,
 } from "carbon-components-react";
 import { Share16, Printer16, View16 } from "@carbon/icons-react";
 import { dashboardConfig } from "../../config/dashboardConfig";
@@ -222,18 +224,25 @@ export function AllOrdersDashboard(props) {
   }, [patient]);
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [allOrders, setAllOrders] = useState({
+  // institution se carga desde OpenMRS (systemsetting/location) y cae al
+  // dashboardConfig como fallback si la API no responde.
+  const [institution, setInstitution] = useState({ ...dashboardConfig.institution });
+  const [allOrdersHistory, setAllOrdersHistory] = useState({
     laboratory: [],
     imaging: [],
     medication: [],
     procedure: [],
     referral: [],
   });
+  const [visits, setVisits] = useState([]);
+  const [selectedVisitUuid, setSelectedVisitUuid] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [printingSection, setPrintingSection] = useState(null); // key de la sección imprimiéndose
+  const [printingSection, setPrintingSection] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  // null = compartir todas las secciones activas | string = compartir solo esa sección
+  const [shareSection, setShareSection] = useState(null);
   const [patientEmail, setPatientEmail] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState(null); // 'success' | 'error' | null
@@ -244,6 +253,112 @@ export function AllOrdersDashboard(props) {
     procedure: { page: 1, pageSize: 5 },
     referral: { page: 1, pageSize: 5 },
   });
+
+  // ── Etiqueta legible para una visita ──────────────────────────────────────
+  const formatVisitLabel = (visit) => {
+    const date = new Date(visit.startDatetime).toLocaleDateString("es-CL");
+    const type = visit.visitType?.display || "Visita";
+    const loc  = visit.location?.display ? ` · ${visit.location.display}` : "";
+    const open = !visit.stopDatetime ? " (activa)" : "";
+    return `${date} — ${type}${loc}${open}`;
+  };
+
+  // ── Órdenes filtradas por visita seleccionada (useMemo) ───────────────────
+  // Todos los datos históricos viven en allOrdersHistory.
+  // allOrders es la vista calculada según la visita elegida.
+  const allOrders = useMemo(() => {
+    if (!selectedVisitUuid) return allOrdersHistory;
+    const visit = visits.find((v) => v.uuid === selectedVisitUuid);
+    if (!visit) return allOrdersHistory;
+
+    const start = new Date(visit.startDatetime);
+    // Si la visita sigue activa, usamos "futuro lejano" como límite
+    const end = visit.stopDatetime
+      ? new Date(visit.stopDatetime)
+      : new Date(8640000000000000);
+
+    const filterByVisit = (orders) =>
+      orders.filter((o) => {
+        // 1er criterio: el uuid de visita guardado en la orden
+        if (o.visitUuid) return o.visitUuid === selectedVisitUuid;
+        // Fallback: rango de fechas de la visita
+        if (!o._rawDate) return false;
+        const d = new Date(o._rawDate);
+        return d >= start && d <= end;
+      });
+
+    return {
+      laboratory: filterByVisit(allOrdersHistory.laboratory),
+      imaging:    filterByVisit(allOrdersHistory.imaging),
+      medication: filterByVisit(allOrdersHistory.medication),
+      procedure:  filterByVisit(allOrdersHistory.procedure),
+      referral:   filterByVisit(allOrdersHistory.referral),
+    };
+  }, [allOrdersHistory, selectedVisitUuid, visits]);
+
+  // ── Carga dinámica de datos de la institución ─────────────────────────────
+  // Prioridad:
+  //  1. System settings de OpenMRS: clinic.name / clinic.address / clinic.phone / clinic.email
+  //  2. Ubicación de login (sessionLocation) → display + atributos de dirección
+  //  3. Fallback silencioso: dashboardConfig.institution (ya está en el estado)
+  const loadInstitutionData = useCallback(async () => {
+    try {
+      const credOpts = { credentials: "include", headers: { Accept: "application/json" } };
+
+      // 1. System settings (clinic.*)
+      const settingsRes = await fetch(
+        "/openmrs/ws/rest/v1/systemsetting?q=clinic&v=custom:(property,value)&limit=30",
+        credOpts
+      );
+      if (settingsRes.ok) {
+        const { results = [] } = await settingsRes.json();
+        const get = (key) => results.find((s) => s.property === key)?.value || "";
+
+        const name    = get("clinic.name");
+        const address = get("clinic.address") || get("clinic.address1");
+        const phone   = get("clinic.phone")   || get("clinic.telephoneNumber");
+        const email   = get("clinic.email");
+
+        if (name) {
+          setInstitution((prev) => ({
+            ...prev,
+            name,
+            ...(address && { address }),
+            ...(phone   && { phone }),
+            ...(email   && { email }),
+          }));
+          return; // ← encontrado, no necesitamos el fallback
+        }
+      }
+
+      // 2. Fallback: sessionLocation (donde inició sesión el usuario)
+      const sessionRes = await fetch("/openmrs/ws/rest/v1/session", credOpts);
+      if (sessionRes.ok) {
+        const session = await sessionRes.json();
+        const locUuid = session.sessionLocation?.uuid;
+        if (locUuid) {
+          const locRes = await fetch(
+            `/openmrs/ws/rest/v1/location/${locUuid}` +
+            `?v=custom:(display,name,address1,address2,cityVillage,stateProvince,country)`,
+            credOpts
+          );
+          if (locRes.ok) {
+            const loc = await locRes.json();
+            const locAddress = [loc.address1, loc.address2, loc.cityVillage, loc.stateProvince]
+              .filter(Boolean).join(", ");
+            setInstitution((prev) => ({
+              ...prev,
+              name: loc.display || loc.name || prev.name,
+              ...(locAddress && { address: locAddress }),
+            }));
+          }
+        }
+      }
+    } catch (err) {
+      // Fallback silencioso: quedan los valores de dashboardConfig.institution
+      console.warn("AllOrdersDashboard: no se pudo cargar datos de institución", err);
+    }
+  }, []);
 
   // ── Carga de datos ─────────────────────────────────────────────────────────
   const loadAllOrders = useCallback(async () => {
@@ -257,6 +372,24 @@ export function AllOrdersDashboard(props) {
         credentials: "include",
         headers: { Accept: "application/json" },
       };
+
+      // 0. Cargar lista de visitas del paciente ─────────────────────────────
+      const visitsRes = await fetch(
+        `/openmrs/ws/rest/v1/visit?patient=${patientUuid}` +
+        `&v=custom:(uuid,visitType:(display),startDatetime,stopDatetime,location:(display))` +
+        `&limit=30&includeInactive=true`,
+        credOpts
+      );
+      const visitsData = visitsRes.ok
+        ? ((await visitsRes.json()).results || []).sort(
+            (a, b) => new Date(b.startDatetime) - new Date(a.startDatetime)
+          )
+        : [];
+      setVisits(visitsData);
+      // Seleccionar la visita más reciente por defecto
+      if (visitsData.length > 0) {
+        setSelectedVisitUuid(visitsData[0].uuid);
+      }
 
       // 1. Obtener tipos de orden ────────────────────────────────────────────
       const orderTypesRes = await fetch(
@@ -290,7 +423,7 @@ export function AllOrdersDashboard(props) {
           `/openmrs/ws/rest/v1/bahmnicore/orders` +
           `?patientUuid=${patientUuid}` +
           `&orderTypeUuid=${orderTypeUuid}` +
-          `&numberOfVisits=10` +
+          `&numberOfVisits=20` +
           `&includeObs=true`;           // ← bahmnicore requiere true
         const res = await fetch(url, credOpts);
         if (!res.ok) return [];
@@ -324,7 +457,7 @@ export function AllOrdersDashboard(props) {
         const url =
           `/openmrs/ws/rest/v1/bahmnicore/drugOrders` +
           `?patientUuid=${patientUuid}` +
-          `&numberOfVisits=10` +
+          `&numberOfVisits=20` +
           `&includeActiveVisit=true`;
         const res = await fetch(url, credOpts);
         if (!res.ok) return [];
@@ -375,6 +508,8 @@ export function AllOrdersDashboard(props) {
         orderNumber: o.orderNumber || "-",
         conceptName: extractConceptName(o),
         orderDate: formatDate(o.orderDate || o.dateActivated || o.scheduledDate),
+        _rawDate: o.orderDate || o.dateActivated || o.scheduledDate,
+        visitUuid: o.encounter?.visit?.uuid || null,
         orderer: extractOrderer(o),
         status: o.urgency || o.action || o.status || "",
         details: "",
@@ -400,6 +535,8 @@ export function AllOrdersDashboard(props) {
             o.drug?.display || o.drug?.name || o.drugNonCoded || "-",
           dosage,
           orderDate: formatDate(o.dateActivated || o.scheduledDate),
+          _rawDate: o.dateActivated || o.scheduledDate,
+          visitUuid: o.encounter?.visit?.uuid || null,
           orderer: extractOrderer(o),
           details:
             o.dosingInstructions?.administrationInstructions || "",
@@ -408,7 +545,7 @@ export function AllOrdersDashboard(props) {
       };
 
       // 6. Actualizar estado ─────────────────────────────────────────────────
-      setAllOrders({
+      setAllOrdersHistory({
         laboratory: labRaw.map((o, i) => mapOrder(o, i, "Laboratorio")),
         imaging: imagingRaw.map((o, i) => mapOrder(o, i, "Imagenología")),
         medication: drugRaw.map((o, i) => mapDrugOrder(o, i)),
@@ -417,7 +554,7 @@ export function AllOrdersDashboard(props) {
       });
     } catch (err) {
       console.error("AllOrdersDashboard: error cargando órdenes", err);
-      setAllOrders({
+      setAllOrdersHistory({
         laboratory: [],
         imaging: [],
         medication: [],
@@ -430,7 +567,12 @@ export function AllOrdersDashboard(props) {
   }, [patientUuid]);
 
   useEffect(() => {
+    loadInstitutionData();
+  }, []);
+
+  useEffect(() => {
     setPatientEmail(resolvePatientEmail());
+    setSelectedVisitUuid(null); // resetear al cambiar de paciente
     loadAllOrders();
   }, [patientUuid]);
 
@@ -452,6 +594,25 @@ export function AllOrdersDashboard(props) {
     setPagination((prev) => ({ ...prev, [type]: { page, pageSize } }));
   };
 
+  // Abre el modal de compartir para una sección específica (key) o para todas (null)
+  const handleShareSection = (key) => {
+    setShareSection(key);
+    setEmailStatus(null);
+    setIsShareModalOpen(true);
+  };
+
+  const handleVisitChange = (uuid) => {
+    setSelectedVisitUuid(uuid || null);
+    // Resetear paginación a página 1 al cambiar de visita
+    setPagination({
+      laboratory: { page: 1, pageSize: 5 },
+      imaging:    { page: 1, pageSize: 5 },
+      medication: { page: 1, pageSize: 5 },
+      procedure:  { page: 1, pageSize: 5 },
+      referral:   { page: 1, pageSize: 5 },
+    });
+  };
+
   const paginatedOrders = (type) => {
     const { page, pageSize } = pagination[type];
     const start = (page - 1) * pageSize;
@@ -466,7 +627,7 @@ export function AllOrdersDashboard(props) {
         try {
           const cfg = SECTIONS_CONFIG[sectionKey];
           const orders = allOrders[sectionKey];
-          const institution = dashboardConfig.institution;
+          // institution viene del estado (cargado dinámicamente desde OpenMRS)
           const today = new Date().toLocaleDateString("es-CL");
           const providerName = provider?.person?.display || provider?.display || "";
 
@@ -634,7 +795,7 @@ export function AllOrdersDashboard(props) {
         }
       });
     },
-    [allOrders, patientName, provider, activeVisit]
+    [allOrders, institution, patientName, provider, activeVisit]
   );
 
 
@@ -669,11 +830,12 @@ export function AllOrdersDashboard(props) {
       const today = new Date().toLocaleDateString("es-CL");
       const todayFile = today.replace(/\//g, "-");
       const patientSlug = patientName.replace(/\s+/g, "_");
-      const providerName = provider?.person?.display || provider?.display || dashboardConfig.institution.name;
-      const institution = dashboardConfig.institution;
+      const providerName = provider?.person?.display || provider?.display || institution.name;
+      // institution viene del estado (cargado dinámicamente desde OpenMRS)
 
-      const activeSections = Object.entries(SECTIONS_CONFIG).filter(
-        ([key]) => allOrders[key]?.length > 0
+      // Si shareSection está definido → solo esa sección; si no → todas las activas
+      const activeSections = Object.entries(SECTIONS_CONFIG).filter(([key]) =>
+        shareSection ? key === shareSection : allOrders[key]?.length > 0
       );
       const total = activeSections.length;
       const emailUrl = `/openmrs/ws/rest/v1/patient/${patientUuid}/send/email`;
@@ -727,7 +889,7 @@ export function AllOrdersDashboard(props) {
       }
 
       setEmailStatus({ kind: "success", count: total });
-      setTimeout(() => { setIsShareModalOpen(false); setEmailStatus(null); }, 3000);
+      setTimeout(() => { setIsShareModalOpen(false); setShareSection(null); setEmailStatus(null); }, 3000);
     } catch (err) {
       console.error("AllOrdersDashboard: error enviando email", err);
       setEmailStatus({ kind: "error" });
@@ -799,48 +961,68 @@ export function AllOrdersDashboard(props) {
   };
 
   const renderShareModal = () => {
-    const sectionsWithOrders = Object.keys(SECTIONS_CONFIG).filter(k => allOrders[k]?.length > 0);
+    // ¿Modo sección única o todas?
+    const isSingle   = !!shareSection;
+    const singleCfg  = isSingle ? SECTIONS_CONFIG[shareSection] : null;
+    const singleCount = isSingle ? allOrders[shareSection]?.length ?? 0 : 0;
+
+    const sectionsWithOrders = isSingle
+      ? (singleCount > 0 ? [shareSection] : [])
+      : Object.keys(SECTIONS_CONFIG).filter(k => allOrders[k]?.length > 0);
     const n = sectionsWithOrders.length;
+
+    const modalHeading = isSingle
+      ? `Compartir ${singleCfg?.label ?? ""}`
+      : "Compartir todas las órdenes por correo";
+
+    const primaryText = emailSending
+      ? "Generando PDF y enviando…"
+      : isSingle
+        ? `Enviar 1 correo (${singleCfg?.label ?? ""})`
+        : `Enviar ${n} correo${n !== 1 ? "s" : ""} (1 PDF por tipo)`;
+
+    const closeModal = () => { setIsShareModalOpen(false); setShareSection(null); setEmailStatus(null); };
+
     return (
       <Modal
         open={isShareModalOpen}
-        modalHeading="Compartir órdenes por correo"
-        primaryButtonText={
-          emailSending
-            ? `Enviando correo ${n > 1 ? `(1 de ${n})` : ""}…`
-            : `Enviar ${n} correo${n !== 1 ? "s" : ""} (1 PDF por tipo)`
-        }
+        modalHeading={modalHeading}
+        primaryButtonText={primaryText}
         secondaryButtonText="Cancelar"
-        primaryButtonDisabled={emailSending || !patientUuid}
-        onRequestClose={() => { setIsShareModalOpen(false); setEmailStatus(null); }}
+        primaryButtonDisabled={emailSending || !patientUuid || n === 0}
+        onRequestClose={closeModal}
         onRequestSubmit={handleSendEmail}
-        onSecondarySubmit={() => { setIsShareModalOpen(false); setEmailStatus(null); }}
+        onSecondarySubmit={closeModal}
         className="all-orders__share-modal"
       >
         <div className="all-orders__share-content">
-          <p className="all-orders__share-summary">
-            Se enviarán <strong>{n} correo{n !== 1 ? "s separados" : ""}</strong> al paciente{" "}
-            <strong>{patientName}</strong>, cada uno con el PDF de un tipo de orden.
-            {n > 1 && (
-              <span> El asunto de cada correo incluirá <em>[1/{n}], [2/{n}]…</em> para identificarlos.</span>
-            )}
-          </p>
+          {isSingle ? (
+            <p className="all-orders__share-summary">
+              Se enviará <strong>1 correo</strong> con el PDF de{" "}
+              <strong>{singleCfg?.label}</strong> ({singleCount} orden{singleCount !== 1 ? "es" : ""}) al correo
+              registrado del paciente <strong>{patientName}</strong>.
+            </p>
+          ) : (
+            <p className="all-orders__share-summary">
+              Se enviarán <strong>{n} correo{n !== 1 ? "s separados" : ""}</strong> al paciente{" "}
+              <strong>{patientName}</strong>, cada uno con el PDF de un tipo de orden.
+              {n > 1 && (
+                <span> El asunto incluirá <em>[1/{n}], [2/{n}]…</em> para identificarlos.</span>
+              )}
+            </p>
+          )}
 
           <div className="all-orders__share-breakdown">
-            {allOrders.laboratory.length > 0 && (
-              <Tag type="blue" size="sm">Laboratorio: {allOrders.laboratory.length}</Tag>
-            )}
-            {allOrders.imaging.length > 0 && (
-              <Tag type="teal" size="sm">Imagenología: {allOrders.imaging.length}</Tag>
-            )}
-            {allOrders.medication.length > 0 && (
-              <Tag type="green" size="sm">Medicamentos: {allOrders.medication.length}</Tag>
-            )}
-            {allOrders.procedure.length > 0 && (
-              <Tag type="purple" size="sm">Procedimientos: {allOrders.procedure.length}</Tag>
-            )}
-            {allOrders.referral.length > 0 && (
-              <Tag type="warm-gray" size="sm">Derivaciones: {allOrders.referral.length}</Tag>
+            {isSingle ? (
+              <Tag type="blue" size="sm">{singleCfg?.label}: {singleCount}</Tag>
+            ) : (
+              <>
+                {allOrders.laboratory.length > 0 && <Tag type="blue"     size="sm">Laboratorio: {allOrders.laboratory.length}</Tag>}
+                {allOrders.imaging.length    > 0 && <Tag type="teal"     size="sm">Imagenología: {allOrders.imaging.length}</Tag>}
+                {allOrders.medication.length > 0 && <Tag type="green"    size="sm">Medicamentos: {allOrders.medication.length}</Tag>}
+                {allOrders.procedure.length  > 0 && <Tag type="purple"   size="sm">Procedimientos: {allOrders.procedure.length}</Tag>}
+                {allOrders.referral.length   > 0 && <Tag type="warm-gray" size="sm">Derivaciones: {allOrders.referral.length}</Tag>}
+              </>
             )}
           </div>
 
@@ -857,8 +1039,12 @@ export function AllOrdersDashboard(props) {
           {emailStatus?.kind === "success" && (
             <InlineNotification
               kind="success"
-              title="¡Correos enviados!"
-              subtitle={`Se enviaron ${emailStatus.count} correo${emailStatus.count !== 1 ? "s" : ""} con PDF adjunto al correo registrado del paciente.`}
+              title={emailStatus.count === 1 ? "¡Correo enviado!" : "¡Correos enviados!"}
+              subtitle={
+                emailStatus.count === 1
+                  ? `Se envió 1 correo con el PDF de ${singleCfg?.label ?? "la sección"} al paciente.`
+                  : `Se enviaron ${emailStatus.count} correos con PDF adjunto al paciente.`
+              }
               hideCloseButton
             />
           )}
@@ -907,13 +1093,49 @@ export function AllOrdersDashboard(props) {
             <Button
               kind="primary"
               renderIcon={Share16}
-              onClick={() => setIsShareModalOpen(true)}
+              onClick={() => handleShareSection(null)}
               disabled={totalOrders === 0}
             >
-              Compartir ({totalOrders})
+              Compartir todo ({totalOrders})
             </Button>
           </div>
         </div>
+
+        {/* ── Selector de visita ── */}
+        {visits.length > 0 && (
+          <div className="all-orders__visit-filter">
+            <Select
+              id="visit-selector"
+              labelText="Ver órdenes de:"
+              value={selectedVisitUuid || ""}
+              onChange={(e) => handleVisitChange(e.target.value)}
+              size="sm"
+            >
+              {visits.map((v, idx) => (
+                <SelectItem
+                  key={v.uuid}
+                  value={v.uuid}
+                  text={idx === 0
+                    ? `${formatVisitLabel(v)}  ★ más reciente`
+                    : formatVisitLabel(v)}
+                />
+              ))}
+              <SelectItem value="" text="— Todas las visitas (histórico) —" />
+            </Select>
+            {selectedVisitUuid && (
+              <p className="all-orders__visit-hint">
+                Mostrando órdenes de la visita seleccionada.
+                {" "}
+                <button
+                  className="all-orders__visit-hint-link"
+                  onClick={() => handleVisitChange("")}
+                >
+                  Ver historial completo
+                </button>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── Estado vacío global ── */}
         {totalOrders === 0 ? (
@@ -939,6 +1161,15 @@ export function AllOrdersDashboard(props) {
                   disabled={printingSection === "laboratory" || allOrders.laboratory.length === 0}
                 >
                   {printingSection === "laboratory" ? "Generando…" : "Imprimir Laboratorio"}
+                </Button>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Share16}
+                  onClick={() => handleShareSection("laboratory")}
+                  disabled={emailSending || allOrders.laboratory.length === 0}
+                >
+                  Enviar Laboratorio
                 </Button>
               </div>
               <TableContainer title="Órdenes de Laboratorio" className="all-orders__table-container">
@@ -966,6 +1197,15 @@ export function AllOrdersDashboard(props) {
                 >
                   {printingSection === "imaging" ? "Generando…" : "Imprimir Imagenología"}
                 </Button>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Share16}
+                  onClick={() => handleShareSection("imaging")}
+                  disabled={emailSending || allOrders.imaging.length === 0}
+                >
+                  Enviar Imagenología
+                </Button>
               </div>
               <TableContainer title="Órdenes de Imagenología" className="all-orders__table-container">
                 <OrdersTable
@@ -991,6 +1231,15 @@ export function AllOrdersDashboard(props) {
                   disabled={printingSection === "medication" || allOrders.medication.length === 0}
                 >
                   {printingSection === "medication" ? "Generando…" : "Imprimir Medicamentos"}
+                </Button>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Share16}
+                  onClick={() => handleShareSection("medication")}
+                  disabled={emailSending || allOrders.medication.length === 0}
+                >
+                  Enviar Medicamentos
                 </Button>
               </div>
               <TableContainer title="Recetas Médicas" className="all-orders__table-container">
@@ -1018,6 +1267,15 @@ export function AllOrdersDashboard(props) {
                 >
                   {printingSection === "procedure" ? "Generando…" : "Imprimir Procedimientos"}
                 </Button>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Share16}
+                  onClick={() => handleShareSection("procedure")}
+                  disabled={emailSending || allOrders.procedure.length === 0}
+                >
+                  Enviar Procedimientos
+                </Button>
               </div>
               <TableContainer title="Órdenes de Procedimientos" className="all-orders__table-container">
                 <OrdersTable
@@ -1043,6 +1301,15 @@ export function AllOrdersDashboard(props) {
                   disabled={printingSection === "referral" || allOrders.referral.length === 0}
                 >
                   {printingSection === "referral" ? "Generando…" : "Imprimir Derivaciones"}
+                </Button>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Share16}
+                  onClick={() => handleShareSection("referral")}
+                  disabled={emailSending || allOrders.referral.length === 0}
+                >
+                  Enviar Derivaciones
                 </Button>
               </div>
               <TableContainer title="Derivaciones" className="all-orders__table-container">
