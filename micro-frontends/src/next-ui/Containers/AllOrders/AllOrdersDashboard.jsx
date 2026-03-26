@@ -70,7 +70,44 @@ const REFERRAL_HEADERS = [
   { key: "actions", header: "Acciones" },
 ];
 
-
+// ─── Config de secciones para generación de PDFs ──────────────────────────────
+const SECTIONS_CONFIG = {
+  laboratory: {
+    label: "Órdenes de Laboratorio",
+    filePrefix: "Laboratorio",
+    headers: ["N° Orden", "Examen", "Fecha", "Profesional", "Estado"],
+    widths: [55, "*", 55, "*", 60],
+    getRows: (orders) => orders.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer, o.status]),
+  },
+  imaging: {
+    label: "Órdenes de Imagenología",
+    filePrefix: "Imagenologia",
+    headers: ["N° Orden", "Estudio", "Fecha", "Profesional"],
+    widths: [55, "*", 55, "*"],
+    getRows: (orders) => orders.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer]),
+  },
+  medication: {
+    label: "Recetas Médicas",
+    filePrefix: "Medicamentos",
+    headers: ["N° Receta", "Medicamento", "Dosis", "Fecha", "Profesional"],
+    widths: [55, "*", "*", 55, "*"],
+    getRows: (orders) => orders.map((o) => [o.orderNumber, o.drugName, o.dosage, o.orderDate, o.orderer]),
+  },
+  procedure: {
+    label: "Órdenes de Procedimientos",
+    filePrefix: "Procedimientos",
+    headers: ["N° Orden", "Procedimiento", "Fecha", "Profesional"],
+    widths: [55, "*", 55, "*"],
+    getRows: (orders) => orders.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer]),
+  },
+  referral: {
+    label: "Derivaciones",
+    filePrefix: "Derivaciones",
+    headers: ["N° Derivación", "Especialidad", "Fecha", "Profesional"],
+    widths: [62, "*", 55, "*"],
+    getRows: (orders) => orders.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer]),
+  },
+};
 
 // ─── Componente Tabla genérica ─────────────────────────────────────────────────
 function OrdersTable({ orders, headers, onView, pageSize, onPageChange, totalItems, currentPage }) {
@@ -193,6 +230,7 @@ export function AllOrdersDashboard(props) {
     referral: [],
   });
   const [loading, setLoading] = useState(true);
+  const [printingSection, setPrintingSection] = useState(null); // key de la sección imprimiéndose
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -421,341 +459,278 @@ export function AllOrdersDashboard(props) {
   };
 
 
-  // ── Generación de PDF con pdfMake v0.1.x (sin borderColor por celda – no soportado en 0.1.x) ─
-  const generatePdfBase64 = useCallback(() => {
-    return new Promise((resolve, reject) => {
-      try {
-        const institution = dashboardConfig.institution;
-        const today = new Date().toLocaleDateString("es-CL");
-        const providerName =
-          provider?.person?.display || provider?.display || "";
+  // ── Generación de PDF para UNA sección ────────────────────────────────────
+  const generateSectionPdfBase64 = useCallback(
+    (sectionKey) => {
+      return new Promise((resolve, reject) => {
+        try {
+          const cfg = SECTIONS_CONFIG[sectionKey];
+          const orders = allOrders[sectionKey];
+          const institution = dashboardConfig.institution;
+          const today = new Date().toLocaleDateString("es-CL");
+          const providerName = provider?.person?.display || provider?.display || "";
 
-        // ── Paleta ──────────────────────────────────────────────────────────
-        const C_BLUE       = "#1e40af";
-        const C_BLUE_LIGHT = "#dbeafe";
-        const C_BLUE_BDR   = "#bfdbfe";
-        const C_ALT_ROW    = "#f0f5ff";
-        const C_GRAY       = "#555555";
-        const C_BORDER     = "#d1d5db";
+          const C_BLUE       = "#1e40af";
+          const C_BLUE_LIGHT = "#dbeafe";
+          const C_BLUE_BDR   = "#bfdbfe";
+          const C_ALT_ROW    = "#f0f5ff";
+          const C_GRAY       = "#555555";
+          const C_BORDER     = "#d1d5db";
+          const LINE_W       = 515;
 
-        // A4 content width = 595 - 40 (izq) - 40 (der) = 515 pt
-        const LINE_W = 515;
+          const tableLayouts = {
+            ordersLayout: {
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: (i) => (i === 1 ? C_BLUE_BDR : C_BORDER),
+              vLineColor: () => C_BORDER,
+              paddingLeft:   () => 3,
+              paddingRight:  () => 3,
+              paddingTop:    () => 2,
+              paddingBottom: () => 2,
+            },
+            patientLayout: {
+              hLineWidth: () => 0.5,
+              vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length ? 0.5 : 0),
+              hLineColor: () => C_BLUE_BDR,
+              vLineColor: () => C_BLUE_BDR,
+              paddingLeft:   () => 5,
+              paddingRight:  () => 5,
+              paddingTop:    () => 4,
+              paddingBottom: () => 4,
+            },
+          };
 
-        // ── tableLayouts: pdfMake 0.1.x requiere definir colores de borde
-        //    a nivel de layout, NO por celda (borderColor por celda es 0.2.x+)
-        const tableLayouts = {
-          ordersLayout: {
-            hLineWidth: (i) => 0.5,
-            vLineWidth: (i) => 0.5,
-            hLineColor: (i) => (i === 1 ? C_BLUE_BDR : C_BORDER),
-            vLineColor: () => C_BORDER,
-            paddingLeft:   () => 3,
-            paddingRight:  () => 3,
-            paddingTop:    () => 2,
-            paddingBottom: () => 2,
-          },
-          patientLayout: {
-            hLineWidth: () => 0.5,
-            vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length ? 0.5 : 0),
-            hLineColor: () => C_BLUE_BDR,
-            vLineColor: () => C_BLUE_BDR,
-            paddingLeft:   () => 5,
-            paddingRight:  () => 5,
-            paddingTop:    () => 4,
-            paddingBottom: () => 4,
-          },
-        };
+          const content = [];
 
-        // ── Helper: tabla de órdenes ─────────────────────────────────────────
-        const orderTable = (headers, widths, rows) => ({
-          layout: "ordersLayout",
-          table: {
-            headerRows: 1,
-            widths,
-            body: [
-              headers.map((h) => ({
-                text: h,
-                bold: true,
-                fontSize: 8,
-                color: "#1e3a5f",
-                fillColor: C_BLUE_LIGHT,
-              })),
-              ...rows.map((cells, i) =>
-                cells.map((c) => ({
-                  text: String(c || "–"),
+          // Cabecera institucional
+          content.push({
+            columns: [
+              {
+                width: "*",
+                stack: [
+                  { text: institution.name, fontSize: 13, bold: true, color: C_BLUE },
+                  { text: institution.address, fontSize: 8.5, color: C_GRAY, margin: [0, 2, 0, 0] },
+                  { text: `${institution.phone}  |  ${institution.email}`, fontSize: 8.5, color: C_GRAY, margin: [0, 1, 0, 0] },
+                ],
+              },
+              {
+                width: "auto",
+                alignment: "right",
+                stack: [{ text: `Fecha: ${today}`, fontSize: 8.5, color: C_GRAY }],
+              },
+            ],
+            columnGap: 10,
+            margin: [0, 0, 0, 6],
+          });
+
+          // Línea azul separadora
+          content.push({
+            canvas: [{ type: "line", x1: 0, y1: 0, x2: LINE_W, y2: 0, lineWidth: 2, lineColor: C_BLUE }],
+            margin: [0, 0, 0, 8],
+          });
+
+          // Título de la sección
+          content.push({
+            text: cfg.label.toUpperCase(),
+            fontSize: 11,
+            bold: true,
+            alignment: "center",
+            color: "#1e3a5f",
+            margin: [0, 0, 0, 8],
+          });
+
+          // Datos del paciente
+          content.push({
+            layout: "patientLayout",
+            table: {
+              widths: ["*", "*"],
+              body: [
+                [
+                  { text: [{ text: "Paciente: ", bold: true }, patientName], fontSize: 8.5, fillColor: "#eff6ff" },
+                  { text: [{ text: "Profesional: ", bold: true }, providerName], fontSize: 8.5, fillColor: "#eff6ff" },
+                ],
+                [
+                  {
+                    colSpan: 2,
+                    text: [
+                      { text: "Visita: ", bold: true },
+                      activeVisit ? activeVisit.visitType?.display || activeVisit.uuid : "Sin visita activa",
+                    ],
+                    fontSize: 8.5,
+                    fillColor: "#eff6ff",
+                  },
+                  {},
+                ],
+              ],
+            },
+            margin: [0, 0, 0, 10],
+          });
+
+          // Tabla de órdenes de la sección
+          content.push({
+            layout: "ordersLayout",
+            table: {
+              headerRows: 1,
+              widths: cfg.widths,
+              body: [
+                cfg.headers.map((h) => ({
+                  text: h,
+                  bold: true,
                   fontSize: 8,
-                  fillColor: i % 2 === 0 ? "#ffffff" : C_ALT_ROW,
-                }))
-              ),
+                  color: "#1e3a5f",
+                  fillColor: C_BLUE_LIGHT,
+                })),
+                ...cfg.getRows(orders).map((cells, i) =>
+                  cells.map((c) => ({
+                    text: String(c || "–"),
+                    fontSize: 8,
+                    fillColor: i % 2 === 0 ? "#ffffff" : C_ALT_ROW,
+                  }))
+                ),
+              ],
+            },
+            margin: [0, 0, 0, 8],
+          });
+
+          // Línea de cierre
+          content.push({
+            canvas: [{ type: "line", x1: 0, y1: 0, x2: LINE_W, y2: 0, lineWidth: 0.5, lineColor: C_BORDER }],
+            margin: [0, 16, 0, 8],
+          });
+
+          // Pie de página
+          content.push({
+            columns: [
+              {
+                width: "*",
+                stack: [
+                  { text: [{ text: "Profesional: ", bold: true }, providerName], fontSize: 8.5 },
+                  { text: "Firma: _______________________", fontSize: 8.5, margin: [0, 12, 0, 0] },
+                  { text: "RUT: __________________________", fontSize: 8.5, margin: [0, 4, 0, 0] },
+                ],
+              },
+              {
+                width: "auto",
+                alignment: "right",
+                stack: [
+                  { text: institution.name, fontSize: 8.5 },
+                  { text: institution.address, fontSize: 8.5, margin: [0, 2, 0, 0] },
+                ],
+              },
             ],
-          },
-          margin: [0, 0, 0, 8],
-        });
+            columnGap: 10,
+          });
 
-        const sectionHead = (title, count) => ({
-          text: `${title}  (${count})`,
-          fontSize: 9.5,
-          bold: true,
-          color: C_BLUE,
-          margin: [0, 8, 0, 3],
-        });
-
-        // ── Contenido del documento ─────────────────────────────────────────
-        const content = [];
-
-        // Cabecera institucional (2 columnas)
-        content.push({
-          columns: [
-            {
-              width: "*",
-              stack: [
-                { text: institution.name, fontSize: 13, bold: true, color: C_BLUE },
-                { text: institution.address, fontSize: 8.5, color: C_GRAY, margin: [0, 2, 0, 0] },
-                { text: `${institution.phone}  |  ${institution.email}`, fontSize: 8.5, color: C_GRAY, margin: [0, 1, 0, 0] },
-              ],
-            },
-            {
-              width: "auto",
-              alignment: "right",
-              stack: [
-                { text: `Fecha: ${today}`, fontSize: 8.5, color: C_GRAY },
-              ],
-            },
-          ],
-          columnGap: 10,
-          margin: [0, 0, 0, 6],
-        });
-
-        // Línea azul separadora
-        content.push({
-          canvas: [{ type: "line", x1: 0, y1: 0, x2: LINE_W, y2: 0, lineWidth: 2, lineColor: C_BLUE }],
-          margin: [0, 0, 0, 8],
-        });
-
-        // Título centrado
-        content.push({
-          text: "RESUMEN DE ÓRDENES MÉDICAS",
-          fontSize: 11,
-          bold: true,
-          alignment: "center",
-          color: "#1e3a5f",
-          margin: [0, 0, 0, 8],
-        });
-
-        // Datos del paciente – sin border/borderColor por celda (usa layout)
-        content.push({
-          layout: "patientLayout",
-          table: {
-            widths: ["*", "*"],
-            body: [
-              [
-                {
-                  text: [{ text: "Paciente: ", bold: true }, patientName],
-                  fontSize: 8.5,
-                  fillColor: "#eff6ff",
-                },
-                {
-                  text: [{ text: "Profesional: ", bold: true }, providerName],
-                  fontSize: 8.5,
-                  fillColor: "#eff6ff",
-                },
-              ],
-              [
-                {
-                  colSpan: 2,
-                  text: [
-                    { text: "Visita: ", bold: true },
-                    activeVisit
-                      ? activeVisit.visitType?.display || activeVisit.uuid
-                      : "Sin visita activa",
-                  ],
-                  fontSize: 8.5,
-                  fillColor: "#eff6ff",
-                },
-                {},
-              ],
-            ],
-          },
-          margin: [0, 0, 0, 10],
-        });
-
-        // ── Secciones de órdenes ────────────────────────────────────────────
-        if (allOrders.laboratory.length > 0) {
-          content.push(sectionHead("Órdenes de Laboratorio", allOrders.laboratory.length));
-          content.push(orderTable(
-            ["N° Orden", "Examen", "Fecha", "Profesional", "Estado"],
-            [55, "*", 55, "*", 60],
-            allOrders.laboratory.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer, o.status])
-          ));
+          /* global pdfMake */
+          pdfMake
+            .createPdf(
+              { pageSize: "A4", pageMargins: [40, 40, 40, 40], content, defaultStyle: { font: "Roboto" } },
+              tableLayouts
+            )
+            .getBase64((base64) => resolve(base64));
+        } catch (err) {
+          reject(err);
         }
+      });
+    },
+    [allOrders, patientName, provider, activeVisit]
+  );
 
-        if (allOrders.imaging.length > 0) {
-          content.push(sectionHead("Órdenes de Imagenología", allOrders.imaging.length));
-          content.push(orderTable(
-            ["N° Orden", "Estudio", "Fecha", "Profesional"],
-            [55, "*", 55, "*"],
-            allOrders.imaging.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer])
-          ));
-        }
 
-        if (allOrders.medication.length > 0) {
-          content.push(sectionHead("Recetas Médicas", allOrders.medication.length));
-          content.push(orderTable(
-            ["N° Receta", "Medicamento", "Dosis", "Fecha", "Profesional"],
-            [55, "*", "*", 55, "*"],
-            allOrders.medication.map((o) => [o.orderNumber, o.drugName, o.dosage, o.orderDate, o.orderer])
-          ));
-        }
+  // ── Imprimir UNA sección específica ───────────────────────────────────────
+  const handlePrintSection = useCallback(async (sectionKey) => {
+    setPrintingSection(sectionKey);
+    try {
+      const base64 = await generateSectionPdfBase64(sectionKey);
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (err) {
+      console.error("AllOrdersDashboard: error imprimiendo sección", sectionKey, err);
+    } finally {
+      setPrintingSection(null);
+    }
+  }, [generateSectionPdfBase64]);
 
-        if (allOrders.procedure.length > 0) {
-          content.push(sectionHead("Órdenes de Procedimientos", allOrders.procedure.length));
-          content.push(orderTable(
-            ["N° Orden", "Procedimiento", "Fecha", "Profesional"],
-            [55, "*", 55, "*"],
-            allOrders.procedure.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer])
-          ));
-        }
 
-        if (allOrders.referral.length > 0) {
-          content.push(sectionHead("Derivaciones", allOrders.referral.length));
-          content.push(orderTable(
-            ["N° Derivación", "Especialidad", "Fecha", "Profesional"],
-            [62, "*", 55, "*"],
-            allOrders.referral.map((o) => [o.orderNumber, o.conceptName, o.orderDate, o.orderer])
-          ));
-        }
 
-        // Línea de cierre
-        content.push({
-          canvas: [{ type: "line", x1: 0, y1: 0, x2: LINE_W, y2: 0, lineWidth: 0.5, lineColor: C_BORDER }],
-          margin: [0, 16, 0, 8],
-        });
-
-        // Pie de página
-        content.push({
-          columns: [
-            {
-              width: "*",
-              stack: [
-                { text: [{ text: "Profesional: ", bold: true }, providerName], fontSize: 8.5 },
-                { text: "Firma: _______________________", fontSize: 8.5, margin: [0, 12, 0, 0] },
-                { text: "RUT: __________________________", fontSize: 8.5, margin: [0, 4, 0, 0] },
-              ],
-            },
-            {
-              width: "auto",
-              alignment: "right",
-              stack: [
-                { text: institution.name, fontSize: 8.5 },
-                { text: institution.address, fontSize: 8.5, margin: [0, 2, 0, 0] },
-              ],
-            },
-          ],
-          columnGap: 10,
-        });
-
-        // ── Generar PDF con pdfMake v0.1.x ──────────────────────────────────
-        /* global pdfMake */
-        pdfMake
-          .createPdf(
-            {
-              pageSize: "A4",
-              pageMargins: [40, 40, 40, 40],
-              content,
-              defaultStyle: { font: "Roboto" },
-            },
-            tableLayouts   // 2° arg en v0.1.x para layouts custom
-          )
-          .getBase64((base64) => resolve(base64));
-
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }, [allOrders, patientName, provider, activeVisit]);
-
-  // ── Cuerpo breve del correo (el detalle va en el PDF adjunto) ─────────────
-  const buildEmailIntro = () => {
-    const today = new Date().toLocaleDateString("es-CL");
-    const institution = dashboardConfig.institution;
-    const providerName =
-      provider?.person?.display || provider?.display || institution.name;
-    return [
-      `Estimado/a ${patientName},`,
-      "",
-      `Se adjunta el resumen de sus órdenes médicas emitidas el ${today}.`,
-      "",
-      `  • Laboratorio:   ${allOrders.laboratory.length}`,
-      `  • Imagenología:  ${allOrders.imaging.length}`,
-      `  • Medicamentos:  ${allOrders.medication.length}`,
-      `  • Procedimientos:${allOrders.procedure.length}`,
-      `  • Derivaciones:  ${allOrders.referral.length}`,
-      "",
-      `Total de órdenes: ${totalOrders}`,
-      "",
-      "Atentamente,",
-      providerName,
-      institution.name,
-      institution.address,
-      institution.phone,
-    ].join("\n");
-  };
-
+  // ── Envío de correo ────────────────────────────────────────────────────────
+  // La API de Bahmni /send/email tiene una limitación de backend:
+  // solo procesa el ÚLTIMO adjunto del array mailAttachments.
+  // Solución: una llamada por sección → un correo por tipo de orden.
   const handleSendEmail = async () => {
     if (!patientUuid) return;
     setEmailSending(true);
     setEmailStatus(null);
     try {
       const today = new Date().toLocaleDateString("es-CL");
-      const subject = `Órdenes médicas – ${patientName} – ${today}`;
-      const fileName = `Ordenes_${patientName.replace(/\s+/g, "_")}_${today.replace(/\//g, "-")}.pdf`;
+      const todayFile = today.replace(/\//g, "-");
+      const patientSlug = patientName.replace(/\s+/g, "_");
+      const providerName = provider?.person?.display || provider?.display || dashboardConfig.institution.name;
+      const institution = dashboardConfig.institution;
 
-      // 1. Generar PDF
-      const pdfBase64 = await generatePdfBase64();
-
-      // 2. Enviar via API nativa de Bahmni (igual que transmissionService.js)
+      const activeSections = Object.entries(SECTIONS_CONFIG).filter(
+        ([key]) => allOrders[key]?.length > 0
+      );
+      const total = activeSections.length;
       const emailUrl = `/openmrs/ws/rest/v1/patient/${patientUuid}/send/email`;
 
-      const response = await fetch(emailUrl, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mailAttachments: [
-            {
-              contentType: "application/pdf",
-              name: fileName,
-              data: pdfBase64,
-              url: null,
-            },
-          ],
-          subject,
-          body: buildEmailIntro(), // ← mensaje breve; el detalle va en el PDF
-          cc: [],
-          bcc: [],
-        }),
-      });
+      // Generamos y enviamos SECUENCIALMENTE para evitar race conditions de pdfMake
+      // y para cumplir con la limitación de 1 adjunto por llamada a la API.
+      for (let i = 0; i < activeSections.length; i++) {
+        const [key, cfg] = activeSections[i];
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Generar PDF de esta sección
+        const base64 = await generateSectionPdfBase64(key);
+        const fileName = `${cfg.filePrefix}_${patientSlug}_${todayFile}.pdf`;
+
+        // Asunto numerado para que el paciente sepa que son parte de un mismo envío
+        const subject = total > 1
+          ? `[${i + 1}/${total}] Órdenes médicas – ${cfg.label} – ${patientName} – ${today}`
+          : `Órdenes médicas – ${cfg.label} – ${patientName} – ${today}`;
+
+        const body = [
+          `Estimado/a ${patientName},`,
+          "",
+          total > 1
+            ? `Adjunto encontrará el PDF de ${cfg.label} (correo ${i + 1} de ${total}).`
+            : `Adjunto encontrará el PDF de ${cfg.label}.`,
+          "",
+          "Atentamente,",
+          providerName,
+          institution.name,
+          institution.address,
+          institution.phone,
+        ].join("\n");
+
+        const response = await fetch(emailUrl, {
+          method: "POST",
+          credentials: "include",
+          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mailAttachments: [{ contentType: "application/pdf", name: fileName, data: base64 }],
+            subject,
+            body,
+            cc: [],
+            bcc: [],
+          }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const data = await response.json();
+        if (data.statusLine && data.statusLine.statusCode !== 200) {
+          throw new Error(data.statusLine.reasonPhrase || "Error del servidor");
+        }
       }
 
-      const data = await response.json();
-      if (data.statusLine && data.statusLine.statusCode !== 200) {
-        throw new Error(data.statusLine.reasonPhrase || "Error del servidor");
-      }
-
-      setEmailStatus("success");
-      setTimeout(() => {
-        setIsShareModalOpen(false);
-        setEmailStatus(null);
-      }, 2500);
+      setEmailStatus({ kind: "success", count: total });
+      setTimeout(() => { setIsShareModalOpen(false); setEmailStatus(null); }, 3000);
     } catch (err) {
-      console.error("AllOrdersDashboard: error enviando email con PDF", err);
-      setEmailStatus("error");
+      console.error("AllOrdersDashboard: error enviando email", err);
+      setEmailStatus({ kind: "error" });
     } finally {
       setEmailSending(false);
     }
@@ -768,10 +743,21 @@ export function AllOrdersDashboard(props) {
       <Modal
         open={isDetailModalOpen}
         modalHeading={`Detalle: ${selectedOrder.conceptName || selectedOrder.drugName || selectedOrder.orderNumber}`}
-        primaryButtonText="Imprimir"
+        primaryButtonText={printingSection ? "Generando PDF…" : "Imprimir esta sección"}
         secondaryButtonText="Cerrar"
         onRequestClose={() => setIsDetailModalOpen(false)}
-        onRequestSubmit={() => window.print()}
+        onRequestSubmit={() => {
+          // Determinar la sección según el tipo de la orden seleccionada
+          const typeToSection = {
+            "Laboratorio": "laboratory",
+            "Imagenología": "imaging",
+            "Medicamento": "medication",
+            "Procedimiento": "procedure",
+            "Derivación": "referral",
+          };
+          const key = typeToSection[selectedOrder.type] || "laboratory";
+          handlePrintSection(key);
+        }}
         onSecondarySubmit={() => setIsDetailModalOpen(false)}
         className="all-orders__detail-modal"
       >
@@ -812,137 +798,83 @@ export function AllOrdersDashboard(props) {
     );
   };
 
-  const renderShareModal = () => (
-    <Modal
-      open={isShareModalOpen}
-      modalHeading="Compartir todas las órdenes por correo"
-      primaryButtonText={emailSending ? "Generando PDF y enviando…" : "Enviar correo con PDF"}
-      secondaryButtonText="Cancelar"
-      primaryButtonDisabled={emailSending || !patientUuid}
-      onRequestClose={() => {
-        setIsShareModalOpen(false);
-        setEmailStatus(null);
-      }}
-      onRequestSubmit={handleSendEmail}
-      onSecondarySubmit={() => {
-        setIsShareModalOpen(false);
-        setEmailStatus(null);
-      }}
-      className="all-orders__share-modal"
-    >
-      <div className="all-orders__share-content">
-        <p className="all-orders__share-summary">
-          Se enviará un resumen de{" "}
-          <strong>{totalOrders} órdenes</strong> del paciente{" "}
-          <strong>{patientName}</strong> al correo registrado en el sistema.
-        </p>
+  const renderShareModal = () => {
+    const sectionsWithOrders = Object.keys(SECTIONS_CONFIG).filter(k => allOrders[k]?.length > 0);
+    const n = sectionsWithOrders.length;
+    return (
+      <Modal
+        open={isShareModalOpen}
+        modalHeading="Compartir órdenes por correo"
+        primaryButtonText={
+          emailSending
+            ? `Enviando correo ${n > 1 ? `(1 de ${n})` : ""}…`
+            : `Enviar ${n} correo${n !== 1 ? "s" : ""} (1 PDF por tipo)`
+        }
+        secondaryButtonText="Cancelar"
+        primaryButtonDisabled={emailSending || !patientUuid}
+        onRequestClose={() => { setIsShareModalOpen(false); setEmailStatus(null); }}
+        onRequestSubmit={handleSendEmail}
+        onSecondarySubmit={() => { setIsShareModalOpen(false); setEmailStatus(null); }}
+        className="all-orders__share-modal"
+      >
+        <div className="all-orders__share-content">
+          <p className="all-orders__share-summary">
+            Se enviarán <strong>{n} correo{n !== 1 ? "s separados" : ""}</strong> al paciente{" "}
+            <strong>{patientName}</strong>, cada uno con el PDF de un tipo de orden.
+            {n > 1 && (
+              <span> El asunto de cada correo incluirá <em>[1/{n}], [2/{n}]…</em> para identificarlos.</span>
+            )}
+          </p>
 
-        <div className="all-orders__share-breakdown">
-          {allOrders.laboratory.length > 0 && (
-            <Tag type="blue" size="sm">Laboratorio: {allOrders.laboratory.length}</Tag>
-          )}
-          {allOrders.imaging.length > 0 && (
-            <Tag type="teal" size="sm">Imagenología: {allOrders.imaging.length}</Tag>
-          )}
-          {allOrders.medication.length > 0 && (
-            <Tag type="green" size="sm">Medicamentos: {allOrders.medication.length}</Tag>
-          )}
-          {allOrders.procedure.length > 0 && (
-            <Tag type="purple" size="sm">Procedimientos: {allOrders.procedure.length}</Tag>
-          )}
-          {allOrders.referral.length > 0 && (
-            <Tag type="warm-gray" size="sm">Derivaciones: {allOrders.referral.length}</Tag>
-          )}
-        </div>
+          <div className="all-orders__share-breakdown">
+            {allOrders.laboratory.length > 0 && (
+              <Tag type="blue" size="sm">Laboratorio: {allOrders.laboratory.length}</Tag>
+            )}
+            {allOrders.imaging.length > 0 && (
+              <Tag type="teal" size="sm">Imagenología: {allOrders.imaging.length}</Tag>
+            )}
+            {allOrders.medication.length > 0 && (
+              <Tag type="green" size="sm">Medicamentos: {allOrders.medication.length}</Tag>
+            )}
+            {allOrders.procedure.length > 0 && (
+              <Tag type="purple" size="sm">Procedimientos: {allOrders.procedure.length}</Tag>
+            )}
+            {allOrders.referral.length > 0 && (
+              <Tag type="warm-gray" size="sm">Derivaciones: {allOrders.referral.length}</Tag>
+            )}
+          </div>
 
-        <TextInput
-          id="patient-email-input"
-          labelText="Correo electrónico registrado del paciente"
-          placeholder="(no registrado)"
-          value={patientEmail}
-          onChange={(e) => setPatientEmail(e.target.value)}
-          helperText="El correo se enviará al correo registrado del paciente en Bahmni."
-          disabled={emailSending}
-        />
-
-        {emailStatus === "success" && (
-          <InlineNotification
-            kind="success"
-            title="¡Correo enviado!"
-            subtitle="El PDF con las órdenes fue enviado al correo registrado del paciente."
-            hideCloseButton
+          <TextInput
+            id="patient-email-input"
+            labelText="Correo electrónico registrado del paciente"
+            placeholder="(no registrado)"
+            value={patientEmail}
+            onChange={(e) => setPatientEmail(e.target.value)}
+            helperText="El correo se enviará al correo registrado del paciente en Bahmni."
+            disabled={emailSending}
           />
-        )}
-        {emailStatus === "error" && (
-          <InlineNotification
-            kind="error"
-            title="Error al enviar"
-            subtitle="No se pudo enviar el correo. Verifique que el paciente tiene un email registrado e inténtelo nuevamente."
-            hideCloseButton
-          />
-        )}
-      </div>
-    </Modal>
-  );
 
-  // ── Print view (oculta en pantalla, visible al imprimir) ───────────────────
-  const renderPrintView = () => (
-    <div className="all-orders__print-view">
-      <div className="all-orders__print-header">
-        <h2>{dashboardConfig.institution.name}</h2>
-        <p>{dashboardConfig.institution.address}</p>
-        <hr />
-        <h3>Resumen de Órdenes Médicas</h3>
-        <p><strong>Paciente:</strong> {patientName}</p>
-        <p><strong>Fecha:</strong> {new Date().toLocaleDateString("es-CL")}</p>
-      </div>
+          {emailStatus?.kind === "success" && (
+            <InlineNotification
+              kind="success"
+              title="¡Correos enviados!"
+              subtitle={`Se enviaron ${emailStatus.count} correo${emailStatus.count !== 1 ? "s" : ""} con PDF adjunto al correo registrado del paciente.`}
+              hideCloseButton
+            />
+          )}
+          {emailStatus?.kind === "error" && (
+            <InlineNotification
+              kind="error"
+              title="Error al enviar"
+              subtitle="No se pudo enviar el correo. Verifique que el paciente tiene un email registrado e inténtelo nuevamente."
+              hideCloseButton
+            />
+          )}
+        </div>
+      </Modal>
+    );
+  };
 
-      {allOrders.laboratory.length > 0 && (
-        <div>
-          <h4>Laboratorio</h4>
-          {allOrders.laboratory.map((o) => (
-            <p key={o.id}>• {o.orderNumber} – {o.conceptName} ({o.orderDate}) – {o.orderer}</p>
-          ))}
-        </div>
-      )}
-      {allOrders.imaging.length > 0 && (
-        <div>
-          <h4>Imagenología</h4>
-          {allOrders.imaging.map((o) => (
-            <p key={o.id}>• {o.orderNumber} – {o.conceptName} ({o.orderDate}) – {o.orderer}</p>
-          ))}
-        </div>
-      )}
-      {allOrders.medication.length > 0 && (
-        <div>
-          <h4>Medicamentos</h4>
-          {allOrders.medication.map((o) => (
-            <p key={o.id}>• {o.orderNumber} – {o.drugName} – {o.dosage} ({o.orderDate})</p>
-          ))}
-        </div>
-      )}
-      {allOrders.procedure.length > 0 && (
-        <div>
-          <h4>Procedimientos</h4>
-          {allOrders.procedure.map((o) => (
-            <p key={o.id}>• {o.orderNumber} – {o.conceptName} ({o.orderDate}) – {o.orderer}</p>
-          ))}
-        </div>
-      )}
-      {allOrders.referral.length > 0 && (
-        <div>
-          <h4>Derivaciones</h4>
-          {allOrders.referral.map((o) => (
-            <p key={o.id}>• {o.orderNumber} – {o.conceptName} ({o.orderDate}) – {o.orderer}</p>
-          ))}
-        </div>
-      )}
-      <div className="all-orders__print-footer">
-        <p>Profesional: {provider?.person?.display || provider?.display || "_______________"}</p>
-        <p>Firma: ___________________________</p>
-      </div>
-    </div>
-  );
 
   // ── Render principal ───────────────────────────────────────────────────────
   if (loading) {
@@ -958,7 +890,7 @@ export function AllOrdersDashboard(props) {
   return (
     <I18nProvider>
       <div className="all-orders__container">
-        {/* ── Cabecera ── */}
+        {/* ── Cabecera: sin botón imprimir global (ahora está por sección) ── */}
         <div className="all-orders__header">
           <div className="all-orders__header-info">
             <h2 className="all-orders__title">Órdenes del Paciente</h2>
@@ -972,14 +904,6 @@ export function AllOrdersDashboard(props) {
             </p>
           </div>
           <div className="all-orders__header-actions">
-            <Button
-              kind="ghost"
-              renderIcon={Printer16}
-              iconDescription="Imprimir todas"
-              hasIconOnly
-              onClick={() => window.print()}
-              tooltipPosition="left"
-            />
             <Button
               kind="primary"
               renderIcon={Share16}
@@ -995,113 +919,151 @@ export function AllOrdersDashboard(props) {
         {totalOrders === 0 ? (
           <div className="all-orders__global-empty">
             <p className="all-orders__global-empty-icon">📋</p>
-            <p className="all-orders__global-empty-title">
-              Sin órdenes registradas
-            </p>
+            <p className="all-orders__global-empty-title">Sin órdenes registradas</p>
             <p className="all-orders__global-empty-subtitle">
               No se encontraron órdenes de laboratorio, imagenología, medicamentos,
               procedimientos ni derivaciones para este paciente.
             </p>
           </div>
         ) : (
-          /* ── Tabs por tipo de orden ── */
           <Tabs className="all-orders__tabs">
-          {/* LABORATORIO */}
-          <Tab
-            id="tab-laboratory"
-            label={`Laboratorio${allOrders.laboratory.length ? ` (${allOrders.laboratory.length})` : ""}`}
-          >
-            <TableContainer title="Órdenes de Laboratorio" className="all-orders__table-container">
-              <OrdersTable
-                orders={paginatedOrders("laboratory")}
-                headers={LAB_HEADERS}
-                onView={handleViewOrder}
-                pageSize={pagination.laboratory.pageSize}
-                currentPage={pagination.laboratory.page}
-                totalItems={allOrders.laboratory.length}
-                onPageChange={(p) => handlePaginationChange("laboratory", p)}
-              />
-            </TableContainer>
-          </Tab>
 
-          {/* IMAGENOLOGÍA */}
-          <Tab
-            id="tab-imaging"
-            label={`Imagenología${allOrders.imaging.length ? ` (${allOrders.imaging.length})` : ""}`}
-          >
-            <TableContainer title="Órdenes de Imagenología" className="all-orders__table-container">
-              <OrdersTable
-                orders={paginatedOrders("imaging")}
-                headers={IMAGING_HEADERS}
-                onView={handleViewOrder}
-                pageSize={pagination.imaging.pageSize}
-                currentPage={pagination.imaging.page}
-                totalItems={allOrders.imaging.length}
-                onPageChange={(p) => handlePaginationChange("imaging", p)}
-              />
-            </TableContainer>
-          </Tab>
+            {/* LABORATORIO */}
+            <Tab id="tab-laboratory" label={`Laboratorio${allOrders.laboratory.length ? ` (${allOrders.laboratory.length})` : ""}`}>
+              <div className="all-orders__tab-toolbar">
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Printer16}
+                  onClick={() => handlePrintSection("laboratory")}
+                  disabled={printingSection === "laboratory" || allOrders.laboratory.length === 0}
+                >
+                  {printingSection === "laboratory" ? "Generando…" : "Imprimir Laboratorio"}
+                </Button>
+              </div>
+              <TableContainer title="Órdenes de Laboratorio" className="all-orders__table-container">
+                <OrdersTable
+                  orders={paginatedOrders("laboratory")}
+                  headers={LAB_HEADERS}
+                  onView={handleViewOrder}
+                  pageSize={pagination.laboratory.pageSize}
+                  currentPage={pagination.laboratory.page}
+                  totalItems={allOrders.laboratory.length}
+                  onPageChange={(p) => handlePaginationChange("laboratory", p)}
+                />
+              </TableContainer>
+            </Tab>
 
-          {/* MEDICAMENTOS */}
-          <Tab
-            id="tab-medication"
-            label={`Medicamentos${allOrders.medication.length ? ` (${allOrders.medication.length})` : ""}`}
-          >
-            <TableContainer title="Recetas Médicas" className="all-orders__table-container">
-              <OrdersTable
-                orders={paginatedOrders("medication")}
-                headers={MEDICATION_HEADERS}
-                onView={handleViewOrder}
-                pageSize={pagination.medication.pageSize}
-                currentPage={pagination.medication.page}
-                totalItems={allOrders.medication.length}
-                onPageChange={(p) => handlePaginationChange("medication", p)}
-              />
-            </TableContainer>
-          </Tab>
+            {/* IMAGENOLOGÍA */}
+            <Tab id="tab-imaging" label={`Imagenología${allOrders.imaging.length ? ` (${allOrders.imaging.length})` : ""}`}>
+              <div className="all-orders__tab-toolbar">
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Printer16}
+                  onClick={() => handlePrintSection("imaging")}
+                  disabled={printingSection === "imaging" || allOrders.imaging.length === 0}
+                >
+                  {printingSection === "imaging" ? "Generando…" : "Imprimir Imagenología"}
+                </Button>
+              </div>
+              <TableContainer title="Órdenes de Imagenología" className="all-orders__table-container">
+                <OrdersTable
+                  orders={paginatedOrders("imaging")}
+                  headers={IMAGING_HEADERS}
+                  onView={handleViewOrder}
+                  pageSize={pagination.imaging.pageSize}
+                  currentPage={pagination.imaging.page}
+                  totalItems={allOrders.imaging.length}
+                  onPageChange={(p) => handlePaginationChange("imaging", p)}
+                />
+              </TableContainer>
+            </Tab>
 
-          {/* PROCEDIMIENTOS */}
-          <Tab
-            id="tab-procedure"
-            label={`Procedimientos${allOrders.procedure.length ? ` (${allOrders.procedure.length})` : ""}`}
-          >
-            <TableContainer title="Órdenes de Procedimientos" className="all-orders__table-container">
-              <OrdersTable
-                orders={paginatedOrders("procedure")}
-                headers={PROCEDURE_HEADERS}
-                onView={handleViewOrder}
-                pageSize={pagination.procedure.pageSize}
-                currentPage={pagination.procedure.page}
-                totalItems={allOrders.procedure.length}
-                onPageChange={(p) => handlePaginationChange("procedure", p)}
-              />
-            </TableContainer>
-          </Tab>
+            {/* MEDICAMENTOS */}
+            <Tab id="tab-medication" label={`Medicamentos${allOrders.medication.length ? ` (${allOrders.medication.length})` : ""}`}>
+              <div className="all-orders__tab-toolbar">
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Printer16}
+                  onClick={() => handlePrintSection("medication")}
+                  disabled={printingSection === "medication" || allOrders.medication.length === 0}
+                >
+                  {printingSection === "medication" ? "Generando…" : "Imprimir Medicamentos"}
+                </Button>
+              </div>
+              <TableContainer title="Recetas Médicas" className="all-orders__table-container">
+                <OrdersTable
+                  orders={paginatedOrders("medication")}
+                  headers={MEDICATION_HEADERS}
+                  onView={handleViewOrder}
+                  pageSize={pagination.medication.pageSize}
+                  currentPage={pagination.medication.page}
+                  totalItems={allOrders.medication.length}
+                  onPageChange={(p) => handlePaginationChange("medication", p)}
+                />
+              </TableContainer>
+            </Tab>
 
-          {/* DERIVACIONES */}
-          <Tab
-            id="tab-referral"
-            label={`Derivaciones${allOrders.referral.length ? ` (${allOrders.referral.length})` : ""}`}
-          >
-            <TableContainer title="Derivaciones" className="all-orders__table-container">
-              <OrdersTable
-                orders={paginatedOrders("referral")}
-                headers={REFERRAL_HEADERS}
-                onView={handleViewOrder}
-                pageSize={pagination.referral.pageSize}
-                currentPage={pagination.referral.page}
-                totalItems={allOrders.referral.length}
-                onPageChange={(p) => handlePaginationChange("referral", p)}
-              />
-            </TableContainer>
-          </Tab>
-        </Tabs>
-        )} {/* fin totalOrders === 0 ternario */}
+            {/* PROCEDIMIENTOS */}
+            <Tab id="tab-procedure" label={`Procedimientos${allOrders.procedure.length ? ` (${allOrders.procedure.length})` : ""}`}>
+              <div className="all-orders__tab-toolbar">
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Printer16}
+                  onClick={() => handlePrintSection("procedure")}
+                  disabled={printingSection === "procedure" || allOrders.procedure.length === 0}
+                >
+                  {printingSection === "procedure" ? "Generando…" : "Imprimir Procedimientos"}
+                </Button>
+              </div>
+              <TableContainer title="Órdenes de Procedimientos" className="all-orders__table-container">
+                <OrdersTable
+                  orders={paginatedOrders("procedure")}
+                  headers={PROCEDURE_HEADERS}
+                  onView={handleViewOrder}
+                  pageSize={pagination.procedure.pageSize}
+                  currentPage={pagination.procedure.page}
+                  totalItems={allOrders.procedure.length}
+                  onPageChange={(p) => handlePaginationChange("procedure", p)}
+                />
+              </TableContainer>
+            </Tab>
+
+            {/* DERIVACIONES */}
+            <Tab id="tab-referral" label={`Derivaciones${allOrders.referral.length ? ` (${allOrders.referral.length})` : ""}`}>
+              <div className="all-orders__tab-toolbar">
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  renderIcon={Printer16}
+                  onClick={() => handlePrintSection("referral")}
+                  disabled={printingSection === "referral" || allOrders.referral.length === 0}
+                >
+                  {printingSection === "referral" ? "Generando…" : "Imprimir Derivaciones"}
+                </Button>
+              </div>
+              <TableContainer title="Derivaciones" className="all-orders__table-container">
+                <OrdersTable
+                  orders={paginatedOrders("referral")}
+                  headers={REFERRAL_HEADERS}
+                  onView={handleViewOrder}
+                  pageSize={pagination.referral.pageSize}
+                  currentPage={pagination.referral.page}
+                  totalItems={allOrders.referral.length}
+                  onPageChange={(p) => handlePaginationChange("referral", p)}
+                />
+              </TableContainer>
+            </Tab>
+
+          </Tabs>
+        )}
 
         {/* ── Modales ── */}
         {renderDetailModal()}
         {renderShareModal()}
-        {renderPrintView()}
       </div>
     </I18nProvider>
   );

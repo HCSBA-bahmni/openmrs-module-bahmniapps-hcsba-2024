@@ -3,6 +3,13 @@
   background-color: #ffffff;
   min-height: 400px;
 
+  .all-orders__tab-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.4rem 0;
+    margin-bottom: 0.25rem;
+  }
+
   .all-orders__header {
     display: flex;
     justify-content: space-between;
