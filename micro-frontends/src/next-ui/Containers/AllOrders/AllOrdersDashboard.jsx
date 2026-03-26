@@ -111,6 +111,32 @@ const SECTIONS_CONFIG = {
   },
 };
 
+const EMAIL_KEYWORDS = ["email", "correo", "mail", "e-mail"];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+const normalizeText = (value) => String(value || "").trim();
+
+const extractEmailFromText = (value) => {
+  const text = normalizeText(value);
+  const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match ? match[0] : "";
+};
+
+const isValidEmail = (value) => EMAIL_PATTERN.test(normalizeText(value));
+
+const hasEmailKeyword = (value) => {
+  const text = normalizeText(value).toLowerCase();
+  return EMAIL_KEYWORDS.some((keyword) => text.includes(keyword));
+};
+
+const getCandidateValues = (value) => {
+  if (value == null) return [];
+  if (typeof value === "string") return [value];
+  if (typeof value !== "object") return [String(value)];
+
+  return [value.value, value.display, value.label, value.name].filter(Boolean);
+};
+
 // ─── Componente Tabla genérica ─────────────────────────────────────────────────
 function OrdersTable({ orders, headers, onView, pageSize, onPageChange, totalItems, currentPage }) {
   if (orders.length === 0) {
@@ -211,17 +237,49 @@ export function AllOrdersDashboard(props) {
     patient?.name ||
     "Paciente";
 
-  // Email del paciente (buscar en person.attributes)
+  // Email del paciente: soporta atributos raw de OpenMRS y el shape mapeado por Angular/Bahmni.
   const resolvePatientEmail = useCallback(() => {
-    const attrs = patient?.person?.attributes || patient?.attributes || [];
-    const emailAttr = attrs.find(
-      (a) =>
-        a?.attributeType?.display?.toLowerCase() === "email" ||
-        a?.attributeType?.display?.toLowerCase() === "correo" ||
-        a?.display?.toLowerCase().startsWith("email")
-    );
-    return emailAttr?.value || "";
+    if (!patient) return "";
+
+    const directCandidates = [patient.email, patient.correo, patient.mail, patient.emailAddress]
+      .flatMap(getCandidateValues);
+
+    const mappedCandidates = Object.entries(patient).flatMap(([key, value]) => {
+      if (!value || Array.isArray(value) || typeof value !== "object") {
+        return hasEmailKeyword(key) ? getCandidateValues(value) : [];
+      }
+
+      const descriptor = [key, value.label, value.name, value.display].filter(Boolean).join(" ");
+      return hasEmailKeyword(descriptor) ? getCandidateValues(value) : [];
+    });
+
+    const rawAttributeCandidates = (patient?.person?.attributes || patient?.attributes || []).flatMap((attribute) => {
+      const descriptor = [
+        attribute?.attributeType?.display,
+        attribute?.attributeType?.name,
+        attribute?.label,
+        attribute?.display,
+      ].filter(Boolean).join(" ");
+
+      if (!hasEmailKeyword(descriptor) && !isValidEmail(attribute?.value)) {
+        return [];
+      }
+
+      return getCandidateValues(attribute);
+    });
+
+    const candidates = [...directCandidates, ...mappedCandidates, ...rawAttributeCandidates]
+      .flatMap((candidate) => {
+        const normalized = normalizeText(candidate);
+        if (!normalized) return [];
+        const extracted = extractEmailFromText(normalized);
+        return extracted && extracted !== normalized ? [normalized, extracted] : [normalized];
+      });
+
+    return candidates.find(isValidEmail) || "";
   }, [patient]);
+
+  const registeredPatientEmail = useMemo(() => resolvePatientEmail(), [resolvePatientEmail]);
 
   // ── State ──────────────────────────────────────────────────────────────────
   // institution se carga desde OpenMRS (systemsetting/location) y cae al
@@ -571,10 +629,10 @@ export function AllOrdersDashboard(props) {
   }, []);
 
   useEffect(() => {
-    setPatientEmail(resolvePatientEmail());
+    setPatientEmail(registeredPatientEmail);
     setSelectedVisitUuid(null); // resetear al cambiar de paciente
     loadAllOrders();
-  }, [patientUuid]);
+  }, [patientUuid, registeredPatientEmail, loadAllOrders]);
 
   // ── Conteo total de órdenes ────────────────────────────────────────────────
   const totalOrders =
@@ -597,6 +655,7 @@ export function AllOrdersDashboard(props) {
   // Abre el modal de compartir para una sección específica (key) o para todas (null)
   const handleShareSection = (key) => {
     setShareSection(key);
+    setPatientEmail(registeredPatientEmail);
     setEmailStatus(null);
     setIsShareModalOpen(true);
   };
@@ -824,6 +883,23 @@ export function AllOrdersDashboard(props) {
   // Solución: una llamada por sección → un correo por tipo de orden.
   const handleSendEmail = async () => {
     if (!patientUuid) return;
+
+    const targetEmail = normalizeText(patientEmail);
+    const registeredEmail = normalizeText(registeredPatientEmail);
+    const additionalRecipients = !targetEmail || targetEmail.toLowerCase() === registeredEmail.toLowerCase()
+      ? []
+      : [targetEmail];
+
+    if (!targetEmail) {
+      setEmailStatus({ kind: "error", title: "Correo requerido", message: "Ingrese un correo electrónico antes de enviar." });
+      return;
+    }
+
+    if (!isValidEmail(targetEmail)) {
+      setEmailStatus({ kind: "error", title: "Correo inválido", message: "Ingrese un correo electrónico válido para continuar." });
+      return;
+    }
+
     setEmailSending(true);
     setEmailStatus(null);
     try {
@@ -876,7 +952,7 @@ export function AllOrdersDashboard(props) {
             mailAttachments: [{ contentType: "application/pdf", name: fileName, data: base64 }],
             subject,
             body,
-            cc: [],
+            cc: additionalRecipients,
             bcc: [],
           }),
         });
@@ -892,7 +968,11 @@ export function AllOrdersDashboard(props) {
       setTimeout(() => { setIsShareModalOpen(false); setShareSection(null); setEmailStatus(null); }, 3000);
     } catch (err) {
       console.error("AllOrdersDashboard: error enviando email", err);
-      setEmailStatus({ kind: "error" });
+      setEmailStatus({
+        kind: "error",
+        title: "Error al enviar",
+        message: err?.message || "No se pudo enviar el correo. Verifique la configuración e inténtelo nuevamente.",
+      });
     } finally {
       setEmailSending(false);
     }
@@ -981,6 +1061,14 @@ export function AllOrdersDashboard(props) {
         ? `Enviar 1 correo (${singleCfg?.label ?? ""})`
         : `Enviar ${n} correo${n !== 1 ? "s" : ""} (1 PDF por tipo)`;
 
+    const trimmedPatientEmail = normalizeText(patientEmail);
+    const hasRegisteredEmail = !!normalizeText(registeredPatientEmail);
+    const emailHasValue = !!trimmedPatientEmail;
+    const emailIsValid = !emailHasValue || isValidEmail(trimmedPatientEmail);
+    const emailHelperText = hasRegisteredEmail
+      ? "Se cargó el correo registrado del paciente. Puede editarlo antes de enviar."
+      : "No se encontró un correo registrado en Bahmni. Ingrese un correo para enviar las órdenes.";
+
     const closeModal = () => { setIsShareModalOpen(false); setShareSection(null); setEmailStatus(null); };
 
     return (
@@ -989,7 +1077,7 @@ export function AllOrdersDashboard(props) {
         modalHeading={modalHeading}
         primaryButtonText={primaryText}
         secondaryButtonText="Cancelar"
-        primaryButtonDisabled={emailSending || !patientUuid || n === 0}
+        primaryButtonDisabled={emailSending || !patientUuid || n === 0 || !emailHasValue || !emailIsValid}
         onRequestClose={closeModal}
         onRequestSubmit={handleSendEmail}
         onSecondarySubmit={closeModal}
@@ -1032,7 +1120,9 @@ export function AllOrdersDashboard(props) {
             placeholder="(no registrado)"
             value={patientEmail}
             onChange={(e) => setPatientEmail(e.target.value)}
-            helperText="El correo se enviará al correo registrado del paciente en Bahmni."
+            invalid={emailHasValue && !emailIsValid}
+            invalidText="Ingrese un correo electrónico válido."
+            helperText={emailHelperText}
             disabled={emailSending}
           />
 
@@ -1051,8 +1141,8 @@ export function AllOrdersDashboard(props) {
           {emailStatus?.kind === "error" && (
             <InlineNotification
               kind="error"
-              title="Error al enviar"
-              subtitle="No se pudo enviar el correo. Verifique que el paciente tiene un email registrado e inténtelo nuevamente."
+              title={emailStatus.title || "Error al enviar"}
+              subtitle={emailStatus.message || "No se pudo enviar el correo. Verifique que el paciente tiene un email registrado e inténtelo nuevamente."}
               hideCloseButton
             />
           )}
