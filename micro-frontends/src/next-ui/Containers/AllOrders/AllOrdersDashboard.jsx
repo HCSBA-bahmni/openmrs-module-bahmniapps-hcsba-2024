@@ -14,7 +14,7 @@ import {
   Modal,
   Tabs,
   Tab,
-  TextInput,
+
   Tag,
   InlineNotification,
   Pagination,
@@ -111,8 +111,46 @@ const SECTIONS_CONFIG = {
   },
 };
 
+// ─── Config dinámica desde formularios Bahmni FormBuilder ────────────────────
+// Se construye una vez al cargar el módulo desde dashboardConfig.formSections.
+// Para añadir un formulario nuevo basta con agregar una entrada en dashboardConfig.
+const buildFormSectionsConfig = () =>
+  (dashboardConfig.formSections || []).reduce((acc, fc) => {
+    const fields = fc.fields || [];
+    acc[fc.key] = {
+      label:            fc.label,
+      filePrefix:       fc.filePrefix || fc.key,
+      tagColor:         fc.tagColor   || "cyan",
+      isFormSection:    true,
+      encounterTypeUuid: fc.encounterTypeUuid,
+      fields,
+      // Headers para Carbon DataTable (incluye columna acciones)
+      tableHeaders: [
+        ...fields.map((f, i) => ({ key: `f_${i}`, header: f.label })),
+        { key: "actions", header: "Acciones" },
+      ],
+      // Headers para PDF (sin acciones)
+      headers: fields.map((f) => f.label),
+      widths:  fields.map(() => "*"),
+      getRows: (orders) =>
+        orders.map((o) => fields.map((_, i) => o[`f_${i}`] ?? "-")),
+    };
+    return acc;
+  }, {});
+
+const FORM_SECTIONS_CONFIG = buildFormSectionsConfig();
+
+// Config completa usada en PDF, correo, render, etc.
+const ALL_SECTIONS_CONFIG = { ...SECTIONS_CONFIG, ...FORM_SECTIONS_CONFIG };
+
+// Paginación inicial que incluye secciones fijas + formularios
+const PAGINATION_INIT = Object.keys(ALL_SECTIONS_CONFIG).reduce(
+  (acc, k) => ({ ...acc, [k]: { page: 1, pageSize: 5 } }),
+  {}
+);
+
 // ─── Componente Tabla genérica ─────────────────────────────────────────────────
-function OrdersTable({ orders, headers, onView, pageSize, onPageChange, totalItems, currentPage }) {
+function OrdersTable({ orders, headers, onView, onPrint, pageSize, onPageChange, totalItems, currentPage }) {
   if (orders.length === 0) {
     return (
       <div className="all-orders__empty">
@@ -157,7 +195,7 @@ function OrdersTable({ orders, headers, onView, pageSize, onPageChange, totalIte
                               renderIcon={Printer16}
                               iconDescription="Imprimir"
                               hasIconOnly
-                              onClick={() => window.print()}
+                              onClick={() => onPrint(order)}
                             />
                           </TableCell>
                         );
@@ -189,6 +227,7 @@ OrdersTable.propTypes = {
   orders: PropTypes.array.isRequired,
   headers: PropTypes.array.isRequired,
   onView: PropTypes.func.isRequired,
+  onPrint: PropTypes.func.isRequired,
   pageSize: PropTypes.number.isRequired,
   onPageChange: PropTypes.func.isRequired,
   totalItems: PropTypes.number.isRequired,
@@ -211,28 +250,14 @@ export function AllOrdersDashboard(props) {
     patient?.name ||
     "Paciente";
 
-  // Email del paciente (buscar en person.attributes)
-  const resolvePatientEmail = useCallback(() => {
-    const attrs = patient?.person?.attributes || patient?.attributes || [];
-    const emailAttr = attrs.find(
-      (a) =>
-        a?.attributeType?.display?.toLowerCase() === "email" ||
-        a?.attributeType?.display?.toLowerCase() === "correo" ||
-        a?.display?.toLowerCase().startsWith("email")
-    );
-    return emailAttr?.value || "";
-  }, [patient]);
-
   // ── State ──────────────────────────────────────────────────────────────────
   // institution se carga desde OpenMRS (systemsetting/location) y cae al
   // dashboardConfig como fallback si la API no responde.
   const [institution, setInstitution] = useState({ ...dashboardConfig.institution });
-  const [allOrdersHistory, setAllOrdersHistory] = useState({
-    laboratory: [],
-    imaging: [],
-    medication: [],
-    procedure: [],
-    referral: [],
+  const [allOrdersHistory, setAllOrdersHistory] = useState(() => {
+    const base = { laboratory: [], imaging: [], medication: [], procedure: [], referral: [] };
+    const formKeys = Object.keys(FORM_SECTIONS_CONFIG).reduce((a, k) => ({ ...a, [k]: [] }), {});
+    return { ...base, ...formKeys };
   });
   const [visits, setVisits] = useState([]);
   const [selectedVisitUuid, setSelectedVisitUuid] = useState(null);
@@ -243,16 +268,12 @@ export function AllOrdersDashboard(props) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   // null = compartir todas las secciones activas | string = compartir solo esa sección
   const [shareSection, setShareSection] = useState(null);
+  // patientEmail se carga fetcheando los atributos completos del paciente
+  // porque hostData.patient no incluye person.attributes.
   const [patientEmail, setPatientEmail] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState(null); // 'success' | 'error' | null
-  const [pagination, setPagination] = useState({
-    laboratory: { page: 1, pageSize: 5 },
-    imaging: { page: 1, pageSize: 5 },
-    medication: { page: 1, pageSize: 5 },
-    procedure: { page: 1, pageSize: 5 },
-    referral: { page: 1, pageSize: 5 },
-  });
+  const [pagination, setPagination] = useState(PAGINATION_INIT);
 
   // ── Etiqueta legible para una visita ──────────────────────────────────────
   const formatVisitLabel = (visit) => {
@@ -272,28 +293,23 @@ export function AllOrdersDashboard(props) {
     if (!visit) return allOrdersHistory;
 
     const start = new Date(visit.startDatetime);
-    // Si la visita sigue activa, usamos "futuro lejano" como límite
     const end = visit.stopDatetime
       ? new Date(visit.stopDatetime)
       : new Date(8640000000000000);
 
     const filterByVisit = (orders) =>
-      orders.filter((o) => {
-        // 1er criterio: el uuid de visita guardado en la orden
+      (orders || []).filter((o) => {
         if (o.visitUuid) return o.visitUuid === selectedVisitUuid;
-        // Fallback: rango de fechas de la visita
         if (!o._rawDate) return false;
         const d = new Date(o._rawDate);
         return d >= start && d <= end;
       });
 
-    return {
-      laboratory: filterByVisit(allOrdersHistory.laboratory),
-      imaging:    filterByVisit(allOrdersHistory.imaging),
-      medication: filterByVisit(allOrdersHistory.medication),
-      procedure:  filterByVisit(allOrdersHistory.procedure),
-      referral:   filterByVisit(allOrdersHistory.referral),
-    };
+    // Aplica el filtro a TODAS las claves (fijas + formularios)
+    return Object.keys(allOrdersHistory).reduce((acc, key) => {
+      acc[key] = filterByVisit(allOrdersHistory[key]);
+      return acc;
+    }, {});
   }, [allOrdersHistory, selectedVisitUuid, visits]);
 
   // ── Carga dinámica de datos de la institución ─────────────────────────────
@@ -373,22 +389,41 @@ export function AllOrdersDashboard(props) {
         headers: { Accept: "application/json" },
       };
 
-      // 0. Cargar lista de visitas del paciente ─────────────────────────────
-      const visitsRes = await fetch(
-        `/openmrs/ws/rest/v1/visit?patient=${patientUuid}` +
-        `&v=custom:(uuid,visitType:(display),startDatetime,stopDatetime,location:(display))` +
-        `&limit=30&includeInactive=true`,
-        credOpts
-      );
+      // 0. Cargar visitas y atributos del paciente en paralelo ─────────────
+      const [visitsRes, patientRes] = await Promise.all([
+        fetch(
+          `/openmrs/ws/rest/v1/visit?patient=${patientUuid}` +
+          `&v=custom:(uuid,visitType:(display),startDatetime,stopDatetime,location:(display))` +
+          `&limit=30&includeInactive=true`,
+          credOpts
+        ),
+        fetch(
+          `/openmrs/ws/rest/v1/patient/${patientUuid}` +
+          `?v=custom:(uuid,person:(attributes:(value,attributeType:(display))))`,
+          credOpts
+        ),
+      ]);
+
       const visitsData = visitsRes.ok
         ? ((await visitsRes.json()).results || []).sort(
             (a, b) => new Date(b.startDatetime) - new Date(a.startDatetime)
           )
         : [];
       setVisits(visitsData);
-      // Seleccionar la visita más reciente por defecto
       if (visitsData.length > 0) {
         setSelectedVisitUuid(visitsData[0].uuid);
+      }
+
+      // Extraer email desde los atributos del paciente
+      if (patientRes.ok) {
+        const patientData = await patientRes.json();
+        const attrs = patientData?.person?.attributes || [];
+        const emailAttr = attrs.find(
+          (a) =>
+            a?.attributeType?.display?.toLowerCase() === "email" ||
+            a?.attributeType?.display?.toLowerCase() === "correo"
+        );
+        setPatientEmail(emailAttr?.value || "");
       }
 
       // 1. Obtener tipos de orden ────────────────────────────────────────────
@@ -503,8 +538,8 @@ export function AllOrdersDashboard(props) {
         o.orderer?.display ||
         "-";
 
-      const mapOrder = (o, i, type) => ({
-        id: o.uuid || `${type}-${i}`,
+      const mapOrder = (o, i, type, sectionKey) => ({
+        id: o.uuid || `${sectionKey}-${i}`,
         orderNumber: o.orderNumber || "-",
         conceptName: extractConceptName(o),
         orderDate: formatDate(o.orderDate || o.dateActivated || o.scheduledDate),
@@ -514,6 +549,7 @@ export function AllOrdersDashboard(props) {
         status: o.urgency || o.action || o.status || "",
         details: "",
         type,
+        sectionKey,
       });
 
       const mapDrugOrder = (o, i) => {
@@ -527,39 +563,87 @@ export function AllOrdersDashboard(props) {
           [dose != null && `${dose} ${units}`.trim(), freq, dur]
             .filter(Boolean)
             .join(" – ") || "-";
-
         return {
           id: o.uuid || `med-${i}`,
           orderNumber: o.orderNumber || "-",
-          drugName:
-            o.drug?.display || o.drug?.name || o.drugNonCoded || "-",
+          drugName: o.drug?.display || o.drug?.name || o.drugNonCoded || "-",
           dosage,
           orderDate: formatDate(o.dateActivated || o.scheduledDate),
           _rawDate: o.dateActivated || o.scheduledDate,
           visitUuid: o.encounter?.visit?.uuid || null,
           orderer: extractOrderer(o),
-          details:
-            o.dosingInstructions?.administrationInstructions || "",
+          details: o.dosingInstructions?.administrationInstructions || "",
           type: "Medicamento",
+          sectionKey: "medication",
         };
       };
 
+      // Mapper para formularios Bahmni (encounter + obs)
+      const mapFormEncounter = (enc, fc, i) => {
+        const obsMap = {};
+        (enc.obs || []).forEach((obs) => {
+          obsMap[obs.concept?.display] =
+            obs.valueText ?? String(obs.value ?? "-");
+        });
+        const row = {
+          id: enc.uuid || `${fc.key}-${i}`,
+          orderNumber: "-",
+          orderDate: formatDate(enc.encounterDatetime),
+          _rawDate: enc.encounterDatetime,
+          visitUuid: enc.visit?.uuid || null,
+          sectionKey: fc.key,
+          type: fc.label,
+          details: Object.entries(obsMap)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join("\n"),
+        };
+        // Mapear cada field configurado a f_N en el objeto fila
+        (fc.fields || []).forEach((f, idx) => {
+          row[`f_${idx}`] =
+            f.source === "encounterDate"
+              ? formatDate(enc.encounterDatetime)
+              : (obsMap[f.conceptDisplay] ?? "-");
+        });
+        return row;
+      };
+
+      // 5b. Formularios Bahmni (en paralelo si hay configurados) ─────────────
+      const formResults = await Promise.all(
+        Object.entries(FORM_SECTIONS_CONFIG).map(async ([key, cfg]) => {
+          if (!cfg.encounterTypeUuid) return [key, []];
+          const url =
+            `/openmrs/ws/rest/v1/encounter` +
+            `?patient=${patientUuid}` +
+            `&encounterType=${cfg.encounterTypeUuid}` +
+            `&v=custom:(uuid,encounterDatetime,` +
+            `obs:(uuid,concept:(display),value,valueText),` +
+            `visit:(uuid,visitType:(display)))` +
+            `&limit=100`;
+          const res = await fetch(url, credOpts);
+          if (!res.ok) return [key, []];
+          const encs = (await res.json()).results || [];
+          return [key, encs.map((enc, i) => mapFormEncounter(enc, cfg, i))];
+        })
+      );
+      const formOrdersMap = Object.fromEntries(formResults);
+
       // 6. Actualizar estado ─────────────────────────────────────────────────
       setAllOrdersHistory({
-        laboratory: labRaw.map((o, i) => mapOrder(o, i, "Laboratorio")),
-        imaging: imagingRaw.map((o, i) => mapOrder(o, i, "Imagenología")),
+        laboratory: labRaw.map((o, i) => mapOrder(o, i, "Laboratorio",  "laboratory")),
+        imaging:    imagingRaw.map((o, i) => mapOrder(o, i, "Imagenología", "imaging")),
         medication: drugRaw.map((o, i) => mapDrugOrder(o, i)),
-        procedure: procedureRaw.map((o, i) => mapOrder(o, i, "Procedimiento")),
-        referral: referralRaw.map((o, i) => mapOrder(o, i, "Derivación")),
+        procedure:  procedureRaw.map((o, i) => mapOrder(o, i, "Procedimiento", "procedure")),
+        referral:   referralRaw.map((o, i) => mapOrder(o, i, "Derivación",   "referral")),
+        ...formOrdersMap,   // formularios Bahmni (vacío si no hay configurados)
       });
     } catch (err) {
       console.error("AllOrdersDashboard: error cargando órdenes", err);
+      const emptyFormKeys = Object.keys(FORM_SECTIONS_CONFIG).reduce(
+        (a, k) => ({ ...a, [k]: [] }), {}
+      );
       setAllOrdersHistory({
-        laboratory: [],
-        imaging: [],
-        medication: [],
-        procedure: [],
-        referral: [],
+        laboratory: [], imaging: [], medication: [], procedure: [], referral: [],
+        ...emptyFormKeys,
       });
     } finally {
       setLoading(false);
@@ -571,18 +655,14 @@ export function AllOrdersDashboard(props) {
   }, []);
 
   useEffect(() => {
-    setPatientEmail(resolvePatientEmail());
     setSelectedVisitUuid(null); // resetear al cambiar de paciente
     loadAllOrders();
   }, [patientUuid]);
 
-  // ── Conteo total de órdenes ────────────────────────────────────────────────
-  const totalOrders =
-    allOrders.laboratory.length +
-    allOrders.imaging.length +
-    allOrders.medication.length +
-    allOrders.procedure.length +
-    allOrders.referral.length;
+  // Suma todas las secciones (fijas + formularios)
+  const totalOrders = Object.keys(allOrders).reduce(
+    (sum, k) => sum + (allOrders[k]?.length || 0), 0
+  );
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleViewOrder = (order) => {
@@ -603,14 +683,7 @@ export function AllOrdersDashboard(props) {
 
   const handleVisitChange = (uuid) => {
     setSelectedVisitUuid(uuid || null);
-    // Resetear paginación a página 1 al cambiar de visita
-    setPagination({
-      laboratory: { page: 1, pageSize: 5 },
-      imaging:    { page: 1, pageSize: 5 },
-      medication: { page: 1, pageSize: 5 },
-      procedure:  { page: 1, pageSize: 5 },
-      referral:   { page: 1, pageSize: 5 },
-    });
+    setPagination(PAGINATION_INIT);
   };
 
   const paginatedOrders = (type) => {
@@ -621,12 +694,16 @@ export function AllOrdersDashboard(props) {
 
 
   // ── Generación de PDF para UNA sección ────────────────────────────────────
+  // overrideOrders: si se pasa, usa ese array en lugar de allOrders[sectionKey].
+  // Permite generar el PDF de una sola fila pasando [order].
   const generateSectionPdfBase64 = useCallback(
-    (sectionKey) => {
+    (sectionKey, overrideOrders) => {
       return new Promise((resolve, reject) => {
         try {
-          const cfg = SECTIONS_CONFIG[sectionKey];
-          const orders = allOrders[sectionKey];
+          const cfg = ALL_SECTIONS_CONFIG[sectionKey];
+          const orders = overrideOrders !== undefined
+            ? overrideOrders
+            : allOrders[sectionKey];
           // institution viene del estado (cargado dinámicamente desde OpenMRS)
           const today = new Date().toLocaleDateString("es-CL");
           const providerName = provider?.person?.display || provider?.display || "";
@@ -816,6 +893,26 @@ export function AllOrdersDashboard(props) {
     }
   }, [generateSectionPdfBase64]);
 
+  // ── Imprimir UNA orden individual (botón de la fila) ──────────────────────
+  // Reutiliza generateSectionPdfBase64 pasando solo [order] como overrideOrders.
+  const handlePrintOrder = useCallback(async (order) => {
+    const sectionKey = order.sectionKey;
+    if (!sectionKey || !ALL_SECTIONS_CONFIG[sectionKey]) return;
+    setPrintingSection(`row_${order.id}`);
+    try {
+      const base64 = await generateSectionPdfBase64(sectionKey, [order]);
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (err) {
+      console.error("AllOrdersDashboard: error imprimiendo orden individual", err);
+    } finally {
+      setPrintingSection(null);
+    }
+  }, [generateSectionPdfBase64]);
+
 
 
   // ── Envío de correo ────────────────────────────────────────────────────────
@@ -834,7 +931,7 @@ export function AllOrdersDashboard(props) {
       // institution viene del estado (cargado dinámicamente desde OpenMRS)
 
       // Si shareSection está definido → solo esa sección; si no → todas las activas
-      const activeSections = Object.entries(SECTIONS_CONFIG).filter(([key]) =>
+      const activeSections = Object.entries(ALL_SECTIONS_CONFIG).filter(([key]) =>
         shareSection ? key === shareSection : allOrders[key]?.length > 0
       );
       const total = activeSections.length;
@@ -909,15 +1006,15 @@ export function AllOrdersDashboard(props) {
         secondaryButtonText="Cerrar"
         onRequestClose={() => setIsDetailModalOpen(false)}
         onRequestSubmit={() => {
-          // Determinar la sección según el tipo de la orden seleccionada
           const typeToSection = {
-            "Laboratorio": "laboratory",
-            "Imagenología": "imaging",
-            "Medicamento": "medication",
-            "Procedimiento": "procedure",
+            "Laboratorio": "laboratory", "Imagenología": "imaging",
+            "Medicamento": "medication",  "Procedimiento": "procedure",
             "Derivación": "referral",
           };
-          const key = typeToSection[selectedOrder.type] || "laboratory";
+          // sectionKey es la fuente más fiable; typeToSection como fallback legacy
+          const key = selectedOrder.sectionKey
+            || typeToSection[selectedOrder.type]
+            || "laboratory";
           handlePrintSection(key);
         }}
         onSecondarySubmit={() => setIsDetailModalOpen(false)}
@@ -1017,24 +1114,28 @@ export function AllOrdersDashboard(props) {
               <Tag type="blue" size="sm">{singleCfg?.label}: {singleCount}</Tag>
             ) : (
               <>
-                {allOrders.laboratory.length > 0 && <Tag type="blue"     size="sm">Laboratorio: {allOrders.laboratory.length}</Tag>}
-                {allOrders.imaging.length    > 0 && <Tag type="teal"     size="sm">Imagenología: {allOrders.imaging.length}</Tag>}
-                {allOrders.medication.length > 0 && <Tag type="green"    size="sm">Medicamentos: {allOrders.medication.length}</Tag>}
-                {allOrders.procedure.length  > 0 && <Tag type="purple"   size="sm">Procedimientos: {allOrders.procedure.length}</Tag>}
-                {allOrders.referral.length   > 0 && <Tag type="warm-gray" size="sm">Derivaciones: {allOrders.referral.length}</Tag>}
+                {allOrders.laboratory?.length > 0 && <Tag type="blue"      size="sm">Laboratorio: {allOrders.laboratory.length}</Tag>}
+                {allOrders.imaging?.length    > 0 && <Tag type="teal"      size="sm">Imagenología: {allOrders.imaging.length}</Tag>}
+                {allOrders.medication?.length > 0 && <Tag type="green"     size="sm">Medicamentos: {allOrders.medication.length}</Tag>}
+                {allOrders.procedure?.length  > 0 && <Tag type="purple"    size="sm">Procedimientos: {allOrders.procedure.length}</Tag>}
+                {allOrders.referral?.length   > 0 && <Tag type="warm-gray" size="sm">Derivaciones: {allOrders.referral.length}</Tag>}
+                {Object.entries(FORM_SECTIONS_CONFIG).map(([k, cfg]) =>
+                  allOrders[k]?.length > 0 && (
+                    <Tag key={k} type={cfg.tagColor || "cyan"} size="sm">
+                      {cfg.label}: {allOrders[k].length}
+                    </Tag>
+                  )
+                )}
               </>
             )}
           </div>
 
-          <TextInput
-            id="patient-email-input"
-            labelText="Correo electrónico registrado del paciente"
-            placeholder="(no registrado)"
-            value={patientEmail}
-            onChange={(e) => setPatientEmail(e.target.value)}
-            helperText="El correo se enviará al correo registrado del paciente en Bahmni."
-            disabled={emailSending}
-          />
+          <div className="all-orders__share-email-info">
+            <p className="all-orders__share-email-label">Correo electrónico del paciente</p>
+            <p className="all-orders__share-email-value">
+              {patientEmail ? patientEmail : <em style={{ color: "#6f6f6f" }}>(no registrado)</em>}
+            </p>
+          </div>
 
           {emailStatus?.kind === "success" && (
             <InlineNotification
@@ -1177,6 +1278,7 @@ export function AllOrdersDashboard(props) {
                   orders={paginatedOrders("laboratory")}
                   headers={LAB_HEADERS}
                   onView={handleViewOrder}
+                  onPrint={handlePrintOrder}
                   pageSize={pagination.laboratory.pageSize}
                   currentPage={pagination.laboratory.page}
                   totalItems={allOrders.laboratory.length}
@@ -1212,6 +1314,7 @@ export function AllOrdersDashboard(props) {
                   orders={paginatedOrders("imaging")}
                   headers={IMAGING_HEADERS}
                   onView={handleViewOrder}
+                  onPrint={handlePrintOrder}
                   pageSize={pagination.imaging.pageSize}
                   currentPage={pagination.imaging.page}
                   totalItems={allOrders.imaging.length}
@@ -1247,6 +1350,7 @@ export function AllOrdersDashboard(props) {
                   orders={paginatedOrders("medication")}
                   headers={MEDICATION_HEADERS}
                   onView={handleViewOrder}
+                  onPrint={handlePrintOrder}
                   pageSize={pagination.medication.pageSize}
                   currentPage={pagination.medication.page}
                   totalItems={allOrders.medication.length}
@@ -1282,6 +1386,7 @@ export function AllOrdersDashboard(props) {
                   orders={paginatedOrders("procedure")}
                   headers={PROCEDURE_HEADERS}
                   onView={handleViewOrder}
+                  onPrint={handlePrintOrder}
                   pageSize={pagination.procedure.pageSize}
                   currentPage={pagination.procedure.page}
                   totalItems={allOrders.procedure.length}
@@ -1317,6 +1422,7 @@ export function AllOrdersDashboard(props) {
                   orders={paginatedOrders("referral")}
                   headers={REFERRAL_HEADERS}
                   onView={handleViewOrder}
+                  onPrint={handlePrintOrder}
                   pageSize={pagination.referral.pageSize}
                   currentPage={pagination.referral.page}
                   totalItems={allOrders.referral.length}
@@ -1324,6 +1430,44 @@ export function AllOrdersDashboard(props) {
                 />
               </TableContainer>
             </Tab>
+
+            {/* FORMULARIOS BAHMNI – generados dinámicamente desde dashboardConfig.formSections */}
+            {Object.entries(FORM_SECTIONS_CONFIG).map(([key, cfg]) => (
+              <Tab
+                key={key}
+                id={`tab-${key}`}
+                label={`${cfg.label}${allOrders[key]?.length ? ` (${allOrders[key].length})` : ""}`}
+              >
+                <div className="all-orders__tab-toolbar">
+                  <Button
+                    kind="ghost" size="sm" renderIcon={Printer16}
+                    onClick={() => handlePrintSection(key)}
+                    disabled={printingSection === key || !allOrders[key]?.length}
+                  >
+                    {printingSection === key ? "Generando…" : `Imprimir ${cfg.label}`}
+                  </Button>
+                  <Button
+                    kind="ghost" size="sm" renderIcon={Share16}
+                    onClick={() => handleShareSection(key)}
+                    disabled={emailSending || !allOrders[key]?.length}
+                  >
+                    {`Enviar ${cfg.label}`}
+                  </Button>
+                </div>
+                <TableContainer title={cfg.label} className="all-orders__table-container">
+                  <OrdersTable
+                    orders={paginatedOrders(key)}
+                    headers={cfg.tableHeaders}
+                    onView={handleViewOrder}
+                    onPrint={handlePrintOrder}
+                    pageSize={pagination[key]?.pageSize || 5}
+                    currentPage={pagination[key]?.page || 1}
+                    totalItems={allOrders[key]?.length || 0}
+                    onPageChange={(p) => handlePaginationChange(key, p)}
+                  />
+                </TableContainer>
+              </Tab>
+            ))}
 
           </Tabs>
         )}

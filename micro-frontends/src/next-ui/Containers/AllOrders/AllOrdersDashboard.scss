@@ -174,7 +174,31 @@
 
     .all-orders__share-breakdown { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
-    .bx--text-input-wrapper { width: 100%; }
+    .all-orders__share-email-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.5rem 0.75rem;
+      background: #f4f4f4;
+      border-left: 3px solid #0f62fe;
+      border-radius: 2px;
+
+      .all-orders__share-email-label {
+        font-size: 0.75rem;
+        color: #525252;
+        margin: 0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .all-orders__share-email-value {
+        font-size: 0.9rem;
+        color: #161616;
+        margin: 0;
+        word-break: break-all;
+      }
+    }
   }
 }
 
