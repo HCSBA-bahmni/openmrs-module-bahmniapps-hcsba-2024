@@ -19,11 +19,6 @@
         transform: translate(-50%, -50%);
     }
 
-    &.ui-draggable-dragging,
-    &.ui-resizable-resizing {
-        transform: none;
-    }
-
     .tele-consultation-header {
         display: flex;
         padding: 10px;
