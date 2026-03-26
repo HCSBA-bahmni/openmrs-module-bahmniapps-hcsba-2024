@@ -40,7 +40,15 @@ import {Html5Qrcode, Html5QrcodeSupportedFormats} from "html5-qrcode";
 
 // Instancia AISLADA de axios para evitar que los interceptores globales de Bahmni
 // intercepten los errores y muestren diálogos de error en la UI de Bahmni.
-const axiosIcvp = axios.create({ timeout: 60000 });
+// Timeouts diferenciados para no bloquear la UI cuando el servidor no responde:
+//   TIMEOUT_LIST  → carga inicial (spinner de página), falla rápido si no hay servidor
+//   TIMEOUT_DOC   → ver documento (el usuario hizo clic, puede esperar más)
+//   TIMEOUT_VHL   → operaciones VHL generate/resolve
+const TIMEOUT_LIST = 6000;
+const TIMEOUT_DOC  = 20000;
+const TIMEOUT_VHL  = 15000;
+
+const axiosIcvp = axios.create({ timeout: TIMEOUT_DOC });
 
 
 /* ===========================
@@ -503,7 +511,7 @@ const fetchDocumentReferences = async (patientIdentifier) => {
 
         let res;
         try {
-            res = await axiosIcvp.get(url, {headers: buildAuthHeaders("application/fhir+json")});
+            res = await axiosIcvp.get(url, {headers: buildAuthHeaders("application/fhir+json"), timeout: TIMEOUT_LIST});
         } catch (err) {
             // Silenciar siempre: no propagar errores de red para evitar diálogos de Bahmni
             console.warn("[IPSICVP] Error ITI-67 (silenciado):", err?.message || err);
@@ -908,6 +916,7 @@ export function IpsIcvpDisplayControl(props) {
                         "Content-Type": "application/json",
                     },
                     responseType: "json",
+                    timeout: TIMEOUT_VHL,
                 }
             );
 
@@ -962,7 +971,7 @@ export function IpsIcvpDisplayControl(props) {
             const accept = "application/fhir+json, application/json;q=0.9, */*;q=0.8";
             const sameOrigin = String(location).startsWith(REGIONAL_BASE);
             const headers = sameOrigin ? buildAuthHeaders(accept) : { Accept: accept };
-            const res = await axiosIcvp.get(location, { headers, responseType: "json" });
+            const res = await axiosIcvp.get(location, { headers, responseType: "json", timeout: TIMEOUT_DOC });
             setViewerBundle(res.data);
         } catch (e) {
             console.error("[VHL] Error cargando archivo del manifiesto:", e);
@@ -989,6 +998,7 @@ export function IpsIcvpDisplayControl(props) {
                 const binRes = await axiosIcvp.get(url, {
                     headers: buildAuthHeaders("*/*"),
                     responseType: "blob",
+                    timeout: TIMEOUT_DOC,
                 });
                 const href = URL.createObjectURL(binRes.data);
                 window.open(href, "_blank");
@@ -1010,6 +1020,7 @@ export function IpsIcvpDisplayControl(props) {
         try {
             const jsonRes = await axiosIcvp.get(url, {
                 headers: buildAuthHeaders("application/fhir+json"),
+                timeout: TIMEOUT_DOC,
             });
             setViewerBundle(jsonRes.data);
         } catch (err) {
@@ -1056,6 +1067,7 @@ export function IpsIcvpDisplayControl(props) {
                             "Content-Type": "application/json",
                         },
                         responseType: "json",
+                        timeout: TIMEOUT_VHL,
                     }
                 );
 
@@ -1317,6 +1329,7 @@ export function IpsIcvpDisplayControl(props) {
             "Content-Type": "application/json",
             },
             responseType: "json",
+            timeout: TIMEOUT_VHL,
         }
         );
 
