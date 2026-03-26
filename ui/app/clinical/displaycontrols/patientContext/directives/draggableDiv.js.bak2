@@ -16,6 +16,7 @@ angular.module('bahmni.clinical')
 
                 element.resizable({
                     handles: " n, e, s, w, ne, se, sw, nw",
+                    containment: 'window',
                     start: normalizePosition
                 });
                 element.on('resizestop', function () {
