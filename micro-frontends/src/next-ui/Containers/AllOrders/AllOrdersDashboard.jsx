@@ -118,11 +118,13 @@ const buildFormSectionsConfig = () =>
   (dashboardConfig.formSections || []).reduce((acc, fc) => {
     const fields = fc.fields || [];
     acc[fc.key] = {
-      label:            fc.label,
-      filePrefix:       fc.filePrefix || fc.key,
-      tagColor:         fc.tagColor   || "cyan",
-      isFormSection:    true,
-      encounterTypeUuid: fc.encounterTypeUuid,
+      label:                  fc.label,
+      filePrefix:             fc.filePrefix || fc.key,
+      tagColor:               fc.tagColor   || "cyan",
+      isFormSection:          true,
+      encounterTypeUuid:      fc.encounterTypeUuid      || null,
+      // Estrategia B: consulta directa por concepto (no requiere encounterTypeUuid)
+      observationConceptUuid: fc.observationConceptUuid || null,
       fields,
       // Headers para Carbon DataTable (incluye columna acciones)
       tableHeaders: [
@@ -582,8 +584,15 @@ export function AllOrdersDashboard(props) {
       const mapFormEncounter = (enc, fc, i) => {
         const obsMap = {};
         (enc.obs || []).forEach((obs) => {
-          obsMap[obs.concept?.display] =
-            obs.valueText ?? String(obs.value ?? "-");
+          const key = obs.concept?.display;
+          if (!key) return;
+          // valueText → campo libre de texto
+          // value.display → obs de tipo coded (lista/catálogo)
+          // value (número/string) → numérico, booleano, etc.
+          obsMap[key] =
+            obs.valueText ??
+            (obs.value?.display) ??
+            (obs.value != null ? String(obs.value) : "-");
         });
         const row = {
           id: enc.uuid || `${fc.key}-${i}`,
@@ -607,9 +616,57 @@ export function AllOrdersDashboard(props) {
         return row;
       };
 
+      // Mapper para formularios basados en un concepto único (observationConceptUuid)
+      // Cada obs individual se convierte en una fila de la tabla.
+      const mapObsToRow = (obs, fc, i) => {
+        const obsValue =
+          obs.valueText ??
+          obs.value?.display ??
+          (obs.value != null ? String(obs.value) : "-");
+        const row = {
+          id: obs.uuid || `${fc.key}-${i}`,
+          orderNumber: "-",
+          orderDate: formatDate(obs.obsDatetime || obs.encounter?.encounterDatetime),
+          _rawDate:  obs.obsDatetime || obs.encounter?.encounterDatetime,
+          visitUuid: obs.encounter?.visit?.uuid || null,
+          sectionKey: fc.key,
+          type:       fc.label,
+          details:    obsValue,
+        };
+        // Para este tipo de sección todas las columnas no-fecha muestran el valor de la obs
+        (fc.fields || []).forEach((f, idx) => {
+          row[`f_${idx}`] =
+            f.source === "encounterDate"
+              ? formatDate(obs.encounter?.encounterDatetime || obs.obsDatetime)
+              : obsValue;
+        });
+        return row;
+      };
+
       // 5b. Formularios Bahmni (en paralelo si hay configurados) ─────────────
+      // Soporta dos estrategias según la config:
+      //   A) encounterTypeUuid  → query por encounter + extrae obs del mapa (multi-campo)
+      //   B) observationConceptUuid → query directo a /obs por concepto (mono-campo / concepto conocido)
       const formResults = await Promise.all(
         Object.entries(FORM_SECTIONS_CONFIG).map(async ([key, cfg]) => {
+
+          // ── Estrategia B: query directo por conceptUuid ───────────────────
+          if (cfg.observationConceptUuid) {
+            const url =
+              `/openmrs/ws/rest/v1/obs` +
+              `?patient=${patientUuid}` +
+              `&concept=${cfg.observationConceptUuid}` +
+              `&v=custom:(uuid,obsDatetime,value,valueText,concept:(display),` +
+              `encounter:(uuid,encounterDatetime,` +
+              `visit:(uuid,visitType:(display))))` +
+              `&limit=100`;
+            const res = await fetch(url, credOpts);
+            if (!res.ok) return [key, []];
+            const obsList = (await res.json()).results || [];
+            return [key, obsList.map((obs, i) => mapObsToRow(obs, cfg, i))];
+          }
+
+          // ── Estrategia A: query por encounterType ─────────────────────────
           if (!cfg.encounterTypeUuid) return [key, []];
           const url =
             `/openmrs/ws/rest/v1/encounter` +

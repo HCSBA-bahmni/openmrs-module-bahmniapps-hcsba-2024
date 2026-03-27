@@ -20,36 +20,34 @@ export const dashboardConfig = {
   //                       o GET /openmrs/ws/rest/v1/concept?q=<nombre>&v=custom:(display)
   //
   formSections: [
-    // ── Ejemplo: Licencia Médica ─────────────────────────────────────────────
-    // Descomentar y rellenar los UUIDs/nombres reales del sistema.
+    // ── Indicaciones para el Paciente ────────────────────────────────────────
+    // formUuid:    b405d44f-27cf-46b0-bc30-fa9f91a6eda7  (Bahmni FormBuilder)
+    // conceptUuid: b320c274-d39b-4a51-b091-df5ca8768a69
+    // Estrategia: observationConceptUuid (no requiere encounterTypeUuid)
+    {
+      key:                    "indicaciones_paciente",
+      label:                  "Indicaciones al Paciente",
+      filePrefix:             "Indicaciones",
+      tagColor:               "green",
+      // Consulta directamente las obs por concepto (campo TextArea del formulario)
+      observationConceptUuid: "b320c274-d39b-4a51-b091-df5ca8768a69",
+      fields: [
+        { label: "Fecha",         source: "encounterDate" },
+        { label: "Indicaciones",  conceptDisplay: "Indicaciones al paciente" },
+      ],
+    },
+
+    // ── Ejemplo: Licencia Médica (estrategia por encounterTypeUuid) ──────────
     // {
-    //   key:              "sick_leave",           // id único, sin espacios
-    //   label:            "Licencias Médicas",    // nombre del tab
-    //   filePrefix:       "Licencia",             // prefijo del nombre del PDF
-    //   tagColor:         "cyan",                 // color del Tag de Carbon
+    //   key:               "sick_leave",
+    //   label:             "Licencias Médicas",
+    //   filePrefix:        "Licencia",
+    //   tagColor:          "cyan",
     //   encounterTypeUuid: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
     //   fields: [
-    //     // source: "encounterDate" → usa la fecha del encuentro (no concept)
-    //     { label: "Fecha",           source: "encounterDate" },
-    //     // conceptDisplay: nombre EXACTO del concepto en OpenMRS
-    //     { label: "Diagnóstico",     conceptDisplay: "Diagnóstico" },
-    //     { label: "Días de reposo",  conceptDisplay: "Días de reposo" },
-    //     { label: "Médico",          conceptDisplay: "Nombre del médico" },
-    //   ],
-    // },
-    //
-    // ── Ejemplo: Certificado Médico ──────────────────────────────────────────
-    // {
-    //   key:              "medical_cert",
-    //   label:            "Certificados Médicos",
-    //   filePrefix:       "Certificado",
-    //   tagColor:         "teal",
-    //   encounterTypeUuid: "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
-    //   fields: [
-    //     { label: "Fecha",           source: "encounterDate" },
-    //     { label: "Motivo",          conceptDisplay: "Motivo del certificado" },
-    //     { label: "Diagnóstico",     conceptDisplay: "Diagnóstico" },
-    //     { label: "Observaciones",   conceptDisplay: "Observaciones" },
+    //     { label: "Fecha",          source: "encounterDate" },
+    //     { label: "Diagnóstico",    conceptDisplay: "Diagnóstico" },
+    //     { label: "Días de reposo", conceptDisplay: "Días de reposo" },
     //   ],
     // },
   ],
