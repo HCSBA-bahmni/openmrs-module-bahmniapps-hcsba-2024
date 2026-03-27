@@ -19,7 +19,6 @@ import {
     TableRow,
     TableCell,
     Button,
-    Loading,
     Grid,
     Row,
     Column,
@@ -619,7 +618,6 @@ export function IpsIcvpDisplayControl(props) {
     const qrRegionId = "vhl-qr-region-icvp";
     const vhlInputId = "vhl-input-icvp";
 
-    const [isLoading, setIsLoading] = useState(true);
     const [documents, setDocuments] = useState([]);
     const [error, setError] = useState(null);
 
@@ -665,7 +663,6 @@ export function IpsIcvpDisplayControl(props) {
     useEffect(() => {
         let cancelled = false;
         const run = async () => {
-            setIsLoading(true);
             setError(null);
             try {
                 if (!identifier) {
@@ -674,14 +671,11 @@ export function IpsIcvpDisplayControl(props) {
                 }
                 const bundle = await fetchDocumentReferences(identifier);
                 const docs = parseDocRefsFromBundle(bundle);
-                // Orden: más nuevos primero
                 const docsSorted = [...docs].sort((a, b) => getDocTimestamp(b) - getDocTimestamp(a));
                 if (!cancelled) setDocuments(docsSorted);
             } catch (e) {
                 console.warn("[IPSICVP] ITI-67 error (silenciado, no se mostrará en UI):", e);
                 if (!cancelled) setDocuments([]);
-            } finally {
-                if (!cancelled) setIsLoading(false);
             }
         };
         run();
@@ -1396,19 +1390,6 @@ export function IpsIcvpDisplayControl(props) {
         <FormattedMessage id="DASHBOARD_TITLE_IPS_ICVP_KEY" defaultMessage="IPS LAC Dashboard"/>
     );
 
-    if (isLoading) {
-        return (
-            <I18nProvider>
-                <div className="ips-display-control-loading">
-                    <Loading
-                        description={
-                            <FormattedMessage id="LOADING_MESSAGE" defaultMessage="Loading... Please Wait"/>
-                        }
-                    />
-                </div>
-            </I18nProvider>
-        );
-    }
 
     if (error) {
         // Error silenciado: no mostrar nada para no interferir con la UI de Bahmni
