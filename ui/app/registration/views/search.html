@@ -1,105 +1,226 @@
-<section class="reg-search-wrapper">
-    <section class="reg-search">
-        <article class="search-seperator-l" ng-if="::patientIdentifierSearchConfig.show">
-            <form name="searchByIdForm" ng-submit="searchById()" class="simple-form-ui clearfix" >
-                    <label for="registrationNumber"><strong style="padding-left: 5px;">{{ ::'REGISTRATION_LABEL_PATIENT_ID' | translate}}</strong></label>
-                    <div class="search-patient-id fl">
-                        <input tabindex="2" class="fl" type="text" id="registrationNumber"
-                        ng-model="searchParameters.registrationNumber" focus-me="true"
-                               placeholder="{{ ::'REGISTRATION_LABEL_ENTER_ID' | translate}}">
-                        <div class="reg-srch-btn fl">
-                            <button tabindex="3" type="submit" ng-disabled="!searchParameters.registrationNumber" >{{ ::'REGISTRATION_LABEL_SEARCH' | translate}}</button>
-                        </div>
-                    </div>
+<section class="bmx-search-page">
 
-            </form>
-        </article>
-        <article class="search-seperator-r">
-            <form name="searchByNameForm" ng-submit="searchPatients()" class="simple-form-ui" >
+  <!-- ── PANEL DE BÚSQUEDA ──────────────────────────────────── -->
+  <div class="bmx-search-panel">
 
-                <article class="fl">
-                    <label for="name"><strong>{{ ::'REGISTRATION_LABEL_NAME' | translate}}</strong></label>
-                    <input tabindex="4" type="text" id="name" ng-model="searchParameters.name" placeholder="{{ ::'REGISTRATION_LABEL_ENTER_NAME' | translate}}">
-                </article>
-                <article class="fl" ng-if="::customAttributesSearchConfig.show">
-                    <label for="name"><strong>{{::customAttributesSearchConfig.label | translate}}</strong></label>
-                    <input tabindex="5" type="text" id="customAttribute" ng-model="searchParameters.customAttribute" placeholder="{{::customAttributesSearchConfig.placeholder | translate}}">
-                </article>
-                <article class="fl" ng-if="::addressSearchConfig.show">
-                    <label for="name"><strong>{{::addressSearchConfig.label | translate}}</strong></label>
-                    <input tabindex="6" type="text" id="addressFieldValue" ng-model="searchParameters.addressFieldValue" placeholder="{{::addressSearchConfig.placeholder | translate}}">
-                </article>
+    <!-- Cabecera del panel -->
+    <div class="bmx-search-panel__header">
+      <span class="bmx-search-panel__icon">
+        <i class="fa fa-search" aria-hidden="true"></i>
+      </span>
+      <div class="bmx-search-panel__title-wrap">
+        <h2 class="bmx-search-panel__title">Búsqueda de Pacientes</h2>
+        <p class="bmx-search-panel__subtitle">Busca por número de registro o por nombre del paciente</p>
+      </div>
+      <a class="bmx-search-panel__new-btn" href="#/patient/new">
+        <i class="fa fa-user-plus" aria-hidden="true"></i>
+        <span>Nuevo Paciente</span>
+      </a>
+    </div>
 
-                <article class="fl" ng-show="::programAttributesSearchConfig.show">
-                    <label for="name"><strong>{{ ::programAttributesSearchConfig.label | translate}}</strong></label>
-                    <input tabindex="7" type="text" id="programAttribute" ng-model="searchParameters.programAttributeFieldValue" placeholder="{{ ::programAttributesSearchConfig.placeholder | translate}}">
-                </article>
+    <!-- Formularios de búsqueda -->
+    <div class="bmx-search-forms">
 
-                <article class="fl">
-                    <div class="reg-srch-btn">
-                        <button tabindex="8" type="submit" ng-disabled="disableSearchButton()">{{ ::'REGISTRATION_LABEL_SEARCH' | translate}}</button>
-                    </div>
-                </article>
-            </form>
-
-        </article>
-    </section>
-
-    <div class="note-container no-search-results" ng-if="noResultsMessage">
-        <div class="note warning">
-            <div class="text">
-                <p>{{noResultsMessage | translate:patientIdentifier }}</p>
+      <!-- Búsqueda por ID -->
+      <div class="bmx-search-form bmx-search-form--id" ng-if="::patientIdentifierSearchConfig.show">
+        <form name="searchByIdForm" ng-submit="searchById()">
+          <div class="bmx-sf__group">
+            <label class="bmx-sf__label" for="registrationNumber">
+              <i class="fa fa-id-card" aria-hidden="true"></i>
+              {{ ::'REGISTRATION_LABEL_PATIENT_ID' | translate}}
+            </label>
+            <div class="bmx-sf__input-wrap">
+              <input class="bmx-sf__input"
+                     tabindex="2"
+                     type="text"
+                     id="registrationNumber"
+                     ng-model="searchParameters.registrationNumber"
+                     focus-me="true"
+                     placeholder="{{ ::'REGISTRATION_LABEL_ENTER_ID' | translate}}">
             </div>
-        </div>
-    </div>
+          </div>
+          <button class="bmx-sf__btn"
+                  tabindex="3"
+                  type="submit"
+                  ng-disabled="!searchParameters.registrationNumber">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            {{ ::'REGISTRATION_LABEL_SEARCH' | translate}}
+          </button>
+        </form>
+      </div>
 
-    <div ng-if="resultsPresent()" infinite-scroll="nextPage()" infinite-scroll-immediate-check="false" infinite-scroll-disabled="noMoreResultsPresent" class="registraition-search-results-container">
-        <table class="table">
-            <thead>
-            <tr>
-                <th><strong>{{ ::'REGISTRATION_LABEL_ID' | translate}}</strong></th>
-                <th ng-repeat = "type in ::extraIdentifierTypes track by $index"><strong>{{type.name}}</strong></th>
-                <th><strong>{{ ::'REGISTRATION_LABEL_NAME' | translate}}</strong></th>
-                <th ng-repeat = "field in ::personSearchResultsConfig.fields track by $index"><strong>{{::convertToTableHeader(field)}}</strong></th>
-                <th><strong>{{ ::'REGISTRATION_LABEL_GENDER' | translate}}</strong></th>
-                <th ng-if="::showAge"><strong>{{ ::'REGISTRATION_LABEL_AGE' | translate}}</strong></th>
-                <th ng-if="::showDOB"><strong>{{ ::'REGISTRATION_LABEL_DOB' | translate}}</strong></th>
-                <th ng-repeat = "field in ::addressSearchResultsConfig.fields"><strong>{{::convertToTableHeader(getAddressColumnName(field))}}</strong></th>
-                <th><strong>{{ ::'REGISTRATION_LABEL_REGISTRATION_DATE' | translate}}</strong></th>
-                <th ng-if="::programAttributesSearchConfig.show"><strong>{{::convertToTableHeader(programAttributesSearchConfig.label)}}</strong></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="result in results">
-                <td>
-                    <a tabindex="{{ :: 8 + $index + 1 }}" ng-if="::(searchActions.length > 0)" ng-click="forPatient(result).doExtensionAction(searchActions[0])">
-                        {{::result.identifier || 'Not Assigned'}}
-                    </a>
-                </td>
-                <td ng-repeat = "type in ::extraIdentifierTypes track by $index">
-                    {{::result.extraIdentifiers[type.name]}}
-                </td>
+      <!-- Separador -->
+      <div class="bmx-search-divider" ng-if="::patientIdentifierSearchConfig.show">
+        <span>o</span>
+      </div>
 
-                <td>{{::result.givenName}} {{::result.middleName}} {{::result.familyName}}</td>
-                <td ng-repeat = "field in ::personSearchResultsConfig.fields track by $index">{{::result.customAttribute[field] || "" | bahmniDateInStrictMode}}</td>
-                <td>{{::result.gender}}</td>
-                <td ng-if="::showAge">{{::result.age}}</td>
-                <td ng-if="::showDOB">{{::result.birthDate | bahmniDate}}</td>
-                <td ng-repeat = "field in ::addressSearchResultsConfig.fields">{{::result.addressFieldValue[field] || ""}}</td>
-                <td>{{::result.dateCreated | bahmniDate}}</td>
-                <td ng-if="::programAttributesSearchConfig.show">{{getProgramAttributeValues(result) | bahmniDateInStrictMode}}</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+      <!-- Búsqueda por nombre / atributos -->
+      <div class="bmx-search-form bmx-search-form--name">
+        <form name="searchByNameForm" ng-submit="searchPatients()">
+          <div class="bmx-sf__fields-row">
 
-    <div id="loader" ng-show="loadingMoreResults()"></div>
-
-    <div class="note-container no-more-results" ng-if="noMoreResultsPresent">
-        <div class="note warning">
-            <div class="text">
-                    <p>{{ ::'REGISTRATION_LABEL_NO_RESULTS' | translate}}</p>
+            <div class="bmx-sf__group">
+              <label class="bmx-sf__label" for="name">
+                <i class="fa fa-user" aria-hidden="true"></i>
+                {{ ::'REGISTRATION_LABEL_NAME' | translate}}
+              </label>
+              <div class="bmx-sf__input-wrap">
+                <input class="bmx-sf__input"
+                       tabindex="4"
+                       type="text"
+                       id="name"
+                       ng-model="searchParameters.name"
+                       placeholder="{{ ::'REGISTRATION_LABEL_ENTER_NAME' | translate}}">
+              </div>
             </div>
-        </div>
+
+            <div class="bmx-sf__group" ng-if="::customAttributesSearchConfig.show">
+              <label class="bmx-sf__label" for="customAttribute">
+                <i class="fa fa-tag" aria-hidden="true"></i>
+                {{::customAttributesSearchConfig.label | translate}}
+              </label>
+              <div class="bmx-sf__input-wrap">
+                <input class="bmx-sf__input"
+                       tabindex="5"
+                       type="text"
+                       id="customAttribute"
+                       ng-model="searchParameters.customAttribute"
+                       placeholder="{{::customAttributesSearchConfig.placeholder | translate}}">
+              </div>
+            </div>
+
+            <div class="bmx-sf__group" ng-if="::addressSearchConfig.show">
+              <label class="bmx-sf__label" for="addressFieldValue">
+                <i class="fa fa-map-marker" aria-hidden="true"></i>
+                {{::addressSearchConfig.label | translate}}
+              </label>
+              <div class="bmx-sf__input-wrap">
+                <input class="bmx-sf__input"
+                       tabindex="6"
+                       type="text"
+                       id="addressFieldValue"
+                       ng-model="searchParameters.addressFieldValue"
+                       placeholder="{{::addressSearchConfig.placeholder | translate}}">
+              </div>
+            </div>
+
+            <div class="bmx-sf__group" ng-show="::programAttributesSearchConfig.show">
+              <label class="bmx-sf__label" for="programAttribute">
+                <i class="fa fa-stethoscope" aria-hidden="true"></i>
+                {{ ::programAttributesSearchConfig.label | translate}}
+              </label>
+              <div class="bmx-sf__input-wrap">
+                <input class="bmx-sf__input"
+                       tabindex="7"
+                       type="text"
+                       id="programAttribute"
+                       ng-model="searchParameters.programAttributeFieldValue"
+                       placeholder="{{ ::programAttributesSearchConfig.placeholder | translate}}">
+              </div>
+            </div>
+
+          </div>
+          <button class="bmx-sf__btn"
+                  tabindex="8"
+                  type="submit"
+                  ng-disabled="disableSearchButton()">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            {{ ::'REGISTRATION_LABEL_SEARCH' | translate}}
+          </button>
+        </form>
+      </div>
+
+    </div><!-- /.bmx-search-forms -->
+  </div><!-- /.bmx-search-panel -->
+
+  <!-- ── MENSAJES ──────────────────────────────────────────── -->
+  <div class="bmx-search-message bmx-search-message--warning" ng-if="noResultsMessage">
+    <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+    <span>{{noResultsMessage | translate:patientIdentifier}}</span>
+  </div>
+
+  <!-- ── RESULTADOS ─────────────────────────────────────────── -->
+  <div ng-if="resultsPresent()"
+       infinite-scroll="nextPage()"
+       infinite-scroll-immediate-check="false"
+       infinite-scroll-disabled="noMoreResultsPresent"
+       class="bmx-search-results">
+
+    <div class="bmx-search-results__header">
+      <i class="fa fa-list-ul" aria-hidden="true"></i>
+      <span>Resultados</span>
+      <span class="bmx-search-results__count">{{results.length}}</span>
     </div>
+
+    <div class="bmx-search-results__table-wrap">
+      <table class="bmx-search-results__table">
+        <thead>
+          <tr>
+            <th>{{ ::'REGISTRATION_LABEL_ID' | translate}}</th>
+            <th ng-repeat="type in ::extraIdentifierTypes track by $index">{{type.name}}</th>
+            <th>{{ ::'REGISTRATION_LABEL_NAME' | translate}}</th>
+            <th ng-repeat="field in ::personSearchResultsConfig.fields track by $index">{{::convertToTableHeader(field)}}</th>
+            <th>{{ ::'REGISTRATION_LABEL_GENDER' | translate}}</th>
+            <th ng-if="::showAge">{{ ::'REGISTRATION_LABEL_AGE' | translate}}</th>
+            <th ng-if="::showDOB">{{ ::'REGISTRATION_LABEL_DOB' | translate}}</th>
+            <th ng-repeat="field in ::addressSearchResultsConfig.fields">{{::convertToTableHeader(getAddressColumnName(field))}}</th>
+            <th>{{ ::'REGISTRATION_LABEL_REGISTRATION_DATE' | translate}}</th>
+            <th ng-if="::programAttributesSearchConfig.show">{{::convertToTableHeader(programAttributesSearchConfig.label)}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="bmx-search-results__row" ng-repeat="result in results">
+            <td class="bmx-search-results__td-id">
+              <a tabindex="{{ :: 8 + $index + 1 }}"
+                 ng-if="::(searchActions.length > 0)"
+                 ng-click="forPatient(result).doExtensionAction(searchActions[0])">
+                <i class="fa fa-id-card" aria-hidden="true"></i>
+                {{::result.identifier || 'Not Assigned'}}
+              </a>
+            </td>
+            <td ng-repeat="type in ::extraIdentifierTypes track by $index">
+              {{::result.extraIdentifiers[type.name]}}
+            </td>
+            <td class="bmx-search-results__td-name">
+              <div class="bmx-search-results__name-cell">
+                <span class="bmx-search-results__avatar">
+                  <i class="fa fa-user" aria-hidden="true"></i>
+                </span>
+                <span>{{::result.givenName}} {{::result.middleName}} {{::result.familyName}}</span>
+              </div>
+            </td>
+            <td ng-repeat="field in ::personSearchResultsConfig.fields track by $index">
+              {{::result.customAttribute[field] || "" | bahmniDateInStrictMode}}
+            </td>
+            <td>
+              <span class="bmx-search-results__gender"
+                    ng-class="{'bmx-search-results__gender--m': result.gender === 'M', 'bmx-search-results__gender--f': result.gender === 'F'}">
+                {{::result.gender}}
+              </span>
+            </td>
+            <td ng-if="::showAge">{{::result.age}}</td>
+            <td ng-if="::showDOB">{{::result.birthDate | bahmniDate}}</td>
+            <td ng-repeat="field in ::addressSearchResultsConfig.fields">{{::result.addressFieldValue[field] || ""}}</td>
+            <td>{{::result.dateCreated | bahmniDate}}</td>
+            <td ng-if="::programAttributesSearchConfig.show">
+              {{getProgramAttributeValues(result) | bahmniDateInStrictMode}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Cargando más -->
+  <div id="loader" ng-show="loadingMoreResults()" class="bmx-search-loader">
+    <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+    <span>Cargando resultados...</span>
+  </div>
+
+  <!-- Sin más resultados -->
+  <div class="bmx-search-message bmx-search-message--info" ng-if="noMoreResultsPresent">
+    <i class="fa fa-info-circle" aria-hidden="true"></i>
+    <span>{{ ::'REGISTRATION_LABEL_NO_RESULTS' | translate}}</span>
+  </div>
+
 </section>

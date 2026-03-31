@@ -1,29 +1,74 @@
-<div class="opd-header-wrapper">
-    <div class="opd-header-top">
-        <header>
-            <bm-back-links></bm-back-links>
-            <div class="fr">
-                <div class="retro-date-widget-wrapper"
-                     show-if-privilege="{{retrospectivePrivilege}},{{onBehalfOfPrivilege}},{{locationPickerPrivilege}}"
-                     ng-if="getTitle()">
-                    <div class="retro-date-widget-header fr">
-                        <button ng-click="popUpHandler()">{{ getTitle() | translate }}</button>
+<div class="opd-header-wrapper bmx-clinical-header-wrapper">
+    <header class="bmx-homebar bmx-clinbar">
+
+        <!-- ── Izquierda: back-links + título ─────────────────────────── -->
+        <div class="bmx-homebar__brand bmx-clinbar__brand">
+            <div class="bmx-clinbar__backlinks">
+                <bm-back-links></bm-back-links>
+            </div>
+            <span class="bmx-homebar__title">Consulta Clínica</span>
+        </div>
+
+        <!-- ── Centro: navegación extra (tabs de consulta, etc.) ─────────
+             ui-view="additional-header" es usado por estados de consulta
+             para inyectar tabs de visita.  ─────────────────────────────── -->
+        <div class="bmx-clinbar__additional additional-header" ui-view="additional-header"></div>
+
+        <!-- ── Centro-derecha: ubicación / proveedor / fecha retro ──────── -->
+        <div class="bmx-clinbar__retro"
+             show-if-privilege="{{retrospectivePrivilege}},{{onBehalfOfPrivilege}},{{locationPickerPrivilege}}"
+             ng-if="getTitle()">
+            <button class="bmx-clinbar__retro-btn" type="button" ng-click="popUpHandler()"
+                    title="{{ getTitle() | translate }}">
+                <i class="fa fa-map-marker" aria-hidden="true"></i>
+                <span>{{ getTitle() | translate }}</span>
+                <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <!-- ── Derecha: menú de usuario ──────────────────────────────────── -->
+        <div class="bmx-homebar__controls">
+            <div class="bmx-homebar__user" ng-class="{'bmx-homebar__user--open': userMenuOpen}">
+                <button class="bmx-homebar__user-btn" type="button"
+                        ng-click="userMenuOpen = !userMenuOpen">
+                    <span class="bmx-homebar__user-avatar">
+                        <i class="fa fa-user-md" aria-hidden="true"></i>
+                    </span>
+                    <span class="bmx-homebar__user-name">
+                        {{$root.currentUser.display || 'Usuario'}}
+                    </span>
+                    <i class="fa fa-chevron-down bmx-homebar__user-chevron" aria-hidden="true"></i>
+                </button>
+
+                <!-- Overlay cierra el menú al hacer clic fuera -->
+                <div class="bmx-homebar__user-overlay"
+                     ng-show="userMenuOpen"
+                     ng-click="userMenuOpen = false"></div>
+
+                <!-- Dropdown -->
+                <div class="bmx-homebar__user-dropdown" ng-show="userMenuOpen">
+                    <div class="bmx-homebar__user-info">
+                        <span class="bmx-homebar__user-info-avatar">
+                            <i class="fa fa-user-md" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <strong>{{$root.currentUser.display}}</strong>
+                            <small>{{'CLINICAL_KEY' | translate}}</small>
+                        </div>
                     </div>
-                    <button class="btn-user-info">
-                        <i class="fa fa-user-md fa-white small"></i>
-                        <i class="fa fa-caret-down fa-white mini"></i>
-                    </button>
-                    <ul>
+                    <div class="bmx-homebar__user-divider"></div>
+                    <ul class="bmx-homebar__user-menu">
                         <li>
-                            <a log-out>
-                                <i class="fa fa-power-off fa-white small"></i>
-                                <span class="nav-link">{{::'LOGOUT_TRANSLATION_KEY' | translate}}</span>
+                            <a class="bmx-homebar__user-menu-item bmx-homebar__user-menu-item--danger"
+                               log-out>
+                                <i class="fa fa-power-off" aria-hidden="true"></i>
+                                <span>{{'LOGOUT_TRANSLATION_KEY' | translate}}</span>
                             </a>
                         </li>
                     </ul>
                 </div>
             </div>
-            <div class="additional-header" ui-view="additional-header"></div>
-        </header>
-    </div>
+        </div>
+
+    </header>
 </div>

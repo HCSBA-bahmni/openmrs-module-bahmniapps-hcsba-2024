@@ -1,3 +1,368 @@
+/* =================================================================
+   BMX – BÚSQUEDA CLÍNICA DE PACIENTES
+   ================================================================= */
+
+/* ── Fondo de página ─────────────────────────────────────────────── */
+.bmx-clin-search {
+  background: #f0f4f9;
+  min-height: calc(100vh - 64px);
+  padding: 24px 20px 48px;
+
+  @media (max-width: 600px) { padding: 16px 12px 40px; }
+}
+
+/* ── Panel card ──────────────────────────────────────────────────── */
+.bmx-clin-search__panel {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+  overflow: hidden;
+}
+
+/* ── Cabecera del panel (azul con título + tabs) ─────────────────── */
+.bmx-clin-search__panel-header {
+  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 12%) 100%);
+  padding: 16px 20px 0;
+}
+
+.bmx-clin-search__panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  letter-spacing: .2px;
+
+  i { font-size: 15px; opacity: .85; }
+}
+
+/* ── Tabs dentro del panel ───────────────────────────────────────── */
+.bmx-clin-search__tabs {
+  display: flex;
+  align-items: flex-end;
+  margin-top: 0;
+
+  /* scrollable-tabs wrapper */
+  scrollable-tabs ul,
+  ul {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    /* Anular .active-visits li que pone width: % */
+    li { width: auto !important; }
+  }
+
+  .tab-item a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    background: rgba(255, 255, 255, .15);
+    color: rgba(255, 255, 255, .85) !important;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-bottom: none;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+
+    &:hover { background: rgba(255, 255, 255, .26); color: #fff !important; }
+  }
+
+  .tab-item.tab-selected a {
+    background: #fff;
+    color: $bahmniPrimaryColor !important;
+    border-color: #fff;
+  }
+}
+
+.bmx-clin-search__tab-count {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: .8;
+}
+
+/* Botón imprimir en header */
+.bmx-clin-search__print-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px !important;
+  margin-left: 8px !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: rgba(255, 255, 255, .12) !important;
+  border: 1px solid rgba(255, 255, 255, .2) !important;
+  border-bottom: none !important;
+  color: rgba(255, 255, 255, .9) !important;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { background: rgba(255, 255, 255, .24) !important; }
+  @media (max-width: 768px) { display: none !important; }
+}
+
+/* ── Cuerpo del panel ────────────────────────────────────────────── */
+/* overflow:auto permite que el infinite-scroll del resize directive funcione */
+.bmx-clin-search__content {
+  padding: 20px;
+  background: #fff;
+  overflow: auto;
+
+  /* Spinner de carga */
+  .patient-list-spinner {
+    display: none;
+    min-height: 2em;
+    position: relative;
+  }
+}
+
+/* ── Wrapper del resize directive ────────────────────────────────── */
+.bmx-clin-resize {
+  display: block;
+}
+
+/* ── Fila de búsqueda ────────────────────────────────────────────── */
+.bmx-clin-search__filter-row {
+  margin-bottom: 20px;
+  form { margin: 0; }
+}
+
+.bmx-clin-search__input-wrap {
+  display: flex;
+  align-items: center;
+  background: #f8fafd;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: 600px;
+  transition: border-color .2s, box-shadow .2s;
+
+  &:focus-within {
+    border-color: $bahmniPrimaryColor;
+    box-shadow: 0 0 0 3px rgba(0, 119, 200, .12);
+    background: #fff;
+  }
+}
+
+.bmx-clin-search__input-icon {
+  padding: 0 12px;
+  color: #9ca3af;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.bmx-clin-search__input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  padding: 10px 12px 10px 0 !important;
+  font-size: 13px !important;
+  color: #111827 !important;
+  min-width: 0;
+  outline: none !important;
+  box-shadow: none !important;
+
+  &::placeholder { color: #9ca3af; }
+}
+
+.bmx-clin-search__search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 10px 18px;
+  background: $bahmniPrimaryColor;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+  flex-shrink: 0;
+
+  i { font-size: 12px; }
+  &:hover:not([disabled]) { background: darken($bahmniPrimaryColor, 10%); }
+  &[disabled] { opacity: .5; cursor: not-allowed; }
+}
+
+/* ── Tabla de resultados ─────────────────────────────────────────── */
+.bmx-clin-search__table-wrap {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.bmx-clin-search__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr { background: #f8fafd; }
+
+  thead th {
+    padding: 10px 14px !important;
+    text-align: left;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #6b7280 !important;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+
+    &.sortable {
+      cursor: pointer;
+      &:hover { background: #f1f5f9; color: $bahmniPrimaryColor !important; }
+    }
+  }
+
+  .sortIcons { float: right; margin-left: 4px; }
+
+  tbody tr.bmx-clin-search__table-row {
+    cursor: pointer;
+    transition: background .1s;
+    border-bottom: 1px solid #f1f5f9;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: lighten($bahmniPrimaryColor, 55%) !important; }
+  }
+
+  tbody td {
+    padding: 10px 14px !important;
+    color: #374151;
+    vertical-align: middle;
+    height: auto !important;
+    position: relative;
+  }
+}
+
+/* Celda nombre con avatar chip */
+.bmx-clin-search__name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+
+.bmx-clin-search__avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.bmx-clin-search__cell-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ── Vista de tiles ──────────────────────────────────────────────── */
+.bmx-clin-search__tiles {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 4px 0 !important;
+}
+
+.bmx-clin-search__tile {
+  /* Neutralizar display:inline-block de .active-patient */
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px !important;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb !important; /* anular border:1px solid $white del .tab-content li */
+  background: #fff !important;           /* anular background:$lightestGray del .tab-content li */
+  text-align: center !important;         /* anular text-align:center del .tab-content li */
+  cursor: pointer !important;
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+  box-sizing: border-box;
+
+  /* Anchos responsive - !important anula los % de .active-visits li */
+  width: calc(50% - 6px) !important;
+  @media (min-width: 540px)  { width: calc(33.33% - 8px) !important; }
+  @media (min-width: 768px)  { width: calc(25% - 9px) !important; }
+  @media (min-width: 992px)  { width: calc(16.66% - 10px) !important; }
+  @media (min-width: 1280px) { width: calc(12.5% - 10px) !important; }
+
+  &:hover {
+    border-color: $bahmniPrimaryColor !important;
+    box-shadow: 0 4px 14px rgba(0, 119, 200, .14);
+  }
+}
+
+.bmx-clin-search__tile-img {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+  object-fit: cover;
+  border: 2px solid lighten($bahmniPrimaryColor, 44%);
+  box-shadow: 0 2px 8px rgba(0, 119, 200, .14);
+}
+
+.bmx-clin-search__tile-name {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  text-align: center !important;
+  line-height: 1.4 !important;
+  width: 100%;
+  /* Anular estilos heredados de .patient-name */
+  font-family: inherit !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bmx-clin-search__tile-id {
+  font-size: 11px !important;
+  color: #6b7280 !important;
+  text-align: center !important;
+}
+
+/* ── Mensaje sin resultados ──────────────────────────────────────── */
+.bmx-clin-search__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #9ca3af;
+  gap: 12px;
+  text-align: center;
+
+  i { font-size: 36px; opacity: .4; }
+  p { font-size: 14px; margin: 0; font-weight: 500; }
+}
+
+/* =================================================================
+   Estilos ORIGINALES (conservados para retrocompatibilidad con
+   otras vistas del módulo que usen las mismas clases)
+   ================================================================= */
+
 .search-wrapper {
     padding-bottom: 5px;
 

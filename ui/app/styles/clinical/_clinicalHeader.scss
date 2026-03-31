@@ -1,0 +1,333 @@
+/* =================================================================
+   BMX – TOPBAR CLÍNICO  (Consulta / OPD)
+   Sobrescribe .opd-header-wrapper de bahmni-layout/_layout.scss
+   ================================================================= */
+
+/* ── 1. Neutralizar fondo verde del wrapper ─────────────────────── */
+.bmx-clinical-header-wrapper.opd-header-wrapper {
+  background: transparent !important;
+  height: 64px !important;
+  padding: 0 !important;
+}
+
+/* ── 2. El <header> dentro del wrapper ya es fixed gracias a
+        .opd-header-wrapper, pero tenemos que anular:
+        header { max-width: $max-page-width; background: $bahmniSecondaryColor; }  */
+.bmx-clinical-header-wrapper.opd-header-wrapper header.bmx-clinbar {
+  position: static !important;   /* el fixed lo pone el wrapper */
+  max-width: none !important;
+  width: 100% !important;
+  height: 64px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* ── 3. Ajustar el contenido para que no quede bajo el nuevo header  */
+.opd-wrapper {
+  padding-top: 64px !important;
+}
+
+/* ── 4. Anular la directiva additional-header del layout ──────────
+        .additional-header { width: calc(100% - 135px); display: inline-block; }
+        En el nuevo flex-layout queremos que sea un item flex */
+.bmx-clinbar .additional-header {
+  display: flex !important;
+  width: auto !important;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  align-items: center;
+}
+
+/* =================================================================
+   bmx-homebar – base (copiado de _home y _registrationHeader para
+   disponibilidad dentro de clinical.css)
+   ================================================================= */
+.bmx-homebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(90deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .18);
+  z-index: 1001;
+}
+
+/* Brand */
+.bmx-homebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.bmx-homebar__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  @media (max-width: 600px) { display: none; }
+}
+
+/* Controls (side derecho) */
+.bmx-homebar__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── User dropdown ───────────────────────────────────────────────── */
+.bmx-homebar__user { position: relative; }
+
+.bmx-homebar__user-btn {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px !important;
+  background: rgba(255, 255, 255, .15) !important;
+  border: 1px solid rgba(255, 255, 255, .3) !important;
+  border-radius: 8px !important;
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .2s;
+
+  &:hover { background: rgba(255, 255, 255, .26) !important; }
+  &:focus  { outline: none; }
+}
+
+.bmx-homebar__user-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .22);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  i { font-size: 12px; color: #fff; }
+}
+
+.bmx-homebar__user-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @media (max-width: 500px) { display: none; }
+}
+
+.bmx-homebar__user-chevron {
+  font-size: 10px;
+  color: rgba(255, 255, 255, .7);
+  transition: transform .2s;
+}
+.bmx-homebar__user--open .bmx-homebar__user-chevron { transform: rotate(180deg); }
+
+.bmx-homebar__user-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
+  background: transparent;
+}
+
+.bmx-homebar__user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .14), 0 2px 8px rgba(0, 0, 0, .08);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  z-index: 1003;
+  color: #374151 !important;
+  font-weight: 400 !important;
+}
+
+.bmx-homebar__user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, lighten($bahmniPrimaryColor, 50%) 0%, #fff 100%);
+
+  strong { display: block; font-size: 13px; color: #111827 !important; font-weight: 700; }
+  small  { display: block; font-size: 11px; color: $mediumGray !important; margin-top: 2px; }
+}
+
+.bmx-homebar__user-info-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: $bahmniPrimaryColor;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  i { font-size: 18px; color: #fff; }
+}
+
+.bmx-homebar__user-divider { height: 1px; background: #f1f5f9; }
+
+.bmx-homebar__user-menu {
+  padding: 6px 0;
+  list-style: none !important;
+  margin: 0 !important;
+}
+
+.bmx-homebar__user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #374151 !important;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: background .12s;
+
+  i     { font-size: 13px; color: $mediumGray !important; width: 14px; text-align: center; }
+  span  { color: inherit !important; }
+
+  &:hover {
+    background: #f8fafc;
+    color: $bahmniPrimaryColor !important;
+    i { color: $bahmniPrimaryColor !important; }
+  }
+
+  &--danger {
+    color: #dc2626 !important;
+    i { color: #dc2626 !important; }
+    &:hover { background: #fff2f2; color: #b91c1c !important; i { color: #b91c1c !important; } }
+  }
+}
+
+/* =================================================================
+   bmx-clinbar – estilos específicos del módulo clínico
+   ================================================================= */
+
+/* ── Brand lateral izquierdo ─────────────────────────────────────── */
+.bmx-clinbar__brand {
+  gap: 10px;
+}
+
+/* ── Back-links: estilos para .back-btn y .back-btn-noIcon ──────── */
+.bmx-clinbar__backlinks {
+
+  ul {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  li {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Enlace de icono (ej: fa-home, fa-users) */
+  .back-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .15);
+    border: 1px solid rgba(255, 255, 255, .3);
+    color: #fff !important;
+    text-decoration: none !important;
+    transition: background .2s;
+    flex-shrink: 0;
+
+    i { font-size: 15px; color: #fff !important; }
+    img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+
+    &:hover  { background: rgba(255, 255, 255, .28); }
+    &:focus  { outline: none; }
+  }
+
+  /* Enlace con texto (ej: Pacientes) */
+  .back-btn-noIcon {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px !important;
+    margin: 0 !important;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .15);
+    border: 1px solid rgba(255, 255, 255, .3);
+    color: rgba(255, 255, 255, .9) !important;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+
+    span { color: inherit !important; }
+
+    &:hover  { background: rgba(255, 255, 255, .28); color: #fff !important; }
+    &:focus  { outline: none; }
+    &.active { background: rgba(255, 255, 255, .26); color: #fff !important; }
+  }
+}
+
+/* ── Área central (tabs de consulta) ─────────────────────────────── */
+.bmx-clinbar__additional {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Botón retro-date / ubicación ────────────────────────────────── */
+.bmx-clinbar__retro {
+  flex-shrink: 0;
+  margin: 0 8px;
+}
+
+.bmx-clinbar__retro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, .12);
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .92) !important;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background .2s;
+
+  i { font-size: 11px; color: rgba(255, 255, 255, .75) !important; }
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+    display: inline-block;
+  }
+
+  &:hover { background: rgba(255, 255, 255, .24); }
+  &:focus  { outline: none; }
+
+  @media (max-width: 768px) {
+    span { display: none; }
+    padding: 0 10px;
+  }
+}
+
+/* ── Ajuste del contenido de la búsqueda de pacientes ────────────── */
+.patient-search-wrapper {
+  padding-top: 12px;
+}
+

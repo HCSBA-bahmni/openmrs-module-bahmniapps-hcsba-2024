@@ -3,7 +3,10 @@
         <form name="myForm" class="form-horizontal well" single-submit="create()">
             <div class="box-container box-container-default">
                 <legend class="registraion_legend first-registraion_legend">
-                    <span class="mylegend"><strong>{{::'REGISTRATION_LABEL_NEW_PATIENT' | translate}}</strong></span>
+                    <span class="mylegend">
+                      <i class="fa fa-user-plus" aria-hidden="true" style="color:inherit;font-size:13px;margin-right:2px;"></i>
+                      <strong>{{::'REGISTRATION_LABEL_NEW_PATIENT' | translate}}</strong>
+                    </span>
                 </legend>
                 <section class="clearfix">
                     <div class="photo-container-wrapper" ng-if="!disablePhotoCapture">

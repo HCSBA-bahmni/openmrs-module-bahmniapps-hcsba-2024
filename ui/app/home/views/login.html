@@ -1,116 +1,136 @@
-<div class="clint-logo-wrapper">
-    <img class="implementor-logo" src={{logo}} >
-    <span ng-if="titleText" class="title_text"> {{'LOGIN_PAGE_TITLE_TEXT' | translate }} </span>
-</div>
+<!-- ============================================================
+     BMX LOGIN PAGE – Modern redesign
+     ============================================================ -->
+<div class="bmx-login-page">
 
-<div class="login" ng-hide="showOTP">
-    <div ng-if="headerText" class="emr-login-text">
-        <b>{{'LOGIN_PAGE_HEADER_TEXT'| translate}} </b>
+  <!-- ── LEFT: brand panel ───────────────────────────────────── -->
+  <div class="bmx-login__brand" aria-hidden="true">
+    <div class="bmx-login__brand-inner">
+      <img class="bmx-login__brand-logo" ng-src="{{logo}}" ng-if="logo" alt="Logo" />
+      <div ng-if="headerText" class="bmx-login__brand-title">{{'LOGIN_PAGE_HEADER_TEXT' | translate}}</div>
+      <p ng-if="titleText" class="bmx-login__brand-subtitle">{{'LOGIN_PAGE_TITLE_TEXT' | translate}}</p>
     </div>
-    <header class="reg-header">
-        <div class="left">{{'LOGIN_LABEL_LOGIN_KEY' | translate}}</div>
-        <div class="right locale-wrapper">
-            <span class="locale-text">{{'LOGIN_LABEL_SELECT_LOCALE_KEY' | translate}} </span>
-            <select id="locale" ng-model="selectedLocale" ng-options="item.code as item.nativeName for item in locales" required/>
-        </div>
-    </header>
+    <!-- decorative shapes -->
+    <span class="bmx-login__deco bmx-login__deco--1"></span>
+    <span class="bmx-login__deco bmx-login__deco--2"></span>
+    <span class="bmx-login__deco bmx-login__deco--3"></span>
+  </div>
 
-    <form ng-submit="login()" name="loginForm" bm-form autofillable="true">
-        <div class="login-body">
-            <div class="note-container">
-                <div class="note error" ng-if="!isSupportedBrowser()">
-                    <div class="text">
-                    {{ 'LOGIN_UNSUPPORTED_BROWSER_KEY'  | translate }}
-                    </div>
-                </div>
-                <div class="note error" ng-show="errorMessageTranslateKey">
-                    <div class="text">
-                        {{errorMessageTranslateKey | translate}}
-                    </div>
-                </div>
-            </div>
-            <div class="form-field">
-                <div class="field-attribute">
-                    <label for="username">
-                        {{'LOGIN_LABEL_USERNAME_KEY' | translate}} <span class="asterick">*</span>
-                    </label>
-                </div>
+  <!-- ── RIGHT: form panel ────────────────────────────────────── -->
+  <div class="bmx-login__panel">
 
-                <div class="field-value">
-                    <input type="text" name="username" id="username" ng-model="loginInfo.username" autofocus="autofocus"
-                           placeholder="{{'LOGIN_MESSAGE_ENTER_USERNAME_KEY' | translate}}">
-                </div>
-            </div>
-            <div class="form-field">
-                <div class="field-attribute">
-                    <label for="password">
-                        {{'LOGIN_LABEL_PASSWORD_KEY' | translate}} <span class="asterick">*</span>
-                    </label>
-                </div>
-                <div class="field-value">
-                    <input type="password" id="password" name="password" ng-model="loginInfo.password"
-                           placeholder="{{'LOGIN_MESSAGE_ENTER_PASSWORD_KEY' | translate}}">
-                </div>
-            </div>
-
-            <div class="form-footer">
-                <button type="submit" class="confirm">{{'LOGIN_LABEL_LOGIN_KEY' | translate}}</button>
-            </div>
-        </div>
-
-    </form>
-
-    <div class="warning-message">
-        <span ng-if="warning"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{warning}}</span>
-        <p>{{warningMessage | translate :timeZoneObject}} </p>
+    <!-- locale selector (top-right) -->
+    <div class="bmx-login__locale">
+      <i class="fa fa-globe" aria-hidden="true"></i>
+      <select id="locale" ng-model="selectedLocale"
+              ng-options="item.code as item.nativeName for item in locales" required></select>
     </div>
 
-    <div ng-show="bottomLogos" class="bottom-logos-wrapper">
-        <img ng-repeat="logo in bottomLogos" id="bottom-logos-image" src={{logo}}>
+    <!-- ── Main credentials card ───── -->
+    <div class="bmx-login__card" ng-hide="showOTP">
+
+      <div class="bmx-login__card-head">
+        <span class="bmx-login__card-icon"><i class="fa fa-stethoscope" aria-hidden="true"></i></span>
+        <h1 class="bmx-login__card-title">{{'LOGIN_LABEL_LOGIN_KEY' | translate}}</h1>
+      </div>
+
+      <!-- alerts -->
+      <div class="bmx-login__alert bmx-login__alert--error" ng-if="!isSupportedBrowser()">
+        <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+        <span>{{ 'LOGIN_UNSUPPORTED_BROWSER_KEY' | translate }}</span>
+      </div>
+      <div class="bmx-login__alert bmx-login__alert--error" ng-show="errorMessageTranslateKey">
+        <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+        <span>{{errorMessageTranslateKey | translate}}</span>
+      </div>
+
+      <form ng-submit="login()" name="loginForm" bm-form autofillable="true">
+
+        <!-- username -->
+        <div class="bmx-login__field">
+          <i class="fa fa-user bmx-login__field-icon" aria-hidden="true"></i>
+          <input class="bmx-login__input" type="text" name="username" id="username"
+                 ng-model="loginInfo.username" autofocus="autofocus"
+                 placeholder=" " autocomplete="username">
+          <label class="bmx-login__label" for="username">{{'LOGIN_LABEL_USERNAME_KEY' | translate}}</label>
+        </div>
+
+        <!-- password -->
+        <div class="bmx-login__field">
+          <i class="fa fa-lock bmx-login__field-icon" aria-hidden="true"></i>
+          <input class="bmx-login__input" type="password" id="password" name="password"
+                 ng-model="loginInfo.password"
+                 placeholder=" " autocomplete="current-password">
+          <label class="bmx-login__label" for="password">{{'LOGIN_LABEL_PASSWORD_KEY' | translate}}</label>
+        </div>
+
+        <button type="submit" class="bmx-login__btn">
+          <span>{{'LOGIN_LABEL_LOGIN_KEY' | translate}}</span>
+          <i class="fa fa-arrow-right" aria-hidden="true"></i>
+        </button>
+
+      </form>
+
+      <!-- timezone warning -->
+      <div class="bmx-login__warning" ng-if="warning">
+        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+        <p>{{warningMessage | translate :timeZoneObject}}</p>
+      </div>
+
+      <!-- bottom logos -->
+      <div class="bmx-login__bottom-logos" ng-show="bottomLogos">
+        <img ng-repeat="logo in bottomLogos" src="{{logo}}" alt="logo">
+      </div>
+
+    </div><!-- /main card -->
+
+    <!-- ── OTP card ─────────────────── -->
+    <div class="bmx-login__card" ng-show="showOTP">
+
+      <div class="bmx-login__card-head">
+        <span class="bmx-login__card-icon"><i class="fa fa-shield" aria-hidden="true"></i></span>
+        <h1 class="bmx-login__card-title">{{'LOGIN_LABEL_LOGIN_KEY' | translate}}</h1>
+      </div>
+
+      <div class="bmx-login__alert"
+           ng-show="errorMessageTranslateKey"
+           ng-class="errorMessageTranslateKey == 'LOGIN_LABEL_RESEND_SUCCESS' ? 'bmx-login__alert--success' : 'bmx-login__alert--error'">
+        <i class="fa fa-info-circle" aria-hidden="true"></i>
+        <span>{{errorMessageTranslateKey | translate}}</span>
+      </div>
+
+      <form ng-submit="login()" name="otpForm" bm-form>
+
+        <div class="bmx-login__field">
+          <i class="fa fa-key bmx-login__field-icon" aria-hidden="true"></i>
+          <input class="bmx-login__input" type="password" id="otp" name="password"
+                 ng-model="loginInfo.otp"
+                 placeholder=" " required autocomplete="one-time-code">
+          <label class="bmx-login__label" for="otp">{{'LOGIN_LABEL_ENTER_OTP_KEY' | translate}}</label>
+        </div>
+
+        <div class="bmx-login__otp-actions">
+          <button type="button" class="bmx-login__btn-ghost" ng-click="resendOTP()">
+            <i class="fa fa-refresh" aria-hidden="true"></i>
+            {{'LOGIN_LABEL_RESEND_OTP' | translate}}
+          </button>
+          <button type="submit" class="bmx-login__btn">
+            <span>{{'LOGIN_LABEL_SUBMIT_KEY' | translate}}</span>
+            <i class="fa fa-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+
+      </form>
+
+    </div><!-- /otp card -->
+
+    <!-- powered by -->
+    <div class="bmx-login__powered">
+      <img src="./../images/bahmniLogoFull.png" alt="Bahmni" />
+      <a href="{{helpLink}}">Help</a>
     </div>
 
-</div>
+  </div><!-- /panel -->
 
-<div class="login login-otp" ng-show="showOTP">
+</div><!-- /bmx-login-page -->
 
-    <header class="reg-header">
-        <div class="left">{{'LOGIN_LABEL_LOGIN_KEY' | translate}}</div>
-    </header>
-
-    <form ng-submit="login()" name="otpForm" bm-form>
-        <div class="login-body">
-            <div class="note-container">
-                <div class="note error" ng-show="errorMessageTranslateKey"
-                     ng-class="{'error_resend' : errorMessageTranslateKey == 'LOGIN_LABEL_RESEND_SUCCESS' }">
-                    <div class="text">
-                        {{errorMessageTranslateKey | translate}}
-                    </div>
-                </div>
-            </div>
-            <div class="form-field">
-                <div class="field-attribute">
-                    <label for="password">
-                        {{'LOGIN_LABEL_ENTER_OTP_KEY' | translate}} <span class="asterick">*</span>
-                    </label>
-                </div>
-                <div class="field-value">
-                    <input type="password" id="otp" name="password" ng-model="loginInfo.otp"
-                           placeholder="{{'LOGIN_LABEL_ENTER_OTP_KEY' | translate}}" required>
-                    <button type="button" ng-click="resendOTP()" class="fr otp-button">{{'LOGIN_LABEL_RESEND_OTP' |
-                        translate}}
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-footer">
-                <button type="submit" class="confirm">{{'LOGIN_LABEL_SUBMIT_KEY' | translate}}</button>
-            </div>
-        </div>
-    </form>
-</div>
-
-<div class="power-by">
-    <img src="./../images/bahmniLogoFull.png" alt="Bahmni" />
-    <!-- <a href={{helpLink}}> HCSBA Help</a> -->
-    <a href={{helpLink}}> Help</a>
-</div>
