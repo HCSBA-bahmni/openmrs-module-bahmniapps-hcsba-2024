@@ -20,6 +20,9 @@
   height: 64px !important;
   margin: 0 !important;
   box-sizing: border-box !important;
+  /* Anular background verde de .opd-header-wrapper header */
+  background: linear-gradient(90deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%) !important;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .18) !important;
 }
 
 /* ── 3. Ajustar el contenido para que no quede bajo el nuevo header  */

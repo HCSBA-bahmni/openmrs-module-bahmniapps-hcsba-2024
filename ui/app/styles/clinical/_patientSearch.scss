@@ -1,53 +1,97 @@
 /* =================================================================
    BMX – BÚSQUEDA CLÍNICA DE PACIENTES
+   Diseño moderno armonioso con el resto de la UI (registro / home)
    ================================================================= */
 
 /* ── Fondo de página ─────────────────────────────────────────────── */
 .bmx-clin-search {
   background: #f0f4f9;
   min-height: calc(100vh - 64px);
-  padding: 24px 20px 48px;
+  padding: 28px 24px 52px;
 
   @media (max-width: 600px) { padding: 16px 12px 40px; }
 }
 
-/* ── Panel card ──────────────────────────────────────────────────── */
+/* ── Panel card principal ─────────────────────────────────────────── */
 .bmx-clin-search__panel {
   max-width: 1100px;
   margin: 0 auto;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 18px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .06), 0 1px 4px rgba(0, 0, 0, .04);
   overflow: hidden;
 }
 
-/* ── Cabecera del panel (azul con título + tabs) ─────────────────── */
+/* ── Cabecera del panel ───────────────────────────────────────────── */
 .bmx-clin-search__panel-header {
-  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 12%) 100%);
-  padding: 16px 20px 0;
-}
-
-.bmx-clin-search__panel-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  letter-spacing: .2px;
+  gap: 16px;
+  padding: 20px 28px;
+  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
 
-  i { font-size: 15px; opacity: .85; }
+  @media (max-width: 600px) { padding: 16px; gap: 12px; }
 }
 
-/* ── Tabs dentro del panel ───────────────────────────────────────── */
-.bmx-clin-search__tabs {
+.bmx-clin-search__panel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .2);
+  flex-shrink: 0;
+
+  i { font-size: 20px; color: #fff; }
+}
+
+.bmx-clin-search__panel-title-wrap { flex: 1; min-width: 0; }
+
+.bmx-clin-search__panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 2px;
+  line-height: 1.2;
+}
+
+.bmx-clin-search__panel-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, .75);
+  margin: 0;
+}
+
+/* ── Cuerpo del panel ─────────────────────────────────────────────── */
+.bmx-clin-search__body {
+  padding: 20px 24px 24px;
+
+  @media (max-width: 600px) { padding: 16px 12px; }
+}
+
+/* ── Fila de tabs + botón imprimir ───────────────────────────────── */
+.bmx-clin-search__tabs-row {
   display: flex;
   align-items: flex-end;
-  margin-top: 0;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0;
 
-  /* scrollable-tabs wrapper */
+  /* Anular margin-top:20px que pone .tabs de _navigation.scss */
+  .bmx-clin-search__tabs.tabs {
+    margin-top: 0 !important;
+  }
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────── */
+/* Selectores de alta especificidad para anular .tabs ul li.tab-item a
+   de _navigation.scss que pone background verde oscuro  */
+.bmx-clin-search__tabs {
+  flex: 1;
+  min-width: 0;
+
   scrollable-tabs ul,
   ul {
     list-style: none !important;
@@ -56,87 +100,104 @@
     display: flex;
     align-items: flex-end;
     gap: 4px;
-    /* Anular .active-visits li que pone width: % */
-    li { width: auto !important; }
+    li { width: auto !important; float: none !important; }
   }
 
-  .tab-item a {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px 8px 0 0;
-    background: rgba(255, 255, 255, .15);
-    color: rgba(255, 255, 255, .85) !important;
-    font-size: 13px;
-    font-weight: 600;
+  /* Especificidad aumentada: .bmx-clin-search__tabs ul li.tab-item a */
+  ul li.tab-item a,
+  ul li.tab-item button,
+  .tab-item a,
+  .tab-item button {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 9px 16px 10px !important;
+    border-radius: 8px 8px 0 0 !important;
+    background: transparent !important;
+    color: #6b7280 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
     text-decoration: none !important;
-    border: 1px solid rgba(255, 255, 255, .2);
-    border-bottom: none;
-    transition: background .15s, color .15s;
+    border: 1px solid transparent !important;
+    border-bottom: 2px solid transparent !important;
+    margin: 0 0 -2px 0 !important;
+    transition: color .15s, background .15s;
     white-space: nowrap;
+    opacity: 1 !important;
 
-    &:hover { background: rgba(255, 255, 255, .26); color: #fff !important; }
+    &:hover {
+      color: $bahmniPrimaryColor !important;
+      background: lighten($bahmniPrimaryColor, 58%) !important;
+      opacity: 1 !important;
+    }
   }
 
-  .tab-item.tab-selected a {
-    background: #fff;
+  ul li.tab-item.tab-selected a,
+  ul li.tab-item.tab-selected button,
+  .tab-item.tab-selected a,
+  .tab-item.tab-selected button {
     color: $bahmniPrimaryColor !important;
-    border-color: #fff;
+    background: lighten($bahmniPrimaryColor, 58%) !important;
+    border-color: #e5e7eb #e5e7eb #fff !important;
+    border-bottom-color: #fff !important;
+    font-weight: 700 !important;
   }
 }
 
-.bmx-clin-search__tab-count {
-  font-size: 11px;
+/* Badge contador en las tabs */
+.bmx-clin-search__tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: lighten($bahmniPrimaryColor, 52%);
+  color: $bahmniPrimaryColor;
+  font-size: 10px;
   font-weight: 700;
-  opacity: .8;
+
+  .tab-selected & {
+    background: $bahmniPrimaryColor;
+    color: #fff;
+  }
 }
 
-/* Botón imprimir en header */
+/* Botón imprimir en tabs-row */
 .bmx-clin-search__print-btn {
   display: inline-flex !important;
   align-items: center;
   gap: 6px;
-  height: 34px;
+  height: 36px;
   padding: 0 14px !important;
-  margin-left: 8px !important;
-  border-radius: 8px 8px 0 0 !important;
-  background: rgba(255, 255, 255, .12) !important;
-  border: 1px solid rgba(255, 255, 255, .2) !important;
-  border-bottom: none !important;
-  color: rgba(255, 255, 255, .9) !important;
+  background: #f8fafd !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  color: #374151 !important;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  transition: background .15s, border-color .15s;
 
-  &:hover { background: rgba(255, 255, 255, .24) !important; }
+  i { color: $bahmniPrimaryColor !important; font-size: 13px; }
+
+  &:hover {
+    background: #f0f7ff !important;
+    border-color: $bahmniPrimaryColor !important;
+    color: $bahmniPrimaryColor !important;
+  }
+
   @media (max-width: 768px) { display: none !important; }
 }
 
-/* ── Cuerpo del panel ────────────────────────────────────────────── */
-/* overflow:auto permite que el infinite-scroll del resize directive funcione */
-.bmx-clin-search__content {
-  padding: 20px;
-  background: #fff;
-  overflow: auto;
-
-  /* Spinner de carga */
-  .patient-list-spinner {
-    display: none;
-    min-height: 2em;
-    position: relative;
-  }
-}
-
-/* ── Wrapper del resize directive ────────────────────────────────── */
-.bmx-clin-resize {
-  display: block;
-}
-
-/* ── Fila de búsqueda ────────────────────────────────────────────── */
-.bmx-clin-search__filter-row {
+/* ── Área de búsqueda / filtro ────────────────────────────────────── */
+.bmx-clin-search__filter-area {
   margin-bottom: 20px;
+
   form { margin: 0; }
 }
 
@@ -145,65 +206,96 @@
   align-items: center;
   background: #f8fafd;
   border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  max-width: 600px;
+  max-width: 640px;
   transition: border-color .2s, box-shadow .2s;
 
   &:focus-within {
     border-color: $bahmniPrimaryColor;
-    box-shadow: 0 0 0 3px rgba(0, 119, 200, .12);
+    box-shadow: 0 0 0 3px rgba($bahmniPrimaryColor, .10);
     background: #fff;
   }
 }
 
 .bmx-clin-search__input-icon {
-  padding: 0 12px;
-  color: #9ca3af;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
   flex-shrink: 0;
+  i {
+    font-size: 14px;
+    color: #9ca3af;
+    transition: color .2s;
+  }
+
+  .bmx-clin-search__input-wrap:focus-within & i {
+    color: $bahmniPrimaryColor;
+  }
 }
 
 .bmx-clin-search__input {
   flex: 1;
   border: none !important;
   background: transparent !important;
-  padding: 10px 12px 10px 0 !important;
-  font-size: 13px !important;
+  padding: 12px 8px 12px 0 !important;
+  font-size: 14px !important;
   color: #111827 !important;
   min-width: 0;
   outline: none !important;
   box-shadow: none !important;
 
-  &::placeholder { color: #9ca3af; }
+  &::placeholder { color: #9ca3af; font-size: 13px; }
+}
+
+.bmx-clin-search__input-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px;
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  i { font-size: 11px; }
+
+  @media (max-width: 500px) { display: none; }
 }
 
 .bmx-clin-search__search-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  padding: 0 20px;
   height: 100%;
-  padding: 10px 18px;
-  background: $bahmniPrimaryColor;
+  min-height: 48px;
+  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 12%) 100%);
   border: none;
   color: #fff;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: background .15s;
   flex-shrink: 0;
+  transition: opacity .15s;
 
   i { font-size: 12px; }
-  &:hover:not([disabled]) { background: darken($bahmniPrimaryColor, 10%); }
-  &[disabled] { opacity: .5; cursor: not-allowed; }
+  &:hover:not([disabled]) { opacity: .88; }
+  &[disabled] { opacity: .45; cursor: not-allowed; }
 }
 
-/* ── Tabla de resultados ─────────────────────────────────────────── */
+/* ── Wrapper del resize directive ────────────────────────────────── */
+.bmx-clin-resize { display: block; }
+
+/* ── Tabla de resultados ──────────────────────────────────────────── */
 .bmx-clin-search__table-wrap {
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  overflow-x: auto;
+  margin-top: 4px;
 }
 
 .bmx-clin-search__table {
@@ -211,22 +303,28 @@
   border-collapse: collapse;
   font-size: 13px;
 
-  thead tr { background: #f8fafd; }
+  thead tr {
+    background: #f8fafc;
 
-  thead th {
-    padding: 10px 14px !important;
-    text-align: left;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    color: #6b7280 !important;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    border-bottom: 1px solid #e5e7eb;
-    white-space: nowrap;
+    th {
+      padding: 11px 16px !important;
+      text-align: left;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #6b7280 !important;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+      border-top: none;
 
-    &.sortable {
-      cursor: pointer;
-      &:hover { background: #f1f5f9; color: $bahmniPrimaryColor !important; }
+      &.sortable {
+        cursor: pointer;
+        &:hover {
+          background: #f0f7ff;
+          color: $bahmniPrimaryColor !important;
+        }
+      }
     }
   }
 
@@ -238,44 +336,65 @@
     border-bottom: 1px solid #f1f5f9;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: lighten($bahmniPrimaryColor, 55%) !important; }
-  }
+    &:hover { background: #f0f7ff !important; }
 
-  tbody td {
-    padding: 10px 14px !important;
-    color: #374151;
-    vertical-align: middle;
-    height: auto !important;
-    position: relative;
+    td {
+      padding: 11px 16px !important;
+      color: #374151;
+      vertical-align: middle;
+      height: auto !important;
+      position: relative;
+      border: none;
+    }
   }
 }
 
-/* Celda nombre con avatar chip */
+/* ID link */
+.bmx-clin-search__id-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: $bahmniPrimaryColor !important;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none !important;
+
+  i { font-size: 10px; }
+
+  &:hover { text-decoration: underline !important; }
+}
+
+/* Celda nombre con avatar */
 .bmx-clin-search__name-cell {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 150px;
+  min-width: 160px;
 }
 
 .bmx-clin-search__avatar {
-  width: 32px; height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba($bahmniPrimaryColor, .25);
 }
 
 .bmx-clin-search__cell-name {
   font-weight: 600;
   color: #111827;
+  font-size: 13px;
 }
 
-/* ── Vista de tiles ──────────────────────────────────────────────── */
+/* ── Vista de tiles ───────────────────────────────────────────────── */
 .bmx-clin-search__tiles {
   display: flex !important;
   flex-wrap: wrap;
@@ -286,22 +405,20 @@
 }
 
 .bmx-clin-search__tile {
-  /* Neutralizar display:inline-block de .active-patient */
   display: flex !important;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   padding: 16px 12px !important;
   border-radius: 12px;
-  border: 1px solid #e5e7eb !important; /* anular border:1px solid $white del .tab-content li */
-  background: #fff !important;           /* anular background:$lightestGray del .tab-content li */
-  text-align: center !important;         /* anular text-align:center del .tab-content li */
+  border: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  text-align: center !important;
   cursor: pointer !important;
-  transition: border-color .15s, box-shadow .15s;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
   position: relative;
   box-sizing: border-box;
 
-  /* Anchos responsive - !important anula los % de .active-visits li */
   width: calc(50% - 6px) !important;
   @media (min-width: 540px)  { width: calc(33.33% - 8px) !important; }
   @media (min-width: 768px)  { width: calc(25% - 9px) !important; }
@@ -310,7 +427,8 @@
 
   &:hover {
     border-color: $bahmniPrimaryColor !important;
-    box-shadow: 0 4px 14px rgba(0, 119, 200, .14);
+    box-shadow: 0 4px 14px rgba($bahmniPrimaryColor, .14);
+    transform: translateY(-2px);
   }
 }
 
@@ -320,7 +438,7 @@
   border-radius: 50% !important;
   object-fit: cover;
   border: 2px solid lighten($bahmniPrimaryColor, 44%);
-  box-shadow: 0 2px 8px rgba(0, 119, 200, .14);
+  box-shadow: 0 2px 8px rgba($bahmniPrimaryColor, .14);
 }
 
 .bmx-clin-search__tile-name {
@@ -330,7 +448,6 @@
   text-align: center !important;
   line-height: 1.4 !important;
   width: 100%;
-  /* Anular estilos heredados de .patient-name */
   font-family: inherit !important;
   white-space: nowrap;
   overflow: hidden;
@@ -343,24 +460,46 @@
   text-align: center !important;
 }
 
-/* ── Mensaje sin resultados ──────────────────────────────────────── */
+/* ── Estado vacío ─────────────────────────────────────────────────── */
 .bmx-clin-search__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 20px;
-  color: #9ca3af;
+  padding: 52px 24px;
   gap: 12px;
   text-align: center;
+}
 
-  i { font-size: 36px; opacity: .4; }
-  p { font-size: 14px; margin: 0; font-weight: 500; }
+.bmx-clin-search__empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f0f7ff;
+  border: 2px solid lighten($bahmniPrimaryColor, 48%);
+
+  i { font-size: 28px; color: lighten($bahmniPrimaryColor, 20%); }
+}
+
+.bmx-clin-search__empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0;
+}
+
+.bmx-clin-search__empty-text {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+  max-width: 320px;
 }
 
 /* =================================================================
-   Estilos ORIGINALES (conservados para retrocompatibilidad con
-   otras vistas del módulo que usen las mismas clases)
+   Estilos ORIGINALES conservados para retrocompatibilidad
    ================================================================= */
 
 .search-wrapper {
