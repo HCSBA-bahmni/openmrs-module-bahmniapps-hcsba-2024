@@ -1,10 +1,18 @@
 'use strict';
 
 angular.module('bahmni.home')
-    .controller('DashboardController', ['$scope', '$state', 'appService', 'locationService', 'spinner', '$bahmniCookieStore', '$window', '$q', 'sessionService',
-        function ($scope, $state, appService, locationService, spinner, $bahmniCookieStore, $window, $q, sessionService) {
+    .controller('DashboardController', ['$scope', '$state', 'appService', 'locationService', 'spinner', '$bahmniCookieStore', '$window', '$q', 'sessionService', 'localeService',
+        function ($scope, $state, appService, locationService, spinner, $bahmniCookieStore, $window, $q, sessionService, localeService) {
             $scope.appExtensions = appService.getAppDescriptor().getExtensions($state.current.data.extensionPointId, "link") || [];
             $scope.selectedLocationUuid = {};
+            $scope.userMenuOpen = false;
+            $scope.today = new Date();
+
+            // Fetch logo from whiteLabel config
+            localeService.getLoginText().then(function (response) {
+                var hp = response.data.homePage || {};
+                $scope.homeLogo = hp.logo || (response.data.loginPage || {}).logo;
+            });
 
             var isOnline = function () {
                 return $window.navigator.onLine;

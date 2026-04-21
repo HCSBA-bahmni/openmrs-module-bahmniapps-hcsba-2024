@@ -2,10 +2,16 @@
 <div class="edit-patient simple-form-ui">
     <form name="myForm"  single-submit="update()">
         <div class="box-container box-container-default">
-            <legend class="registraion_legend first-registraion_legend" ng-class="{'removeLegend': patient.primaryIdentifier == undefined}">
-                <span class="mylegend"><strong>{{patient.primaryIdentifier.identifierType.name}}: <span id="patientIdentifierValue">{{patient.primaryIdentifier.identifier}}</span></strong></span>
-                <span ng-show= "isDigitized" class="right"><strong>{{::'REGISTRATION_LABEL_SCANNED' | translate}}</strong></span>
-            </legend>
+                <legend class="registraion_legend first-registraion_legend" ng-class="{'removeLegend': patient.primaryIdentifier == undefined}">
+                    <span class="mylegend">
+                      <i class="fa fa-user-edit" aria-hidden="true" style="color:inherit;font-size:13px;margin-right:2px;"></i>
+                      <strong>{{patient.primaryIdentifier.identifierType.name}}: <span id="patientIdentifierValue">{{patient.primaryIdentifier.identifier}}</span></strong>
+                    </span>
+                    <span ng-show="isDigitized" class="right" style="font-size:12px;font-weight:700;color:#059669;margin-left:auto;">
+                      <i class="fa fa-check-circle" aria-hidden="true"></i>
+                      {{::'REGISTRATION_LABEL_SCANNED' | translate}}
+                    </span>
+                </legend>
             <div class="photo-container-wrapper" ng-if="!disablePhotoCapture">
                 <div class="photo-container">
                         <div ng-model="patient.image" capture-photo class="capture-photo-btn"></div>

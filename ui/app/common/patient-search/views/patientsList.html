@@ -1,114 +1,211 @@
-<div class="patient-search-wrapper">
-    <div class="tabs">
-        <scrollable-tabs>
-            <ul>
-                <li class="tab-item" ng-repeat="searchType in search.searchTypes"
-                    ng-class="{'tab-selected': search.isSelectedSearch(searchType)}">
-                    <a href="" ng-click="search.switchSearchType(searchType)">
-                        <span>{{::searchType | titleTranslate}} </span>
-                        <span ng-if="search.showPatientCountOnSearchParameter(searchType)">({{search.searchResults.length}})</span>
-                        <span ng-if="(searchType.handler && !search.showPatientCountOnSearchParameter(searchType))" scheduler
-                            watch-on="search.searchParameter" refresh-time="searchType.refreshTime">({{searchType.patientCount}})</span>
-                    </a>
-                </li>
-            </ul>
-        </scrollable-tabs>
-        <button ng-if="search.searchType.showPrint" class="dialog-button-group" ng-click="printPage()"
-                accesskey="{{'CLINICAL_PRINT_ACCESS_KEY'| translate}}" ng-bind-html="'CLINICAL_PRINT_TRANSLATION_KEY'|translate">
-            <i class="fa fa-print"></i>
-        </button>
-    </div>
-    <div class="tab-content" ng-if="::search.searchTypes.length">
-        <div class="patient-list-spinner"></div>
-        <span ng-if="search.isCurrentSearchLookUp() && !search.isCustomView()">
-            <form name="filterPatients" ng-submit="filterPatientsAndSubmit()">
-                <div class="search-wrapper">
-                    <input type="text" id="patientIdentifier" ng-model="::search.searchParameter"
-                           focus-on="search.startPatientSearch"
-                           ng-change="search.filterPatients()"/>
+<section class="bmx-clin-search">
+
+    <!-- ── Panel de búsqueda ──────────────────────────────────────────── -->
+    <div class="bmx-clin-search__panel" ng-if="::search.searchTypes.length">
+
+        <!-- ── Cabecera del panel ──────────────────────────────────────── -->
+        <div class="bmx-clin-search__panel-header">
+            <div class="bmx-clin-search__panel-icon">
+                <i class="fa fa-stethoscope" aria-hidden="true"></i>
+            </div>
+            <div class="bmx-clin-search__panel-title-wrap">
+                <h2 class="bmx-clin-search__panel-title">Consulta Clínica</h2>
+                <p class="bmx-clin-search__panel-subtitle">Busca y selecciona un paciente para continuar</p>
+            </div>
+        </div>
+
+        <!-- ── Cuerpo del panel ────────────────────────────────────────── -->
+        <div class="bmx-clin-search__body">
+
+            <!-- Tabs de tipo de búsqueda -->
+            <div class="bmx-clin-search__tabs-row">
+                <div class="bmx-clin-search__tabs tabs">
+                    <scrollable-tabs>
+                        <ul>
+                            <li class="tab-item" ng-repeat="searchType in search.searchTypes"
+                                ng-class="{'tab-selected': search.isSelectedSearch(searchType)}">
+                                <a href="" ng-click="search.switchSearchType(searchType)">
+                                    <span>{{::searchType | titleTranslate}}</span>
+                                    <span class="bmx-clin-search__tab-badge"
+                                          ng-if="search.showPatientCountOnSearchParameter(searchType)">
+                                        {{search.searchResults.length}}
+                                    </span>
+                                    <span class="bmx-clin-search__tab-badge"
+                                          ng-if="searchType.handler && !search.showPatientCountOnSearchParameter(searchType)"
+                                          scheduler watch-on="search.searchParameter"
+                                          refresh-time="searchType.refreshTime">
+                                        {{searchType.patientCount}}
+                                    </span>
+                                </a>
+                            </li>
+                        </ul>
+                    </scrollable-tabs>
                 </div>
-            </form>
-        </span>
-        <span ng-if="search.searchType && !search.isCurrentSearchLookUp() && !search.isCustomView()">
-            <form name="searchPatientForm" ng-submit="searchPatients()" class="overflow-hidden">
-                <div class="search-patient-id left">
-                    <input type="text" id="patientIdentifier" ng-model="::search.searchParameter"
-                           focus-on="search.startPatientSearch" placeholder="{{'SEARCH_NAME_PLACEHOLDER_KEY' | translate: {primaryIdentifier : primaryIdentifier} }}"/>
-                </div>
-                <div class="reg-srch-btn left">
-                    <button type="submit" ng-disabled="!search.searchParameter">
-                        <i class="fa fa-search"></i>
-                        {{'SEARCH_KEY' | translate }}
-                    </button>
-                </div>
-            </form>
-        </span>
-        <resize ng-if="search.isTabularView()" search-results="search.searchResults"
-                visible-results="search.visiblePatients" class="active-visits">
-            <div class="ward-details-container">
-                <table class="table patient-list-table">
-                    <thead>
-                    <tr>
-                        <!-- <th><strong>Sl.No</strong></th> -->
-                        <th ng-repeat="heading in activeHeaders" ng-click="heading.sortInfo && sortVisiblePatientsBy(heading.sortInfo)">
-                            <strong>{{ ::heading.name | translate }}</strong>
-                            <span class="sortIcons" ng-if="sortColumn == heading.sortInfo">
-                                <i class="fa fa-caret-up" ng-show="reverseSort"></i>
-                                <i class="fa fa-caret-down" ng-show="!reverseSort"></i>
-                            </span>
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr ng-repeat="row in search.visiblePatients">
-                        <!-- <td>
-                            {{$index + 1}}
-                        </td> -->
-                        <td ng-repeat="heading in activeHeaders"  style="height: 50px;">
-                            <a ng-if="::isHeadingOfLinkColumn(heading.name)"
-                               ng-click="forwardPatient(row, heading)">{{::row[heading.name]}}</a>
-                            <div ng-if="::isHeadingOfName(heading.name)" style="min-width: 150px" ng-click="forwardPatient(row)">
-                                <div style="width: 80%;">
-                                    {{::(isHeadingOfDateColumn(heading.name) ? (row[heading.name] | bahmniDate) : row[heading.name])}}
-                                </div>
-                                <span class="icons-container">
-                                    <i class="ipd-indication fa fa-bed" ng-if="::(row.hasBeenAdmitted===true||row.hasBeenAdmitted==='true')"></i>
-                                    <i ng-if="::iconAttributeConfig.attrName && (row[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue || (row.customAttribute ? row.customAttribute[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue : false))" class="ipd-indication list-icon-style" ng-class="iconAttributeConfig.icon" ng-style="{{iconAttributeConfig.iconStyle}}"></i>
+
+                <!-- Botón imprimir -->
+                <button ng-if="search.searchType.showPrint"
+                        class="bmx-clin-search__print-btn"
+                        ng-click="printPage()"
+                        accesskey="{{'CLINICAL_PRINT_ACCESS_KEY' | translate}}"
+                        title="{{'CLINICAL_PRINT_TRANSLATION_KEY' | translate}}"
+                        type="button">
+                    <i class="fa fa-print" aria-hidden="true"></i>
+                    <span class="hidden-mobile">{{'CLINICAL_PRINT_TRANSLATION_KEY' | translate}}</span>
+                </button>
+            </div>
+
+            <!-- ── Búsqueda por filtro (lookup) ──────────────────────── -->
+            <div ng-if="search.isCurrentSearchLookUp() && !search.isCustomView()"
+                 class="bmx-clin-search__filter-area">
+                <form name="filterPatients" ng-submit="filterPatientsAndSubmit()">
+                    <div class="bmx-clin-search__input-wrap">
+                        <span class="bmx-clin-search__input-icon">
+                            <i class="fa fa-search" aria-hidden="true"></i>
+                        </span>
+                        <input type="text"
+                               id="patientIdentifier"
+                               class="bmx-clin-search__input"
+                               ng-model="::search.searchParameter"
+                               focus-on="search.startPatientSearch"
+                               ng-change="search.filterPatients()"
+                               placeholder="{{'SEARCH_NAME_PLACEHOLDER_KEY' | translate: {primaryIdentifier: primaryIdentifier} }}"/>
+                        <span class="bmx-clin-search__input-hint">
+                            <i class="fa fa-keyboard-o" aria-hidden="true"></i>
+                            Escribe para filtrar
+                        </span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ── Búsqueda por nombre / ID ───────────────────────────── -->
+            <div ng-if="search.searchType && !search.isCurrentSearchLookUp() && !search.isCustomView()"
+                 class="bmx-clin-search__filter-area">
+                <form name="searchPatientForm" ng-submit="searchPatients()">
+                    <div class="bmx-clin-search__input-wrap">
+                        <span class="bmx-clin-search__input-icon">
+                            <i class="fa fa-search" aria-hidden="true"></i>
+                        </span>
+                        <input type="text"
+                               id="patientIdentifier"
+                               class="bmx-clin-search__input"
+                               ng-model="::search.searchParameter"
+                               focus-on="search.startPatientSearch"
+                               placeholder="{{'SEARCH_NAME_PLACEHOLDER_KEY' | translate: {primaryIdentifier: primaryIdentifier} }}"/>
+                        <button type="submit"
+                                class="bmx-clin-search__search-btn"
+                                ng-disabled="!search.searchParameter">
+                            <i class="fa fa-search" aria-hidden="true"></i>
+                            <span>{{'SEARCH_KEY' | translate}}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Spinner de carga -->
+            <div class="patient-list-spinner"></div>
+
+            <!-- ── Vista tabular ──────────────────────────────────────── -->
+            <resize ng-if="search.isTabularView()"
+                    search-results="search.searchResults"
+                    visible-results="search.visiblePatients"
+                    class="bmx-clin-resize">
+                <div class="bmx-clin-search__table-wrap">
+                    <table class="bmx-clin-search__table patient-list-table">
+                        <thead>
+                        <tr>
+                            <th ng-repeat="heading in activeHeaders"
+                                ng-click="heading.sortInfo && sortVisiblePatientsBy(heading.sortInfo)"
+                                ng-class="{'sortable': heading.sortInfo}">
+                                <span>{{ ::heading.name | translate }}</span>
+                                <span class="sortIcons" ng-if="sortColumn == heading.sortInfo">
+                                    <i class="fa fa-caret-up" ng-show="reverseSort"></i>
+                                    <i class="fa fa-caret-down" ng-show="!reverseSort"></i>
                                 </span>
-                            </div>
-                            <span ng-if="::(!isHeadingOfLinkColumn(heading.name) && !isHeadingOfName(heading.name))">
-                                {{::(isHeadingOfDateColumn(heading.name) ? (row[heading.name] | bahmniDate) : row[heading.name])}}
-                            </span>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </resize>
-        <resize ng-if="search.isTileView()" search-results="search.searchResults"
-                visible-results="search.visiblePatients" class="active-visits">
-            <ul>
-                <li ng-repeat="patient in search.visiblePatients" class="active-patient" ng-click="forwardPatient(patient)">
-                    <img class="smallImages" ng-src="{{::patient.image}}" fallback-src='../images/blank-user.png'>
-                    <div class="patient-name">{{::patient.name}}</div>
-                    <div ng-if="!preferExtraIdInSearchResults" class="patient-id">{{::patient.identifier}}</div>
-                    <div ng-if="preferExtraIdInSearchResults" class="patient-id">{{::patient.extraIdentifier}}</div>
-                    <span class="icons-container">
-                        <i class="ipd-indication fa fa-bed" ng-if="::(patient.hasBeenAdmitted===true||patient.hasBeenAdmitted==='true')"></i>
-                        <i ng-if="::iconAttributeConfig.attrName && patient[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue || (patient.customAttribute ? patient.customAttribute[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue : false)" class="ipd-indication" ng-class="iconAttributeConfig.icon" ng-style="{{iconAttributeConfig.iconStyle}}"></i>
-                    </span>
-                </li>
-            </ul>
-        </resize>
-        <div ng-if="search.isCustomView()">
-            <div ng-include="search.searchType.templateUrl"></div>
-        </div>
-        <div class="note-container" ng-if="search.noResultsMessage">
-            <div class="note warning">
-                <div class="text">
-                    <p class="ng-binding">{{::search.noResultsMessage | translate}}</p>
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="row in search.visiblePatients"
+                            class="bmx-clin-search__table-row"
+                            ng-click="forwardPatient(row)">
+                            <td ng-repeat="heading in activeHeaders">
+                                <a ng-if="::isHeadingOfLinkColumn(heading.name)"
+                                   class="bmx-clin-search__id-link"
+                                   ng-click="forwardPatient(row, heading); $event.stopPropagation()">
+                                    <i class="fa fa-id-card-o" aria-hidden="true"></i>
+                                    {{::row[heading.name]}}
+                                </a>
+                                <div ng-if="::isHeadingOfName(heading.name)"
+                                     class="bmx-clin-search__name-cell">
+                                    <span class="bmx-clin-search__avatar">
+                                        {{::(row[heading.name] ? row[heading.name].charAt(0) : '?')}}
+                                    </span>
+                                    <span class="bmx-clin-search__cell-name">
+                                        {{::(isHeadingOfDateColumn(heading.name) ? (row[heading.name] | bahmniDate) : row[heading.name])}}
+                                    </span>
+                                    <span class="icons-container">
+                                        <i class="ipd-indication fa fa-bed"
+                                           ng-if="::(row.hasBeenAdmitted===true||row.hasBeenAdmitted==='true')"></i>
+                                        <i ng-if="::iconAttributeConfig.attrName && (row[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue || (row.customAttribute ? row.customAttribute[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue : false))"
+                                           class="ipd-indication list-icon-style"
+                                           ng-class="iconAttributeConfig.icon"
+                                           ng-style="{{iconAttributeConfig.iconStyle}}"></i>
+                                    </span>
+                                </div>
+                                <span ng-if="::(!isHeadingOfLinkColumn(heading.name) && !isHeadingOfName(heading.name))">
+                                    {{::(isHeadingOfDateColumn(heading.name) ? (row[heading.name] | bahmniDate) : row[heading.name])}}
+                                </span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
+            </resize>
+
+            <!-- ── Vista de tiles / tarjetas ─────────────────────────── -->
+            <resize ng-if="search.isTileView()"
+                    search-results="search.searchResults"
+                    visible-results="search.visiblePatients"
+                    class="bmx-clin-resize">
+                <ul class="bmx-clin-search__tiles">
+                    <li ng-repeat="patient in search.visiblePatients"
+                        class="bmx-clin-search__tile"
+                        ng-click="forwardPatient(patient)">
+                        <img class="bmx-clin-search__tile-img smallImages"
+                             ng-src="{{::patient.image}}"
+                             fallback-src="../images/blank-user.png">
+                        <div class="bmx-clin-search__tile-name">{{::patient.name}}</div>
+                        <div class="bmx-clin-search__tile-id"
+                             ng-if="!preferExtraIdInSearchResults">{{::patient.identifier}}</div>
+                        <div class="bmx-clin-search__tile-id"
+                             ng-if="preferExtraIdInSearchResults">{{::patient.extraIdentifier}}</div>
+                        <span class="icons-container">
+                            <i class="ipd-indication fa fa-bed"
+                               ng-if="::(patient.hasBeenAdmitted===true||patient.hasBeenAdmitted==='true')"></i>
+                            <i ng-if="::iconAttributeConfig.attrName && patient[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue || (patient.customAttribute ? patient.customAttribute[iconAttributeConfig.attrName] === iconAttributeConfig.attrValue : false)"
+                               class="ipd-indication"
+                               ng-class="iconAttributeConfig.icon"
+                               ng-style="{{iconAttributeConfig.iconStyle}}"></i>
+                        </span>
+                    </li>
+                </ul>
+            </resize>
+
+            <!-- ── Vista personalizada ────────────────────────────────── -->
+            <div ng-if="search.isCustomView()">
+                <div ng-include="search.searchType.templateUrl"></div>
             </div>
-        </div>
-    </div>
-</div>
+
+            <!-- ── Estado vacío ───────────────────────────────────────── -->
+            <div class="bmx-clin-search__empty" ng-if="search.noResultsMessage">
+                <div class="bmx-clin-search__empty-icon">
+                    <i class="fa fa-user-times" aria-hidden="true"></i>
+                </div>
+                <h3 class="bmx-clin-search__empty-title">Sin resultados</h3>
+                <p class="bmx-clin-search__empty-text">{{::search.noResultsMessage | translate}}</p>
+            </div>
+
+        </div><!-- /.bmx-clin-search__body -->
+    </div><!-- /.bmx-clin-search__panel -->
+
+</section>

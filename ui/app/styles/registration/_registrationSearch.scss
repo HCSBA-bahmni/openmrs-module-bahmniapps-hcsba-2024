@@ -1,133 +1,426 @@
-.reg-search-wrapper{
-  padding:5px;
-  margin-top:5px;
-  border:1px solid $lightestGray;
-  background: $white;
-  border-radius: 3px;
-  @include box-shadow-for-section();
-  .reg-search{
-    button{
-      padding: 7px 20px !important;
+/* =================================================================
+   BMX – PÁGINA DE BÚSQUEDA DE PACIENTES  (Registro)
+   ================================================================= */
+
+/* ── Wrapper principal ─────────────────────────────────────────── */
+.bmx-search-page {
+  min-height: calc(100vh - 64px);
+  background: #f0f4f9;
+  padding: 24px 20px 40px;
+}
+
+/* ── Panel de búsqueda (card principal) ────────────────────────── */
+.bmx-search-panel {
+  max-width: 1100px;
+  margin: 0 auto 24px;
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06), 0 1px 4px rgba(0,0,0,.04);
+  overflow: hidden;
+}
+
+/* Cabecera del panel */
+.bmx-search-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 28px;
+  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
+  flex-wrap: wrap;
+
+  @media (max-width: 600px) { padding: 16px; gap: 12px; }
+}
+
+.bmx-search-panel__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.2);
+  flex-shrink: 0;
+  i { font-size: 20px; color: #fff; }
+}
+
+.bmx-search-panel__title-wrap { flex: 1; min-width: 0; }
+
+.bmx-search-panel__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 2px;
+  line-height: 1.2;
+}
+
+.bmx-search-panel__subtitle {
+  font-size: 12px;
+  color: rgba(255,255,255,.75);
+  margin: 0;
+}
+
+.bmx-search-panel__new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  background: rgba(255,255,255,.18);
+  border: 1.5px solid rgba(255,255,255,.5);
+  border-radius: 9px;
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none !important;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+
+  i { font-size: 13px; color: #fff !important; }
+
+  &:hover {
+    background: rgba(255,255,255,.30);
+    text-decoration: none !important;
+  }
+}
+
+/* ── Área de formularios ───────────────────────────────────────── */
+.bmx-search-forms {
+  display: flex;
+  align-items: flex-start;
+  padding: 24px 28px 20px;
+  gap: 0;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+    padding: 16px;
+  }
+}
+
+.bmx-search-form {
+  flex: 1;
+  min-width: 0;
+}
+
+.bmx-search-form--id {
+  max-width: 280px;
+  flex: none;
+
+  @media (max-width: 767px) { max-width: 100%; width: 100%; }
+}
+
+/* Separador "o" entre formularios */
+.bmx-search-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  flex-shrink: 0;
+  padding-top: 28px;
+
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: 2px solid #e2e8f0;
+    font-size: 12px;
+    font-weight: 700;
+    color: $mediumGray;
+  }
+
+  @media (max-width: 767px) {
+    flex-direction: row;
+    padding: 12px 0;
+
+    &::before, &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
     }
-    @include clearfix;
-    .search-seperator-l{
-      border-right:2px dotted $lightGray;
-      width: 30.5%;
-      margin: 0 1.04167%;
-      float: left;
-      @media (max-width: 767px) {
-        @include column(12);
-        border-right : 0;
-        border-bottom:2px dotted $lightGray;
-        display: block;
-        padding-bottom: 10px;
-      }
-      .search-patient-id{
-        width: 100%;
-        .reg-srch-btn{
-          margin-top: 4px;
-        }
-      }
-      input[type="text"]{
-        margin-right:5px;
-        padding: 5px 10px;
-        min-width: 40%;
-      }
-      select{
-        width:80px;
-        min-width:80px;
-        height: 32px;
-        padding: 0 10px !important;
-      }
-    }
-    .search-seperator-r{
-      width: 67%;
-      margin: 0;
-      float: left;
-      @media (max-width: 767px) {
-        @include column(12);
-        display: block;
-        padding-top: 5px;
-      }
-      input[type="text"]{
-        margin-right:5px;
-        padding: 5px 10px;
-        /*@media (max-width: 1024px) {
-          padding: 5px 10px;
-        }*/
-      }
-      button{
-        margin: 0px 2px 2px 2px;
-      }
-      .reg-srch-btn{
-        margin-top:25px;
-      }
+
+    span { margin: 0 12px; }
+  }
+}
+
+/* ── Campos individuales (bmx-sf = bahmni search field) ─────────── */
+.bmx-sf__group {
+  margin-bottom: 14px;
+}
+
+.bmx-sf__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: $bahmniPrimaryColor;
+  margin-bottom: 6px;
+  letter-spacing: .2px;
+
+  i { font-size: 11px; }
+}
+
+.bmx-sf__input-wrap {
+  position: relative;
+  display: block;
+}
+
+.bmx-sf__input {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  color: #111827 !important;
+  background: #f8fafd !important;
+  outline: none !important;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+
+  &:focus {
+    border-color: $bahmniPrimaryColor !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(0, 119, 200, .12) !important;
+  }
+
+  &::placeholder { color: #9ca3af; font-size: 12px; }
+}
+
+/* Fila de campos múltiples (búsqueda por nombre) */
+.bmx-sf__fields-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 4px;
+
+  .bmx-sf__group {
+    flex: 1;
+    min-width: 180px;
+    margin-bottom: 0;
+  }
+}
+
+/* Botón de búsqueda */
+.bmx-sf__btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 22px !important;
+  border: none !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 119, 200, .28);
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s;
+
+  i { font-size: 12px; color: #fff !important; }
+
+  &:hover:not([disabled]) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 119, 200, .38) !important;
+  }
+
+  &[disabled] {
+    opacity: .5 !important;
+    cursor: not-allowed !important;
+    background: #94a3b8 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
+/* ── Mensajes de estado ────────────────────────────────────────── */
+.bmx-search-message {
+  max-width: 1100px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+
+  i { font-size: 16px; flex-shrink: 0; }
+
+  &--warning {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    i { color: #d97706; }
+  }
+
+  &--info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    i { color: #2563eb; }
+  }
+}
+
+/* ── Tabla de resultados ───────────────────────────────────────── */
+.bmx-search-results {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 10px rgba(0,0,0,.05);
+  overflow: hidden;
+}
+
+.bmx-search-results__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+
+  i { color: $bahmniPrimaryColor; font-size: 14px; }
+}
+
+.bmx-search-results__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: $bahmniPrimaryColor;
+  color: #fff !important;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.bmx-search-results__table-wrap {
+  overflow-x: auto;
+}
+
+.bmx-search-results__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr {
+    background: #f1f5f9;
+
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      white-space: nowrap;
+      border: none;
     }
   }
-  .note-container{
-    text-align:left;
-    .note {
-      padding:20px 10px 6px 10px;
-      .text{
-        p{
-          max-width:100%;
-          top:0px;
-          margin-left:0
-        }
-      }
+
+  tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .12s;
+
+    &:hover { background: #f0f7ff; }
+    &:last-child { border-bottom: none; }
+
+    td {
+      padding: 11px 14px;
+      color: #374151;
+      border: none;
+      vertical-align: middle;
     }
   }
 }
-.registraition-search-results-container{
-  padding: 5px;
-  overflow-x: auto;
-  table{
-    margin-top: 20px;
-    font-size: 0.7rem;
-    tr{
-      border: none;
-    }
-    td,th{
-      padding:4px 8px 4px 8px;
-      text-align:left;
-      @media screen and (max-width: 1024px){
-        padding:9px 8px 9px 8px;
-      }
-    }
-    tr:hover{
-      background: $lightestGray;
-    }
-  }
-  .slno_col{
-    width:40px;
-  }
-  .edit-col{
-    width:160px;
-    padding:2px 2px 2px 2px;
-    .split-button ul li button{
-      @media screen and (min-width: 1024px){
-        padding: 5px 20px;
-        margin: 0;
-      }
-    }
-    a{
-      background:url("edit.png") top left no-repeat;
-      width:30px;
-      height:24px;
-      display:inline-block;
-      margin-right:2px;
-      cursor:pointer;
-    }
-    &.visible-small-screen{
-      position: absolute;
-      top: auto;
-      right: 6px;
-      width: 104px;
-      border-bottom: 0;
-      .split-button ul li button{
-        margin-right:0 ;
-        width: 98%;
-      }
-    }
-  }
+
+/* Celda de ID */
+.bmx-search-results__td-id a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: $bahmniPrimaryColor !important;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 12px;
+
+  i { font-size: 10px; }
+
+  &:hover { text-decoration: underline; }
+}
+
+/* Celda de nombre */
+.bmx-search-results__name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.bmx-search-results__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: lighten($bahmniPrimaryColor, 50%);
+  flex-shrink: 0;
+
+  i { font-size: 12px; color: $bahmniPrimaryColor; }
+}
+
+/* Chip de género */
+.bmx-search-results__gender {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+
+  &--m { background: #dbeafe; color: #1d4ed8; }
+  &--f { background: #fce7f3; color: #be185d; }
+}
+
+/* Loader */
+.bmx-search-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  color: $mediumGray;
+  font-size: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+
+  i { font-size: 20px; color: $bahmniPrimaryColor; }
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .bmx-search-page { padding: 16px 12px 32px; }
+  .bmx-sf__fields-row .bmx-sf__group { min-width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bmx-sf__btn,
+  .bmx-sf__input,
+  .bmx-search-results__table tbody tr { transition: none; }
 }

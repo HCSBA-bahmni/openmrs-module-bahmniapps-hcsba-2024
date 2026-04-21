@@ -1,0 +1,411 @@
+/* =================================================================
+   BMX – FORMULARIO REGISTRO / EDICIÓN DE PACIENTE
+   ================================================================= */
+
+// ── Fondo de página ───────────────────────────────────────────────
+.reg-body-wrapper {
+  background: #f0f4f9;
+  min-height: calc(100vh - 64px);
+  padding: 24px 20px 48px;
+}
+
+// ── Contenedor centrado del form ──────────────────────────────────
+.reg-body-wrapper .new-patient,
+.reg-body-wrapper .edit-patient {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+// ── Eliminar estilos heredados del `well` ─────────────────────────
+.reg-body-wrapper .well {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+// ── Cards (box-container) ─────────────────────────────────────────
+.reg-body-wrapper .box-container {
+  background: #fff !important;
+  border-radius: 16px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.05) !important;
+  padding: 24px 32px 28px !important;
+  margin-bottom: 20px !important;
+
+  @media (max-width: 600px) { padding: 16px !important; }
+}
+
+// ── Leyendas de sección ───────────────────────────────────────────
+.reg-body-wrapper legend.registraion_legend {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 0 12px !important;
+  margin-bottom: 20px !important;
+  width: 100%;
+  border-bottom: 2px solid #e5e7eb !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  // Barra de acento
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    min-height: 20px;
+    background: linear-gradient(180deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .mylegend {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+
+    i { color: $bahmniPrimaryColor !important; font-size: 14px; }
+
+    strong, span {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #1f2937 !important;
+    }
+  }
+}
+
+// ── Leyendas colapsables (relaciones, defunción, etc.) ────────────
+.reg-body-wrapper .additional-attribute {
+  background: transparent !important;
+  border: none !important;
+  padding: 10px 0 !important;
+  margin-bottom: 4px !important;
+  width: 100%;
+  border-bottom: 1px solid #f1f5f9 !important;
+  cursor: pointer;
+
+  > span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  i.fa-caret-right,
+  i.fa-caret-down { color: $bahmniPrimaryColor !important; }
+
+  strong a {
+    color: #374151 !important;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none !important;
+    &:hover { color: $bahmniPrimaryColor !important; }
+  }
+}
+
+// ── Filas de campos ───────────────────────────────────────────────
+// Añade separador sutil entre campos dentro de una sección
+.reg-body-wrapper form .form-field,
+.reg-body-wrapper .form-field {
+  padding: 8px 0;
+  border-bottom: 1px solid #f8fafc;
+
+  &:last-child { border-bottom: none; }
+}
+
+// ── Labels ────────────────────────────────────────────────────────
+.reg-body-wrapper .form-field .field-attribute label,
+.reg-body-wrapper form .form-field .field-attribute label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  letter-spacing: .2px;
+  line-height: 1.4;
+}
+
+// Asterisco obligatorio
+.reg-body-wrapper .asterick { color: #dc2626 !important; }
+
+// ── INPUTS: estado normal ─────────────────────────────────────────
+// ⚠ IMPORTANTE: NO usar [ng-disabled] como selector porque el atributo
+//   siempre está en el DOM aunque la expresión evalúe a false.
+//   AngularJS añade [disabled] real cuando ng-disabled es truthy.
+.reg-body-wrapper {
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="email"],
+  textarea {
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    background: #f8fafd !important;
+    font-size: 13px !important;
+    color: #111827 !important;
+    cursor: text;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+
+    &:focus {
+      border-color: $bahmniPrimaryColor !important;
+      background: #fff !important;
+      box-shadow: 0 0 0 3px rgba(0, 119, 200, .12) !important;
+      outline: none !important;
+    }
+
+    // Solo inputs REALMENTE deshabilitados (atributo HTML nativo)
+    &[disabled] {
+      background: #f1f5f9 !important;
+      color: #9ca3af !important;
+      cursor: not-allowed;
+      border-color: #e5e7eb !important;
+      box-shadow: none !important;
+    }
+
+    &::placeholder { color: #9ca3af; font-size: 12px; }
+  }
+
+  // Checkboxes: sin alterar geometría, solo color de acento
+  input[type="checkbox"] {
+    width: auto !important;
+    height: auto !important;
+    cursor: pointer;
+    accent-color: $bahmniPrimaryColor;
+  }
+
+  // ── Selects ─────────────────────────────────────────────────────
+  select {
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 8px 32px 8px 12px !important;
+    background-color: #f8fafd !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+    font-size: 13px !important;
+    color: #111827 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    height: auto !important;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+
+    &:focus {
+      border-color: $bahmniPrimaryColor !important;
+      background-color: #fff !important;
+      box-shadow: 0 0 0 3px rgba(0, 119, 200, .12) !important;
+      outline: none !important;
+    }
+
+    &[disabled] {
+      background-color: #f1f5f9 !important;
+      color: #9ca3af !important;
+      cursor: not-allowed;
+      border-color: #e5e7eb !important;
+    }
+
+    option { color: #111827; background: #fff; }
+  }
+}
+
+// ── Widget de edad (Años / Meses / Días) ──────────────────────────
+.reg-body-wrapper .age-wrapper {
+
+  .age-field { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+
+  .input-prepend {
+    display: inline-flex !important;
+    align-items: stretch;
+    margin: 3px 4px 3px 0 !important;
+
+    .add-on {
+      display: flex;
+      align-items: center;
+      border: 1.5px solid #e2e8f0 !important;
+      border-right: none !important;
+      border-radius: 8px 0 0 8px !important;
+      background: #eef2f9 !important;
+      height: auto !important;
+      padding: 7px 10px !important;
+      font-size: 11px !important;
+      font-weight: 700;
+      color: $bahmniPrimaryColor !important;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    input[type="number"] {
+      border-radius: 0 8px 8px 0 !important;
+      border-left: 1px solid #e2e8f0 !important;
+      min-width: 52px;
+      max-width: 68px;
+    }
+  }
+}
+
+// ── Fecha de nacimiento (DOB) ─────────────────────────────────────
+.reg-body-wrapper .age-wrapper .dob-birthtime-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  input[type="date"] {
+    min-width: 160px;
+  }
+
+  .estimate-check {
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    cursor: pointer;
+  }
+
+  .estimated-label label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #6b7280 !important;
+    width: auto !important;
+    margin-top: 0 !important;
+    cursor: pointer;
+  }
+}
+
+// ── Foto del paciente ─────────────────────────────────────────────
+.reg-body-wrapper .photo-container-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+
+  .photo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    .patient-image {
+      width: 88px !important;
+      max-width: 88px !important;
+      height: 88px !important;
+      border-radius: 50% !important;
+      object-fit: cover;
+      border: 3px solid lighten($bahmniPrimaryColor, 46%);
+      box-shadow: 0 4px 14px rgba(0, 119, 200, .18);
+    }
+  }
+}
+
+// ── Fecha de registro (solo lectura en edición) ───────────────────
+.reg-body-wrapper .uneditable-input.text-only {
+  display: inline-block;
+  padding: 7px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+// ── Barra de botones de acción ─────────────────────────────────────
+.reg-body-wrapper .submit-btn-container {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  padding: 16px 28px;
+  margin-top: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  float: none !important;
+
+  > * {
+    float: none !important;
+    margin: 0 !important;
+  }
+
+  // Botón primario (Confirmar / Entrar visita / Acción config)
+  button.confirm {
+    float: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    padding: 10px 22px !important;
+    margin: 0 !important;
+    background: linear-gradient(135deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    box-shadow: 0 3px 10px rgba(0, 119, 200, .28) !important;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+    i { color: #fff !important; font-size: 12px; }
+
+    &:hover:not([disabled]) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 119, 200, .38) !important;
+    }
+  }
+
+  // Botón secundario (Guardar)
+  button.submit-btn {
+    float: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    padding: 10px 22px !important;
+    margin: 0 !important;
+    background: #fff !important;
+    border: 1.5px solid $bahmniPrimaryColor !important;
+    color: $bahmniPrimaryColor !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    transition: background .15s;
+    i { color: $bahmniPrimaryColor !important; font-size: 12px; }
+
+    &:hover:not([disabled]) {
+      background: lighten($bahmniPrimaryColor, 52%) !important;
+    }
+  }
+
+  // Split-button (Iniciar visita)
+  .split-button { float: none !important; margin: 0 !important; }
+
+  // WhatsApp
+  span img { vertical-align: middle; }
+}
+
+// ── Responsive ────────────────────────────────────────────────────
+@media (max-width: 767px) {
+  .reg-body-wrapper {
+    padding: 16px 12px 40px;
+  }
+  .reg-body-wrapper .submit-btn-container {
+    justify-content: stretch;
+    padding: 12px 16px;
+    button.confirm,
+    button.submit-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reg-body-wrapper input,
+  .reg-body-wrapper select,
+  .reg-body-wrapper .submit-btn-container button { transition: none; }
+}

@@ -26,7 +26,8 @@
         "formsV2React",
         "vacunasReact",
         "ipsReact",
-        "ipsIcvpReact"
+        "ipsIcvpReact",
+        "allOrdersReact"
     ];
 
     var getViewUrl = function (section) {

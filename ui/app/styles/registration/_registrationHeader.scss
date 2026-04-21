@@ -1,192 +1,246 @@
-.reg-header-wrapper {
-    @mixin mobile-header-button {
-        margin-right: 5px;
+/* =================================================================
+   BMX – TOPBAR  (Registro – reutiliza las mismas clases que Home)
+   ================================================================= */
 
-        a {
-            background: linear-gradient(to bottom, $bahmniSecondaryColor, darken($bahmniSecondaryColor, 10%));
-            border: 1px solid darken($bahmniSecondaryColor, 15%);
-            padding: 6px 5px 7px;
-            border-radius: 3px;
-            span {
-                display: none;
-            }
-        }
-    }
+/* ── Neutralizar estilos heredados de bahmni-components/_header.scss ──
+   .header-wrapper { background: $bahmniSecondaryColor; }  ← fondo verde
+   .header-wrapper header { position: relative; max-width: $max-page-width; } ← anula fixed
+   ─────────────────────────────────────────────────────────────────────── */
+.reg-header-wrapper.header-wrapper {
+  height: 64px;           /* Espaciador en el flujo para el topbar fijo */
+  background: transparent !important;  /* Elimina el fondo verde */
+}
 
-    .reg-header {
-        display: flex;
+/* Forzar position:fixed y ancho completo sobre la regla
+   .header-wrapper header { position: relative; max-width: ...; height: 52px; } */
+.reg-header-wrapper.header-wrapper .bmx-homebar {
+  position: fixed !important;
+  max-width: none !important;
+  margin: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 64px !important;
+  box-sizing: border-box !important;
+}
 
-        ul.top-nav {
-            display: flex;
-            flex-grow: 1;
-            align-items: center;
+/* ----------------------------------------------------------------
+   bmx-homebar – copiado de _home.scss para que esté disponible
+   en registration.css (que no importa home.css)
+   ---------------------------------------------------------------- */
+.bmx-homebar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(90deg, $bahmniPrimaryColor 0%, darken($bahmniPrimaryColor, 14%) 100%);
+  box-shadow: 0 2px 14px rgba(0,0,0,.18);
+}
 
-            li {
-                font-size: 14px;
+/* Brand */
+.bmx-homebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.bmx-homebar__logo {
+  height: 36px;
+  max-width: 120px;
+  object-fit: contain;
+}
+.bmx-homebar__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  @media (max-width: 600px) { display: none; }
+}
 
-                i {
-                    padding: 0;
-                }
+/* Controls */
+.bmx-homebar__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-                a {
-                    color: #fff;
-                    font-weight: 700;
-                    cursor: pointer;
-                    text-decoration: none;
-                    display: block;
-                    padding: 0 5px 0 0;
-                }
+/* User dropdown */
+.bmx-homebar__user { position: relative; }
 
-                @media screen and (min-width: 769px) {
-                    font-size: 16px;
+.bmx-homebar__user-btn {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px !important;
+  background: rgba(255,255,255,.15) !important;
+  border: 1px solid rgba(255,255,255,.3) !important;
+  border-radius: 8px !important;
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .2s;
+  &:hover { background: rgba(255,255,255,.26) !important; }
+  &:focus  { outline: none; }
+}
+.bmx-homebar__user-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.22);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  i { font-size: 12px; color: #fff; }
+}
+.bmx-homebar__user-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @media (max-width: 500px) { display: none; }
+}
+.bmx-homebar__user-chevron {
+  font-size: 10px;
+  color: rgba(255,255,255,.7);
+  transition: transform .2s;
+}
+.bmx-homebar__user--open .bmx-homebar__user-chevron { transform: rotate(180deg); }
 
-                    a {
-                        padding: 0 15px 0 0;
-                    }
-                    
-                }
+.bmx-homebar__user-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 398;
+  background: transparent;
+}
+.bmx-homebar__user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 230px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  z-index: 399;
+  color: #374151 !important;
+  font-weight: 400 !important;
+}
+.bmx-homebar__user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, lighten($bahmniPrimaryColor, 50%) 0%, #fff 100%);
+  strong { display: block; font-size: 13px; color: #111827 !important; font-weight: 700; }
+  small  { display: block; font-size: 11px; color: $mediumGray !important; margin-top: 2px; }
+}
+.bmx-homebar__user-info-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: $bahmniPrimaryColor;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  i { font-size: 18px; color: #fff; }
+}
+.bmx-homebar__user-divider { height: 1px; background: #f1f5f9; }
+.bmx-homebar__user-menu { padding: 6px 0; list-style: none; margin: 0; }
+.bmx-homebar__user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #374151 !important;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: background .12s;
 
-                &:first-of-type:not(:only-of-type) {
-                    @media screen and (max-width: 300px) {
-                       @include mobile-header-button; 
-                    }
-                }
-            }
+  i { font-size: 13px; color: $mediumGray !important; width: 14px; text-align: center; }
+  span { color: inherit !important; }
 
-            &.has-print {
-                li:first-of-type:not(:only-of-type) {
-                    @media screen and (max-width: 375px) {
-                       @include mobile-header-button; 
-                    }
-                }
+  &:hover {
+    background: #f8fafc;
+    color: $bahmniPrimaryColor !important;
+    i { color: $bahmniPrimaryColor !important; }
+  }
+  &--danger {
+    color: #dc2626 !important;
+    i { color: #dc2626 !important; }
+    &:hover { background: #fff2f2; color: #b91c1c !important; i { color: #b91c1c !important; } }
+  }
+}
 
-                li {
-                    @media screen and (max-width: 300px) {
-                        @include mobile-header-button;
-                        margin-left: 0;
-                    }
-                }
-            }
-        }
+/* ----------------------------------------------------------------
+   bmx-regbar – adiciones específicas del módulo de registro
+   ---------------------------------------------------------------- */
 
-        .back-btn {
-            margin: 0 5px 0 0;
-        }
+/* Botón "volver al inicio" */
+.bmx-regbar__home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff !important;
+  text-decoration: none !important;
+  flex-shrink: 0;
+  transition: background .2s;
 
-        .btn-user-info {
-            background: inherit;
-            padding: 0;
-            border: none;
-            border-radius: 0;
-            margin: 0;
-            color: $white;
+  i { font-size: 15px; color: #fff !important; }
 
-            @media screen and (min-width: 769px) {
-                background: lighten($bahmniPrimaryColor, 10%);
-                padding: 0 16px;
-            }
+  &:hover { background: rgba(255,255,255,.28); }
+}
 
-            &:focus {
-                outline: 0;
-            }
+/* Navegación central */
+.bmx-regbar__nav { flex: 1; overflow: hidden; margin: 0 16px; }
 
-            i.mini {
-                font-size: .9em;
-            }
+.bmx-regbar__nav-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 
-            &+ul {
-                display: none;
+.bmx-regbar__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: rgba(255,255,255,.85) !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
 
-                &.active {
-                    background: lighten($bahmniPrimaryColor, 10%);
-                    display: block;
-                    position: absolute;
-                    right: 0;
-                    top: 50px;
-                    z-index: 1000;
+  i { font-size: 13px; color: rgba(255,255,255,.75) !important; }
 
-                    @media screen and (max-width: $max-page-width) {
-                        right: 10px;
-                    }
-                }
+  &:hover {
+    background: rgba(255,255,255,.18);
+    color: #fff !important;
+    i { color: #fff !important; }
+  }
+}
 
-                li {
-                    float: left;
-                    clear: both;
-                    text-align: left;
-                    padding-left: 10px;
-                    border-bottom: 1px solid lighten($bahmniPrimaryColor, 10%);
-                    margin: 0;
-                    padding: 10px 10px 10px 5px;
-                    color: $lightGray;
+.bmx-regbar__nav-label {
+  @media (max-width: 768px) { display: none; }
+}
 
-                    a {
-                        color: $white;
-
-                        &.disabled {
-                            color: $lightGray;
-
-                            .fa-user {
-                                color: $lightGray;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        .reg-header-right {
-            display: flex;
-        }
-    }
-
-    .split-button ul {
-        &.hidden-options {
-            @media (max-width: 768px) {
-                width: auto;
-                top: 52px;
-                right: 58px;
-            }
-        }
-
-        li {
-            &.primaryOption {
-                width: auto;
-
-                i {
-                    display: none;
-
-                    @media (max-width: 768px) {
-                        display: inline-block;
-                    }
-                }
-
-                span {
-                    @media (max-width: 768px) {
-                        display: none;
-                    }
-                }
-
-                .buttonClass {
-                    @media (max-width: 768px) {
-                        max-width: 60px;
-                        float: right;
-                        height: 32px;
-                        padding: 0 6px;
-
-                        i.fa-print {
-                            font-size: 23px;
-                            padding-top: 5px;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    .split-button {
-        .toggle-button {
-            padding: 6px 10px;
-        }
-    }
+/* Slot de impresión */
+.bmx-regbar__print-slot {
+  display: flex;
+  align-items: center;
 }

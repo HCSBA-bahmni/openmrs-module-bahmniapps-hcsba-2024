@@ -1,48 +1,74 @@
-<div class="clint-logo-wrapper">
-    <img class="implementor-logo" src={{logo}} >
-    <span ng-if="titleText" class="title_text"> {{'LOGIN_LOCATION_PAGE_TITLE_TEXT' | translate }} </span>
-</div>
+<!-- ============================================================
+     BMX LOGIN LOCATION PAGE – Modern redesign
+     ============================================================ -->
+<div class="bmx-login-page">
 
-<div class="login">
-    <header class="reg-header">
-        <div>{{'LOGIN_LOCATION_PAGE_TITLE_TEXT' | translate}}</div>
-    </header>
-    <form ng-submit="updateSessionLocation()" name="loginLocationForm" bm-form autofillable="true">
-        <div class="login-body">
-            <div class="form-field">
-                <div class="field-attribute">
-                    <label for="location">
-                        {{'LOGIN_LABEL_LOCATION_KEY' | translate}} <span class="asterick">*</span>
-                    </label>
-                </div>
-                <div class="field-value">
-                    <select id="location" ng-model="loginInfo.currentLocation"
-                            ng-options="item as (item.display | translate) for item in locations | orderBy:'display'" required>
-                        <option value="">{{'LOGIN_LABEL_SELECT_LOCATION_KEY' | translate}}</option>
-                    </select>
-                </div>
-            </div>
+  <!-- ── LEFT: brand panel ───────────────────────────────────── -->
+  <div class="bmx-login__brand" aria-hidden="true">
+    <div class="bmx-login__brand-inner">
+      <img class="bmx-login__brand-logo" ng-src="{{logo}}" ng-if="logo" alt="Logo" />
+    </div>
+    <span class="bmx-login__deco bmx-login__deco--1"></span>
+    <span class="bmx-login__deco bmx-login__deco--2"></span>
+    <span class="bmx-login__deco bmx-login__deco--3"></span>
+  </div>
 
-            <div class="form-footer">
-                <button type="submit" class="confirm">{{'LOGIN_LOCATION_SELECTION_LABEL_KEY' | translate}}</button>
-            </div>
+  <!-- ── RIGHT: form panel ────────────────────────────────────── -->
+  <div class="bmx-login__panel">
+
+    <div class="bmx-login__card">
+
+      <div class="bmx-login__card-head">
+        <span class="bmx-login__card-icon"><i class="fa fa-map-marker" aria-hidden="true"></i></span>
+        <h1 class="bmx-login__card-title">{{'LOGIN_LOCATION_PAGE_TITLE_TEXT' | translate}}</h1>
+      </div>
+
+      <form ng-submit="updateSessionLocation()" name="loginLocationForm" bm-form autofillable="true">
+
+        <div class="bmx-login__field bmx-login__field--select">
+          <label class="bmx-login__static-label" for="location">
+            <i class="fa fa-map-marker" aria-hidden="true"></i>
+            {{'LOGIN_LABEL_LOCATION_KEY' | translate}}
+          </label>
+          <div class="bmx-login__select-wrap">
+            <select class="bmx-login__select-native"
+                    id="location"
+                    ng-model="loginInfo.currentLocation"
+                    ng-options="item as (item.display | translate) for item in locations | orderBy:'display'"
+                    required>
+              <option value="">{{'LOGIN_LABEL_SELECT_LOCATION_KEY' | translate}}</option>
+            </select>
+            <i class="fa fa-chevron-down bmx-login__select-chevron" aria-hidden="true"></i>
+          </div>
         </div>
 
-    </form>
+        <button type="submit" class="bmx-login__btn">
+          <span>{{'LOGIN_LOCATION_SELECTION_LABEL_KEY' | translate}}</span>
+          <i class="fa fa-arrow-right" aria-hidden="true"></i>
+        </button>
 
-    <div class="warning-message">
-        <span ng-if="warning"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{warning}}</span>
-        <p>{{warningMessage | translate :timeZoneObject}} </p>
+      </form>
+
+      <!-- timezone warning -->
+      <div class="bmx-login__warning" ng-if="warning">
+        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+        <p>{{warningMessage | translate :timeZoneObject}}</p>
+      </div>
+
+      <!-- bottom logos -->
+      <div class="bmx-login__bottom-logos" ng-show="bottomLogos">
+        <img ng-repeat="logo in bottomLogos" src="{{logo}}" alt="logo">
+      </div>
+
     </div>
 
-    <div ng-show="bottomLogos" class="bottom-logos-wrapper">
-        <img ng-repeat="logo in bottomLogos" id="bottom-logos-image" src={{logo}}>
+    <!-- powered by -->
+    <div class="bmx-login__powered">
+      <img src="./../images/bahmniLogoFull.png" alt="Bahmni" />
+      <a href="{{helpLink}}">Help</a>
     </div>
 
-</div>
+  </div><!-- /panel -->
 
+</div><!-- /bmx-login-page -->
 
-<div class="power-by">
-    <img src="./../images/bahmniLogoFull.png" alt="Bahmni" />
-    <a href={{helpLink}}> HCSBA Help</a>
-</div>

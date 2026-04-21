@@ -82,5 +82,6 @@
   "RESOLVING_ICVP":"Resolving ICVP/DVC...",
   "SHARE_ICVP":"Share ICVP",
   "EMITTING_ICVP":"Issuing ICVP...",
-  "COPY_ICVP":"Copy code"
+  "COPY_ICVP":"Copy code",
+  "DASHBOARD_TITLE_ALL_ORDERS_KEY": "Patient Orders"
 }
