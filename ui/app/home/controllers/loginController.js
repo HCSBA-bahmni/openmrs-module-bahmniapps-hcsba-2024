@@ -104,15 +104,54 @@ angular.module('bahmni.home')
             }
 
             var redirectToLandingPageIfAlreadyAuthenticated = function () {
-                sessionService.get().then(function (data) {
+                sessionService.get().then(function (response) {
+                    var data = response.data || response;
                     if (data.authenticated) {
                         $location.path(landingPagePath);
                     }
                 });
             };
 
+            var rememberLocalReturnUrl = function () {
+                var returnUrl = angular.isString(redirectUrl) ? redirectUrl : '/home';
+                if (!returnUrl.startsWith('/') || returnUrl.startsWith('//') || returnUrl.indexOf('\\') !== -1) {
+                    returnUrl = '/home';
+                }
+                if (returnUrl.startsWith('/bahmni/')) {
+                    returnUrl = returnUrl.substring('/bahmni'.length);
+                }
+                $window.sessionStorage.setItem('bahmni.auth.keycloak.returnUrl', returnUrl);
+            };
+
+            var redirectToConfiguredAuthentication = function () {
+                if (!$window.fetch) {
+                    redirectToLandingPageIfAlreadyAuthenticated();
+                    return;
+                }
+                $window.fetch('/bahmni/api/runtime-config', {credentials: 'include', cache: 'no-store'})
+                    .then(function (response) { return response.ok ? response.json() : {}; })
+                    .then(function (runtimeConfig) {
+                        if (runtimeConfig.authMode !== 'keycloak') {
+                            redirectToLandingPageIfAlreadyAuthenticated();
+                            return;
+                        }
+                        sessionService.get().then(function (response) {
+                            var data = response.data || response;
+                            if (data.authenticated) {
+                                $location.path(landingPagePath);
+                                return;
+                            }
+                            rememberLocalReturnUrl();
+                            // OAuth must be a top-level navigation. An XHR would trap the
+                            // OpenMRS -> Keycloak redirect and fail because of CORS.
+                            $window.location = '/openmrs/oauth2login';
+                        });
+                    })
+                    .catch(redirectToLandingPageIfAlreadyAuthenticated);
+            };
+
             if ($location.path() === loginPagePath) {
-                redirectToLandingPageIfAlreadyAuthenticated();
+                redirectToConfiguredAuthentication();
             }
             var onSuccessfulAuthentication = function () {
                 $bahmniCookieStore.remove(Bahmni.Common.Constants.retrospectiveEntryEncounterDateCookieName, {

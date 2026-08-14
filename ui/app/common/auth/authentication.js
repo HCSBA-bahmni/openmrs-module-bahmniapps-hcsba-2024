@@ -228,10 +228,26 @@ angular.module('authentication')
             authenticateUser: authenticateUser
         };
     }]).directive('logOut', ['$rootScope', 'sessionService', '$window', 'configurationService', 'auditLogService', function ($rootScope, sessionService, $window, configurationService, auditLogService) {
+        function keycloakMode () {
+            if (!$window.fetch) return Promise.resolve(false);
+            return $window.fetch('/bahmni/api/runtime-config', {credentials: 'include', cache: 'no-store'})
+                .then(function (response) { return response.ok ? response.json() : {}; })
+                .then(function (runtimeConfig) { return runtimeConfig.authMode === 'keycloak'; })
+                .catch(function () { return false; });
+        }
+
         function logoutUser () {
             auditLogService.log(undefined, 'USER_LOGOUT_SUCCESS', undefined, 'MODULE_LABEL_LOGOUT_KEY').then(function () {
-                sessionService.destroy().then(function () {
-                    $window.location = "../home/index.html#/login";
+                keycloakMode().then(function (delegated) {
+                    if (delegated) {
+                        // The OpenMRS OAuth2 logout endpoint invalidates JSESSIONID and
+                        // then performs Keycloak RP-initiated logout.
+                        $window.location = '/openmrs/oauth2logout';
+                        return;
+                    }
+                    sessionService.destroy().then(function () {
+                        $window.location = "../home/index.html#/login";
+                    });
                 });
             });
         }
