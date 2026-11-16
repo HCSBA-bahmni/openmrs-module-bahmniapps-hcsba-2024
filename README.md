@@ -108,3 +108,7 @@ This behaviour can be prevented by:
 ### SNOMED Integration Support
 
 openmrs-module-bahmniapps also integrates with SNOMED for terminology lookup and CDSS. More details can be found in [this](https://bahmni.atlassian.net/wiki/spaces/BAH/pages/3132686337/SNOMED+FHIR+Terminology+Server+Integration+with+Bahmni) Wiki link
+
+## QA compartido del HIS HCSBA
+
+El paquete [his-qa-release](skills/his-qa-release/SKILL.md) incluye el flujo PRE/POST, referencias y plantillas para QA de desarrollos y entregas a `.225`. Consultar la [guía para contribuyentes](skills/his-qa-release/references/contributors.md) para instalar la skill completa y ejecutar el harness mantenido en `bahmni-nextjs-hcsba`. Conservar informes y datos de prueba en una carpeta privada fuera de Git.
